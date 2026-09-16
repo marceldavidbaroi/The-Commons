@@ -1,0 +1,408 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+
+  /* Brand Palette Tokens */
+  --color-brand-primary: #3368A0;
+  --color-brand-secondary: #66A3BF;
+  --color-brand-accent: #C8DFDB;
+  --color-brand-surface: #F2EFE7;
+  --color-brand-dark: #1E2D3D;
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* Warm minimal palette based on #F2EFE7, #3368A0, #66A3BF, #C8DFDB */
+  --background: #FAF8F5;
+  --foreground: #1E293B;
+  --card: #FFFFFF;
+  --card-foreground: #1E293B;
+  --popover: #FFFFFF;
+  --popover-foreground: #1E293B;
+  --primary: #3368A0;
+  --primary-foreground: #FFFFFF;
+  --secondary: #E9F1F4;
+  --secondary-foreground: #22476B;
+  --muted: #F2EFE7;
+  --muted-foreground: #627282;
+  --accent: #C8DFDB;
+  --accent-foreground: #193836;
+  --destructive: #D94A4A;
+  --border: #E5E1D8;
+  --input: #DDD7CA;
+  --ring: #3368A0;
+  --chart-1: #3368A0;
+  --chart-2: #66A3BF;
+  --chart-3: #C8DFDB;
+  --chart-4: #8CA39E;
+  --chart-5: #1E2D3D;
+  --radius: 0.75rem;
+  --sidebar: #F2EFE7;
+  --sidebar-foreground: #1E293B;
+  --sidebar-primary: #3368A0;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #E2DDD3;
+  --sidebar-accent-foreground: #1E293B;
+  --sidebar-border: #E5E1D8;
+  --sidebar-ring: #3368A0;
+}
+
+.dark {
+  --background: #0F1722;
+  --foreground: #F2EFE7;
+  --card: #152232;
+  --card-foreground: #F2EFE7;
+  --popover: #152232;
+  --popover-foreground: #F2EFE7;
+  --primary: #66A3BF;
+  --primary-foreground: #0A1420;
+  --secondary: #1F3347;
+  --secondary-foreground: #E0EFF6;
+  --muted: #1B293A;
+  --muted-foreground: #94A8BA;
+  --accent: #1C3837;
+  --accent-foreground: #C8DFDB;
+  --destructive: #F87171;
+  --border: #23364A;
+  --input: #23364A;
+  --ring: #66A3BF;
+  --chart-1: #66A3BF;
+  --chart-2: #3368A0;
+  --chart-3: #C8DFDB;
+  --chart-4: #4B7894;
+  --chart-5: #9CBBC9;
+  --sidebar: #111C2B;
+  --sidebar-foreground: #F2EFE7;
+  --sidebar-primary: #66A3BF;
+  --sidebar-primary-foreground: #0A1420;
+  --sidebar-accent: #1B293A;
+  --sidebar-accent-foreground: #F2EFE7;
+  --sidebar-border: #23364A;
+  --sidebar-ring: #66A3BF;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground transition-colors duration-200 antialiased selection:bg-[#C8DFDB] selection:text-[#193836];
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+/* ==========================================================================
+   1. BASE DESIGN SYSTEM: MAGAZINE & EDITORIAL BROADSIDE
+   Philosophy: AVOID CARDS. Structure content with columnar grids, hairline
+   dividers, mastheads, kicker labels, drop-caps, and refined typography.
+   ========================================================================== */
+
+/* Editorial Typography */
+.font-editorial {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+}
+
+.font-serif {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+/* Lead Editorial Drop Cap */
+.drop-cap::first-letter {
+  float: left;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 3.4rem;
+  line-height: 0.8;
+  padding-top: 4px;
+  padding-right: 10px;
+  padding-bottom: 2px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.dark .drop-cap::first-letter {
+  color: var(--primary);
+}
+
+/* Magazine Kicker (Section Header Tag) */
+.kicker {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+/* Masthead Header Styling */
+.masthead-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  font-weight: 800;
+}
+
+/* Publication Folio Line (Date, Volume, Issue Metadata) */
+.folio-bar {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Hairline Editorial Rules (Alternative to Card Boxes) */
+.editorial-rule {
+  border-top: 1px solid var(--border);
+}
+
+.editorial-rule-thick {
+  border-top: 2px solid currentColor;
+}
+
+.editorial-rule-double {
+  border-top: 3px double var(--border);
+}
+
+.editorial-rule-dashed {
+  border-top: 1px dashed var(--border);
+}
+
+/* Column Vertical Rules */
+.column-rule {
+  border-right: 1px solid var(--border);
+}
+
+/* Pull Quote (Editorial Magazine Block) */
+.pull-quote {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  position: relative;
+  padding-left: 1.5rem;
+  border-left: 2px solid var(--primary);
+}
+
+/* ==========================================================================
+   2. FEATURE-SCOPED DESIGN SYSTEM: DAILY DIARY (TACTILE PAPER & INK)
+   Bespoke tactile sub-system for analog journaling, aged parchment, walnut ink,
+   and deckled paper edges.
+   ========================================================================== */
+
+/* Vintage Book & Handwriting Utilities */
+.font-handwriting {
+  font-family: 'Caveat', 'Kalam', cursive, sans-serif;
+}
+
+.font-kalam {
+  font-family: 'Kalam', cursive, sans-serif;
+}
+
+.font-vintage {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.font-stamp {
+  font-family: 'Cinzel', serif;
+}
+
+/* Realistic Old Ruled Journal Paper */
+.ruled-lines-bg {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 31px,
+    rgba(178, 163, 142, 0.25) 31px,
+    rgba(178, 163, 142, 0.25) 32px
+  );
+  line-height: 32px;
+}
+
+.dark .ruled-lines-bg {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 31px,
+    rgba(70, 90, 115, 0.3) 31px,
+    rgba(70, 90, 115, 0.3) 32px
+  );
+  line-height: 32px;
+}
+
+/* Aged Parchment & Antique Old Paper Page Backgrounds */
+.old-paper-bg {
+  background-color: #F4EAD4;
+  background-image: 
+    radial-gradient(ellipse at 15% 15%, rgba(197, 160, 114, 0.45) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 85%, rgba(184, 140, 92, 0.45) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 10%, rgba(215, 185, 145, 0.35) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 90%, rgba(190, 150, 105, 0.4) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 50%, rgba(254, 250, 240, 0.95) 0%, rgba(243, 231, 209, 0.85) 65%, rgba(214, 186, 149, 0.95) 100%),
+    repeating-radial-gradient(circle at 35% 45%, rgba(165, 125, 75, 0.04) 0px, transparent 6px, rgba(195, 160, 115, 0.03) 14px);
+  box-shadow: 
+    inset 0 0 35px rgba(130, 85, 45, 0.22),
+    inset 0 0 12px rgba(95, 55, 25, 0.32);
+}
+
+.dark .old-paper-bg {
+  background-color: #162230;
+  background-image: 
+    radial-gradient(ellipse at 18% 18%, rgba(42, 65, 92, 0.6) 0%, transparent 50%),
+    radial-gradient(ellipse at 82% 82%, rgba(28, 46, 66, 0.7) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, #192736 0%, #131F2C 70%, #0D1620 100%);
+  box-shadow: 
+    inset 0 0 45px rgba(5, 10, 18, 0.65),
+    inset 0 0 15px rgba(0, 0, 0, 0.8);
+}
+
+.parchment-left {
+  background-color: #F4EAD4;
+  background-image: 
+    radial-gradient(ellipse at 15% 15%, rgba(197, 160, 114, 0.45) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 85%, rgba(184, 140, 92, 0.45) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(254, 250, 240, 0.95) 0%, rgba(243, 231, 209, 0.85) 65%, rgba(214, 186, 149, 0.95) 100%);
+  box-shadow: 
+    inset 0 0 35px rgba(130, 85, 45, 0.22),
+    inset 0 0 12px rgba(95, 55, 25, 0.32);
+}
+
+.parchment-right {
+  background-color: #F4EAD4;
+  background-image: 
+    radial-gradient(ellipse at 85% 15%, rgba(197, 160, 114, 0.45) 0%, transparent 45%),
+    radial-gradient(ellipse at 15% 85%, rgba(184, 140, 92, 0.45) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(254, 250, 240, 0.95) 0%, rgba(243, 231, 209, 0.85) 65%, rgba(214, 186, 149, 0.95) 100%);
+  box-shadow: 
+    inset 0 0 35px rgba(130, 85, 45, 0.22),
+    inset 0 0 12px rgba(95, 55, 25, 0.32);
+}
+
+.dark .parchment-left, .dark .parchment-right {
+  background-color: #162230;
+  background-image: 
+    radial-gradient(ellipse at 50% 50%, #192736 0%, #131F2C 70%, #0D1620 100%);
+  box-shadow: 
+    inset 0 0 45px rgba(5, 10, 18, 0.65),
+    inset 0 0 15px rgba(0, 0, 0, 0.8);
+}
+
+/* Hand-drawn ink circle stroke */
+.hand-circle {
+  border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
+}
+
+.hand-box {
+  border-radius: 255px 25px 225px 25px/25px 225px 25px 255px;
+}
+
+/* Torn Paper Edge Styles (Jagged organic tear for buttons and chips) */
+.torn-paper {
+  clip-path: polygon(
+    0% 2px, 4% 0px, 9% 3px, 15% 1px, 22% 3px, 28% 0px, 35% 3px, 42% 1px, 
+    50% 3px, 58% 0px, 65% 2px, 72% 0px, 80% 3px, 88% 1px, 95% 3px, 100% 1px,
+    100% calc(100% - 2px), 96% 100%, 91% calc(100% - 3px), 84% calc(100% - 1px),
+    77% calc(100% - 3px), 70% 100%, 63% calc(100% - 2px), 55% calc(100% - 4px),
+    48% calc(100% - 1px), 40% 100%, 33% calc(100% - 3px), 25% calc(100% - 1px),
+    18% calc(100% - 3px), 10% 100%, 5% calc(100% - 2px), 0% calc(100% - 3px)
+  );
+}
+
+.torn-paper-vertical {
+  clip-path: polygon(
+    2px 0%, 0px 5%, 3px 12%, 1px 20%, 4px 28%, 0px 36%, 3px 45%, 1px 54%, 
+    3px 63%, 0px 72%, 4px 81%, 1px 90%, 3px 96%, 1px 100%,
+    calc(100% - 2px) 100%, 100% 95%, calc(100% - 3px) 88%, calc(100% - 1px) 79%,
+    calc(100% - 4px) 70%, 100% 61%, calc(100% - 2px) 52%, calc(100% - 4px) 43%,
+    calc(100% - 1px) 34%, 100% 25%, calc(100% - 3px) 16%, calc(100% - 1px) 8%, calc(100% - 3px) 0%
+  );
+}
+
+/* Full Torn Parchment Page Sheet (Subtle, straight rectilinear deckled edge with realistic fine paper tears) */
+.torn-parchment-sheet {
+  clip-path: polygon(
+    /* Top Edge: fine micro-deckle */
+    0% 2px, 3% 1px, 6% 3px, 10% 0px, 14% 2px, 18% 1px, 22% 3px, 27% 1px,
+    32% 2px, 37% 0px, 42% 2px, 47% 1px, 52% 3px, 57% 1px, 62% 2px, 67% 0px,
+    72% 2px, 77% 1px, 82% 3px, 87% 1px, 92% 2px, 96% 0px, 98% 2px, 100% 1px,
+    
+    /* Right Edge: fine micro-deckle */
+    calc(100% - 1px) 3%, calc(100% - 3px) 7%, calc(100% - 1px) 12%, calc(100% - 2px) 17%,
+    calc(100% - 0px) 22%, calc(100% - 3px) 28%, calc(100% - 1px) 34%, calc(100% - 2px) 40%,
+    calc(100% - 3px) 46%, calc(100% - 1px) 52%, calc(100% - 2px) 58%, calc(100% - 0px) 64%,
+    calc(100% - 3px) 70%, calc(100% - 1px) 76%, calc(100% - 2px) 82%, calc(100% - 3px) 88%,
+    calc(100% - 1px) 94%, calc(100% - 2px) 98%, 100% 100%,
+    
+    /* Bottom Edge: fine micro-deckle */
+    98% calc(100% - 2px), 95% calc(100% - 1px), 91% calc(100% - 3px), 86% calc(100% - 0px),
+    81% calc(100% - 2px), 76% calc(100% - 1px), 71% calc(100% - 3px), 66% calc(100% - 1px),
+    61% calc(100% - 2px), 56% calc(100% - 0px), 51% calc(100% - 3px), 46% calc(100% - 1px),
+    41% calc(100% - 2px), 36% calc(100% - 1px), 31% calc(100% - 3px), 26% calc(100% - 0px),
+    21% calc(100% - 2px), 16% calc(100% - 1px), 11% calc(100% - 3px), 6% calc(100% - 1px),
+    3% calc(100% - 2px), 0% calc(100% - 1px),
+    
+    /* Left Edge: fine micro-deckle */
+    2px 97%, 1px 92%, 3px 87%, 0px 82%, 2px 76%, 1px 70%, 3px 64%,
+    1px 58%, 2px 52%, 0px 46%, 3px 40%, 1px 34%, 2px 28%, 0px 22%,
+    3px 16%, 1px 10%, 2px 5%, 1px 0%
+  );
+}
+
+.torn-sheet-shadow {
+  filter: 
+    drop-shadow(0px 18px 26px rgba(50, 32, 16, 0.28))
+    drop-shadow(0px 6px 12px rgba(50, 32, 16, 0.18))
+    drop-shadow(0px 2px 4px rgba(50, 32, 16, 0.12));
+}
+
+.dark .torn-sheet-shadow {
+  filter: 
+    drop-shadow(0px 18px 30px rgba(0, 0, 0, 0.8)) 
+    drop-shadow(0px 6px 14px rgba(0, 0, 0, 0.5))
+    drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.4));
+}
