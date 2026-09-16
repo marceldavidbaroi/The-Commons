@@ -1,17 +1,20 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { 
   ArrowLeft, 
   ShieldCheck, 
   RefreshCw,
   Calendar,
   Lock,
+  AlertCircle
 } from "lucide-react";
 import { CommonsSealVector } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { useGoogleSignInMutation } from "@/hooks/queries/use-auth";
+import { useAuthStore } from "@/stores/auth-store";
 
 /* ==========================================================================
    OFFICIAL GOOGLE SVG VECTOR
@@ -39,16 +42,28 @@ function GoogleIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
-export default function LoginPage() {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
+function LoginForm() {
+  const searchParams = useSearchParams();
+  const authError = useAuthStore((state) => state.authError);
+  const setAuthError = useAuthStore((state) => state.setAuthError);
+  const { mutate: signInWithGoogle, isPending: isMutating } = useGoogleSignInMutation();
 
-  // Direct navigation to home on click
+  const [urlError] = useState<string | null>(() => {
+    const errorParam = searchParams.get("error");
+    if (errorParam === "auth_exchange_failed") {
+      return "Authentication verification failed or session expired. Please attempt sign-in again.";
+    }
+    if (errorParam) {
+      return `Authentication error: ${errorParam}`;
+    }
+    return null;
+  });
+
+  const activeErrorMessage = authError || urlError;
+
   const handleGoogleSignIn = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      router.push("/home");
-    }, 200);
+    const redirectTarget = searchParams.get("redirect") || searchParams.get("next") || "/home";
+    signInWithGoogle({ redirectTo: redirectTarget });
   };
 
   const currentDate = new Date().toLocaleDateString("en-US", {
@@ -128,15 +143,26 @@ export default function LoginPage() {
             </p>
           </div>
 
+          {/* Error Notice Display */}
+          {activeErrorMessage && (
+            <div className="max-w-md mx-auto p-3.5 border border-destructive/40 bg-destructive/10 text-destructive text-xs font-mono flex items-start gap-2.5">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <span className="font-bold uppercase tracking-wider block">DISPATCH NOTICE</span>
+                <span>{activeErrorMessage}</span>
+              </div>
+            </div>
+          )}
+
           {/* Big, Unmistakable Google Login Button */}
           <div className="max-w-md mx-auto space-y-4 pt-2">
             <Button
               type="button"
               onClick={handleGoogleSignIn}
-              disabled={isLoading}
+              disabled={isMutating}
               className="w-full h-14 bg-card hover:bg-muted text-foreground border-2 border-[#3368A0] dark:border-[#66A3BF] rounded-none font-serif text-base font-semibold tracking-wide gap-3.5 cursor-pointer shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0"
             >
-              {isLoading ? (
+              {isMutating ? (
                 <>
                   <RefreshCw className="h-5 w-5 animate-spin text-[#3368A0]" />
                   <span>Entering Citizen Ledger...</span>
@@ -199,5 +225,20 @@ export default function LoginPage() {
       </footer>
 
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex items-center gap-2 text-muted-foreground font-mono text-xs">
+          <RefreshCw className="h-4 w-4 animate-spin text-[#3368A0]" />
+          <span>LOADING CITIZEN ACCESS DESK...</span>
+        </div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

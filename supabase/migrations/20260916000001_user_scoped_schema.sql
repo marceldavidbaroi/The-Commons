@@ -1,6 +1,6 @@
 -- Migration: User-Scoped Profiles, Items & Sorting Functions
 
--- 1. Profiles Table
+-- 1. Ensure Profiles Table & Columns Exist
 create table if not exists public.profiles (
   id uuid references auth.users(id) on delete cascade primary key,
   email text not null,
@@ -31,6 +31,19 @@ create table if not exists public.profiles (
   updated_at timestamptz not null default now()
 );
 
+-- Safely add missing columns to profiles if the table was created by a previous migration
+alter table public.profiles add column if not exists role text not null default 'member' check (role in ('admin', 'member', 'guest'));
+alter table public.profiles add column if not exists sort_preferences jsonb not null default jsonb_build_object(
+  'default_sort_by', 'created_at',
+  'default_sort_order', 'desc',
+  'filter_favorites_first', true
+);
+alter table public.profiles add column if not exists display_settings jsonb not null default jsonb_build_object(
+  'theme', 'system',
+  'density', 'comfortable',
+  'view_mode', 'grid'
+);
+
 -- 2. User-Scoped Items Table
 create table if not exists public.user_items (
   id uuid primary key default gen_random_uuid(),
@@ -51,6 +64,19 @@ create table if not exists public.user_items (
 -- 3. Row Level Security (RLS)
 alter table public.profiles enable row level security;
 alter table public.user_items enable row level security;
+
+-- Drop old / existing policies before recreating to avoid duplicate name errors
+drop policy if exists "Users can view own profile" on public.profiles;
+drop policy if exists "Users can view their own profile" on public.profiles;
+drop policy if exists "Users can update own profile" on public.profiles;
+drop policy if exists "Users can update their own profile" on public.profiles;
+drop policy if exists "Users can insert own profile" on public.profiles;
+drop policy if exists "Users can insert their own profile" on public.profiles;
+
+drop policy if exists "Users can view their own items" on public.user_items;
+drop policy if exists "Users can insert their own items" on public.user_items;
+drop policy if exists "Users can update their own items" on public.user_items;
+drop policy if exists "Users can delete their own items" on public.user_items;
 
 create policy "Users can view own profile"
   on public.profiles for select

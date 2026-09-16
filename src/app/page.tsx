@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { CommonsSealVector, CommonsLogo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { CitizenStatus } from "@/components/brand/citizen-status";
 
 export const metadata = {
   title: "The Commons — A Tactile Digital Sanctuary & Editorial Broadside",
@@ -66,14 +67,7 @@ export default function LandingPage() {
               {todayDate}
             </span>
             <span className="text-border">|</span>
-            <Link 
-              href="/login" 
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#3368A0] text-white hover:bg-[#285380] font-serif text-xs transition-colors shadow-xs"
-            >
-              <GoogleIcon className="h-3 w-3" />
-              <span>Enter Sanctuary</span>
-              <ArrowRight className="h-2.5 w-2.5" />
-            </Link>
+            <CitizenStatus />
           </div>
         </div>
       </header>

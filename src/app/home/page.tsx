@@ -13,6 +13,7 @@ import {
   UserCheck
 } from "lucide-react";
 import { CommonsSealVector, CommonsLogo } from "@/components/brand/logo";
+import { CitizenStatus } from "@/components/brand/citizen-status";
 
 export const metadata = {
   title: "The Commons — Citizen Broadside & Feature Directory",
@@ -195,13 +196,7 @@ export default function HomePage() {
               {todayDate}
             </span>
             <span className="text-border">|</span>
-            <Link 
-              href="/login" 
-              className="text-[#3368A0] dark:text-[#66A3BF] font-semibold hover:underline flex items-center gap-1"
-            >
-              <UserCheck className="h-3.5 w-3.5" />
-              <span>CITIZEN PASSPORT</span>
-            </Link>
+            <CitizenStatus />
           </div>
         </div>
       </header>

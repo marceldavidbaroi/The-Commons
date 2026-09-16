@@ -11,19 +11,24 @@ Rather than utilizing generic floating modal boxes, the `/login` portal is desig
 
 ---
 
-## 2. Authentication Protocol
+## 2. Authentication Protocol & State Architecture
 
-The login flow is streamlined to **Google OAuth 2.0**:
-- **One-Click Authorization**: Prominent, dignified broadside action initiating Google authentication via `supabase.auth.signInWithOAuth({ provider: 'google' })`.
+The authentication system combines **Supabase Auth** with **TanStack Query** mutations and **Zustand** client state:
+- **One-Click Authorization**: Initiated via the `useGoogleSignInMutation()` TanStack Query hook, which calls `supabase.auth.signInWithOAuth({ provider: 'google' })`.
+- **Reactive Auth Store**: `useAuthStore` (Zustand) tracks authenticated citizen records, active profile, clearance loading flags, and error dispatches.
 - **Session Code Exchange**: Handled securely via the server route [`src/app/auth/callback/route.ts`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/app/auth/callback/route.ts).
 - **PostgreSQL Row-Level Security**: Automatically isolates all user diaries, monographs, and vault items to the authenticated `auth.uid()`.
-- **Encrypted Session**: Session tokens stored and managed securely across SSR middleware.
+- **Session Listener & Sync**: `useUserSession()` subscribes to `supabase.auth.onAuthStateChange` to keep TanStack Query cache and Zustand state in sync.
+- **Citizen Status Indicator**: [`src/components/brand/citizen-status.tsx`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/components/brand/citizen-status.tsx) displays live clearance status and sign-out controls across headers.
 
 ---
 
 ## 3. Key Files & Routes
 
-- **[`src/app/login/page.tsx`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/app/login/page.tsx)**: Main editorial broadside login page.
+- **[`src/app/login/page.tsx`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/app/login/page.tsx)**: Main editorial broadside login page powered by `useGoogleSignInMutation()` and `useAuthStore`.
+- **[`src/hooks/queries/use-auth.ts`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/hooks/queries/use-auth.ts)**: TanStack Query hooks (`useUserSession`, `useUserProfile`, `useGoogleSignInMutation`, `useSignOutMutation`).
+- **[`src/stores/auth-store.ts`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/stores/auth-store.ts)**: Zustand auth state and error dispatch store.
+- **[`src/components/brand/citizen-status.tsx`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/components/brand/citizen-status.tsx)**: Reactive citizen clearance indicator and sign-out button.
 - **[`src/app/auth/callback/route.ts`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/app/auth/callback/route.ts)**: Next.js Route Handler for Supabase session code exchange.
 - **[`src/lib/supabase/client.ts`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/lib/supabase/client.ts)**: Browser client initialization.
 - **[`src/lib/supabase/middleware.ts`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/lib/supabase/middleware.ts)**: Session validation & edge route protection.

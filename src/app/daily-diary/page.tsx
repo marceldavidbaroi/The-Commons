@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CommonsSealVector } from "@/components/brand/logo";
+import { CitizenStatus } from "@/components/brand/citizen-status";
+import { useDiaryStore } from "@/stores/diary-store";
 
 interface DiaryEntry {
   pageNumber: number;
@@ -231,7 +233,8 @@ export default function DailyDiarySinglePage() {
   const [entryIndex, setEntryIndex] = useState(0);
   const [entries, setEntries] = useState<DiaryEntry[]>(INITIAL_ENTRIES);
   const [isSaved, setIsSaved] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const searchQuery = useDiaryStore((s) => s.searchQuery);
+  const setSearchQuery = useDiaryStore((s) => s.setSearchQuery);
   const [filterMood, setFilterMood] = useState<string>("all");
 
   const currentEntry = entries[entryIndex] || entries[0];
@@ -496,6 +499,9 @@ export default function DailyDiarySinglePage() {
                 </>
               )}
             </Button>
+
+            <span className="text-[#C2B59C] dark:text-[#223348] text-xs">|</span>
+            <CitizenStatus compact />
 
           </div>
         </div>

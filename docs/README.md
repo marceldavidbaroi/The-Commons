@@ -14,6 +14,7 @@ Welcome to the documentation for **The Commons**. This directory serves as the s
 - [**Environment & Local Stack**](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/environment-management.md) — Switching between local Docker and production Supabase via pnpm scripts.
 
 ### 2. [Architecture & Database](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/architecture)
+- [**State Management & Data Fetching**](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/architecture/state-management.md) — Server state synchronization with **TanStack Query (v5)** and reactive client stores with **Zustand (v5)**.
 - [**Database Conventions & Schema Structure**](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/architecture/database-conventions.md) — Declarative schema folders (`tables/`, `rpc/`, `policies/`, `triggers/`, `indexes/`), RLS guidelines, and migrations.
 
 ---

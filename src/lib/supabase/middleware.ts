@@ -27,9 +27,10 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // Fetch session claims
-  const { data } = await supabase.auth.getClaims()
-  const user = data?.claims
+  // Validate user session
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
 
