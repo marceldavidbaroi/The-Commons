@@ -1,0 +1,14 @@
+<svg width="32" height="32" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="favShine" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#66A3BF" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#3368A0" stop-opacity="0.1" />
+    </radialGradient>
+  </defs>
+  <circle cx="80" cy="80" r="74" stroke="#3368A0" stroke-width="2" stroke-dasharray="4 3" />
+  <circle cx="80" cy="80" r="62" fill="url(#favShine)" stroke="#3368A0" stroke-width="2.5" />
+  <circle cx="80" cy="80" r="34" stroke="#3368A0" stroke-width="1.5" opacity="0.6" />
+  <polygon points="80,50 88,72 110,80 88,88 80,110 72,88 50,80 72,72" fill="#3368A0" />
+  <polygon points="80,62 84,76 98,80 84,84 80,98 76,84 62,80 76,76" fill="#FFFFFF" />
+  <circle cx="80" cy="80" r="4" fill="#8C3A27" />
+</svg>

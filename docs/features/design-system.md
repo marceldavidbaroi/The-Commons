@@ -37,7 +37,19 @@ While the base application establishes the editorial shell and typography rules,
 
 ---
 
-## 3. Brand & Feature Design Tokens
+## 3. Brand Identity & Official Emblem
+
+The official emblem of **The Commons** is the **Archival Seal & Heraldic Compass**:
+
+- **Embossed Broadside Outer Ring**: Concentric hairline dashed rings with a subtle oceanic gradient wash.
+- **Latin Archival Inscription**: `THE COMMONS ARCHIVE` (top arc) and `LITTERA SCRIPTA MANET` (bottom arc: *"The written letter remains"*).
+- **Heraldic 4-Point Star Compass**: Inlaid geometry in Oceanic Slate (`#3368A0`) and Ceramic White with a center Terracotta Wax dot (`#8C3A27`).
+- **Reusable Component**: Available across the application as [`<CommonsLogo />`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/components/brand/logo.tsx) with `horizontal`, `stacked`, `seal`, and `mark` variants.
+- **Asset Files**: Provided as vector SVG at [`public/logo.svg`](file:///Users/daviditc/Documents/personal_projects/The-Commons/public/logo.svg) and standard browser tab favicon at [`src/app/icon.svg`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/app/icon.svg).
+
+---
+
+## 4. Brand & Feature Design Tokens
 
 ### A. Base Magazine Tokens
 

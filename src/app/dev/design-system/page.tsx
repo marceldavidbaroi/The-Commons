@@ -9,8 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { CommonsLogo, CommonsSealVector } from "@/components/brand/logo";
 import {
   Check,
+  CheckCircle2,
   Copy,
   Layers,
   Palette,
@@ -18,24 +20,16 @@ import {
   Sparkles,
   Search,
   ArrowRight,
-  ShieldCheck,
-  CheckCircle2,
-  AlertCircle,
   Sliders,
   Sun,
   Moon,
   ExternalLink,
   BookOpen,
-  Feather,
-  PenTool,
-  Code2,
   Atom,
-  Heart,
-  User,
-  Settings,
   Smartphone,
   Tablet,
-  Monitor
+  Monitor,
+  Stamp
 } from "lucide-react";
 
 interface ColorSwatch {
@@ -235,21 +229,10 @@ export default function DesignSystemPage() {
     <div className={`min-h-screen ${isDarkMode ? "dark bg-[#0F1722]" : "bg-[#FAF8F5]"} text-foreground transition-colors duration-300 font-sans`}>
       
       {/* Top Application Bar */}
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-background/80 border-b border-border px-6 py-4">
+      <header className="sticky top-0 z-50 backdrop-blur-md bg-background/80 border-b border-border px-6 py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-[#3368A0] text-white flex items-center justify-center font-bold text-lg shadow-sm">
-              C
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base font-bold tracking-tight">The Commons</h1>
-                <Badge variant="outline" className="text-[11px] border-[#66A3BF]/40 text-[#3368A0] dark:text-[#66A3BF] font-mono">
-                  v1.2 Design System
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground">Tokens, Components & Feature Architecture</p>
-            </div>
+            <CommonsLogo variant="horizontal" size="sm" href="/" subtitle="DESIGN SYSTEM CODEX" showFolio />
           </div>
 
           <div className="flex items-center gap-3">
@@ -282,10 +265,10 @@ export default function DesignSystemPage() {
               <span>Design System Codex</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
-              Design System & Component Library
+              Design System & Brand Identity
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
-              Curated color palettes, typography hierarchy, UI components, and the feature-scoped architecture enabling bespoke sub-systems like the Daily Diary.
+              Curated color palettes, official broadside seal logo, typography hierarchy, UI components, and the feature-scoped architecture.
             </p>
           </div>
 
@@ -308,8 +291,12 @@ export default function DesignSystemPage() {
 
       {/* Main Tabs Explorer */}
       <main className="max-w-6xl mx-auto px-6 pb-24">
-        <Tabs defaultValue="palette" className="space-y-8">
+        <Tabs defaultValue="brand-logo" className="space-y-8">
           <TabsList className="bg-muted p-1 rounded-xl border border-border inline-flex flex-wrap gap-1">
+            <TabsTrigger value="brand-logo" className="gap-2 text-xs sm:text-sm text-[#3368A0] dark:text-[#66A3BF] font-semibold">
+              <Stamp className="h-4 w-4" />
+              <span>Brand Logo & Seal</span>
+            </TabsTrigger>
             <TabsTrigger value="palette" className="gap-2 text-xs sm:text-sm">
               <Palette className="h-4 w-4" />
               <span>Color Palette</span>
@@ -339,6 +326,90 @@ export default function DesignSystemPage() {
               <span>Sandbox</span>
             </TabsTrigger>
           </TabsList>
+
+          {/* 0. BRAND LOGO & SEAL SHOWCASE */}
+          <TabsContent value="brand-logo" className="space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+              
+              {/* Main Embossed Seal Feature (5 cols) */}
+              <div className="lg:col-span-5 p-8 bg-card border border-border flex flex-col items-center justify-center text-center space-y-5 relative">
+                <div className="p-4 rounded-full bg-muted/40 border border-border/70">
+                  <CommonsSealVector size={140} className="hover:scale-105 transition-transform duration-500 cursor-pointer" />
+                </div>
+                <div>
+                  <h3 className="font-serif text-2xl font-bold text-foreground">The Commons Archival Seal</h3>
+                  <p className="font-mono text-xs text-[#3368A0] dark:text-[#66A3BF] uppercase tracking-widest mt-1">
+                    Littera Scripta Manet
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
+                  The official seal represents the permanence of the written record. Featuring the scalloped broadside boundary, inner Latin motto, heraldic compass star, and terracotta wax center.
+                </p>
+                <div className="flex items-center gap-2 pt-2">
+                  <Badge variant="outline" className="font-mono text-[10px] uppercase">
+                    SVG Vector • 100% Scalable
+                  </Badge>
+                  <Badge variant="outline" className="font-mono text-[10px] uppercase text-[#3368A0] dark:text-[#66A3BF]">
+                    Favicon & Lockup
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Logo Variants & Usage (7 cols) */}
+              <div className="lg:col-span-7 space-y-6">
+                
+                {/* Horizontal Lockup */}
+                <div className="p-6 bg-card border border-border space-y-3">
+                  <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
+                    <span className="uppercase font-semibold text-foreground">1. Horizontal Masthead Lockup</span>
+                    <span>&lt;CommonsLogo variant=&quot;horizontal&quot; /&gt;</span>
+                  </div>
+                  <div className="p-4 bg-muted/30 border border-border/80 flex items-center justify-between">
+                    <CommonsLogo variant="horizontal" size="md" subtitle="MAGAZINE & EDITORIAL BROADSIDE" showFolio />
+                  </div>
+                </div>
+
+                {/* Stacked Lockup */}
+                <div className="p-6 bg-card border border-border space-y-3">
+                  <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
+                    <span className="uppercase font-semibold text-foreground">2. Centered Stacked Lockup</span>
+                    <span>&lt;CommonsLogo variant=&quot;stacked&quot; /&gt;</span>
+                  </div>
+                  <div className="p-6 bg-muted/30 border border-border/80 flex items-center justify-center">
+                    <CommonsLogo variant="stacked" size="lg" subtitle="TACTILE DIGITAL SANCTUARY" showFolio />
+                  </div>
+                </div>
+
+                {/* Minimalist Mark / Favicon */}
+                <div className="p-6 bg-card border border-border space-y-3">
+                  <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
+                    <span className="uppercase font-semibold text-foreground">3. Compact Compass Mark & Sizes</span>
+                    <span>&lt;CommonsSealVector size=&#123;...&#125; markOnly /&gt;</span>
+                  </div>
+                  <div className="p-4 bg-muted/30 border border-border/80 flex items-center justify-around gap-4 flex-wrap">
+                    <div className="flex flex-col items-center gap-1.5">
+                      <CommonsSealVector size={20} markOnly />
+                      <span className="font-mono text-[10px] text-muted-foreground">20px (xs)</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-1.5">
+                      <CommonsSealVector size={28} markOnly />
+                      <span className="font-mono text-[10px] text-muted-foreground">28px (sm)</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-1.5">
+                      <CommonsSealVector size={40} markOnly />
+                      <span className="font-mono text-[10px] text-muted-foreground">40px (md)</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-1.5">
+                      <CommonsSealVector size={56} />
+                      <span className="font-mono text-[10px] text-muted-foreground">56px (lg)</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          </TabsContent>
 
           {/* 1. COLOR PALETTE */}
           <TabsContent value="palette" className="space-y-8">

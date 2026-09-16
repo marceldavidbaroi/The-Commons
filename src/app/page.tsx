@@ -5,172 +5,44 @@ import {
   Feather, 
   Calendar, 
   Clock, 
-  PenLine, 
-  Flame, 
-  FolderArchive, 
-  MessageSquare,
-  FileText
+  ShieldCheck,
+  Sliders
 } from "lucide-react";
+import { CommonsSealVector, CommonsLogo } from "@/components/brand/logo";
+import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "The Commons — Magazine Edition & Feature Directory",
-  description: "An editorial broadside and tactile digital sanctuary for reflection, community, and craft.",
+  title: "The Commons — A Tactile Digital Sanctuary & Editorial Broadside",
+  description: "An authentic magazine broadsheet for daily journaling, reflective inquiry, and encrypted record-keeping.",
 };
 
 /* ==========================================================================
-   CUSTOM EDITORIAL SVG ICONS (PROFILE & SETTINGS)
+   OFFICIAL GOOGLE SVG VECTOR
    ========================================================================== */
-
-function CitizenProfileSvg({ className = "w-5 h-5" }: { className?: string }) {
+function GoogleIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
-    <svg 
-      viewBox="0 0 24 24" 
-      className={className} 
-      fill="none" 
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.25" strokeDasharray="1.5 1.5" />
-      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1" />
-      <circle cx="12" cy="9" r="3" stroke="currentColor" strokeWidth="1.25" />
-      <path 
-        d="M6.8 17.5 C7.5 14.5 9.5 13.5 12 13.5 C14.5 13.5 16.5 14.5 17.2 17.5" 
-        stroke="currentColor" 
-        strokeWidth="1.25" 
-        strokeLinecap="round" 
+    <svg viewBox="0 0 24 24" className={className}>
+      <path
+        fill="#EA4335"
+        d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.4 1 3.5 3.6 1.6 7.4l3.7 2.9C6.2 7.3 8.9 5 12 5z"
       />
-      <circle cx="12" cy="12" r="0.75" fill="currentColor" />
+      <path
+        fill="#4285F4"
+        d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.3 14.7c-.2-.7-.4-1.7-.4-2.7s.1-2 .4-2.7L1.6 6.4C.6 8.3 0 10.1 0 12s.6 3.7 1.6 5.6l3.7-2.9z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3.1 0-5.8-2.3-6.7-5.3L1.6 16c1.9 3.8 5.8 7 10.4 7z"
+      />
     </svg>
   );
 }
 
-function SettingsCogSvg({ className = "w-5 h-5" }: { className?: string }) {
-  return (
-    <svg 
-      viewBox="0 0 24 24" 
-      className={className} 
-      fill="none" 
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <circle cx="12" cy="12" r="9.2" stroke="currentColor" strokeWidth="1" strokeDasharray="1 1.5" />
-      <circle cx="12" cy="12" r="7.5" stroke="currentColor" strokeWidth="1.25" />
-      <circle cx="12" cy="12" r="3.2" stroke="currentColor" strokeWidth="1.25" />
-      <line x1="12" y1="2" x2="12" y2="4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="12" y1="19.5" x2="12" y2="22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="2" y1="12" x2="4.5" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="19.5" y1="12" x2="22" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="4.9" y1="4.9" x2="6.8" y2="6.8" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-      <line x1="17.2" y1="17.2" x2="19.1" y2="19.1" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-      <line x1="4.9" y1="19.1" x2="6.8" y2="17.2" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-      <line x1="17.2" y1="6.8" x2="19.1" y2="4.9" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-      <circle cx="12" cy="12" r="1.2" fill="currentColor" />
-    </svg>
-  );
-}
-
-interface FeatureDepartment {
-  id: string;
-  deptNumber: string;
-  title: string;
-  subtitle: string;
-  href: string;
-  buttonText: string;
-  icon: React.ReactNode;
-  themeTag: string;
-  themeColorClass: string;
-}
-
-const featureDepartments: FeatureDepartment[] = [
-  {
-    id: "daily-diary",
-    deptNumber: "01",
-    title: "The Daily Diary",
-    subtitle: "Aged parchment, walnut ink & intimate prompts.",
-    href: "/daily-diary",
-    buttonText: "Open Diary",
-    icon: <Feather className="h-4 w-4" />,
-    themeTag: "Parchment & Ink",
-    themeColorClass: "border-[#8C3A27] text-[#8C3A27] dark:text-[#E59375]",
-  },
-  {
-    id: "workspace-ledger",
-    deptNumber: "02",
-    title: "Workspace Ledger",
-    subtitle: "Fast editorial scratchpad & daily recording.",
-    href: "/home",
-    buttonText: "Open Ledger",
-    icon: <PenLine className="h-4 w-4" />,
-    themeTag: "Broadside Ledger",
-    themeColorClass: "border-[#3368A0] text-[#3368A0] dark:text-[#66A3BF]",
-  },
-  {
-    id: "citizen-profile",
-    deptNumber: "03",
-    title: "Citizen Profile",
-    subtitle: "Passport, credentials & personalized preferences.",
-    href: "/home",
-    buttonText: "View Profile",
-    icon: <CitizenProfileSvg className="h-4 w-4" />,
-    themeTag: "Passport",
-    themeColorClass: "border-[#3368A0] text-[#3368A0] dark:text-[#66A3BF]",
-  },
-  {
-    id: "settings",
-    deptNumber: "04",
-    title: "System Settings",
-    subtitle: "Typography, theme mode & database configuration.",
-    href: "/home",
-    buttonText: "Configure",
-    icon: <SettingsCogSvg className="h-4 w-4" />,
-    themeTag: "Settings Dial",
-    themeColorClass: "border-[#66A3BF] text-[#66A3BF] dark:text-[#C8DFDB]",
-  },
-  {
-    id: "monographs",
-    deptNumber: "05",
-    title: "Essays & Articles",
-    subtitle: "Longform editorial reading & broadside dispatches.",
-    href: "/home",
-    buttonText: "Read Articles",
-    icon: <FileText className="h-4 w-4" />,
-    themeTag: "Broadside",
-    themeColorClass: "border-[#3368A0] text-[#3368A0] dark:text-[#66A3BF]",
-  },
-  {
-    id: "agora",
-    deptNumber: "06",
-    title: "The Agora",
-    subtitle: "Citizen proposals & community dialogues.",
-    href: "/home",
-    buttonText: "Enter Agora",
-    icon: <MessageSquare className="h-4 w-4" />,
-    themeTag: "Forum",
-    themeColorClass: "border-[#6B8E23] text-[#6B8E23] dark:text-[#A3C95A]",
-  },
-  {
-    id: "rhythms",
-    deptNumber: "07",
-    title: "Rhythms & Streaks",
-    subtitle: "Consistency logs & mindful habit tracking.",
-    href: "/daily-diary",
-    buttonText: "View Rhythms",
-    icon: <Flame className="h-4 w-4" />,
-    themeTag: "Vitality",
-    themeColorClass: "border-[#C48C28] text-[#C48C28] dark:text-[#FBD38D]",
-  },
-  {
-    id: "vault",
-    deptNumber: "08",
-    title: "Personal Vault",
-    subtitle: "Encrypted items, documents & asset catalog.",
-    href: "/home",
-    buttonText: "Open Vault",
-    icon: <FolderArchive className="h-4 w-4" />,
-    themeTag: "Encrypted",
-    themeColorClass: "border-[#3368A0] text-[#3368A0] dark:text-[#66A3BF]",
-  },
-];
-
-export default function RootPage() {
+export default function LandingPage() {
   const todayDate = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     year: "numeric",
@@ -181,269 +53,282 @@ export default function RootPage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-[#C8DFDB] selection:text-[#193836]">
       
-      {/* Top Colophon / Micro Masthead (Design system removed) */}
-      <header className="border-b border-border/80 bg-muted/30 px-6 py-2">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] font-mono tracking-wider text-muted-foreground uppercase">
+      {/* 1. TOP COLOPHON & MICRO MASTHEAD */}
+      <header className="border-b border-border/80 bg-muted/30 px-6 py-3">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] font-mono tracking-wider text-muted-foreground uppercase">
           <div className="flex items-center gap-3">
-            <span className="font-semibold text-[#3368A0] dark:text-[#66A3BF]">THE COMMONS</span>
-            <span>•</span>
-            <span>EDITORIAL NO. 01</span>
+            <CommonsLogo variant="horizontal" size="sm" href="/" subtitle="DIGITAL SANCTUARY" showFolio />
           </div>
+          
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1">
               <Calendar className="h-3 w-3 text-[#3368A0]" />
               {todayDate}
             </span>
+            <span className="text-border">|</span>
+            <Link 
+              href="/login" 
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#3368A0] text-white hover:bg-[#285380] font-serif text-xs transition-colors shadow-xs"
+            >
+              <GoogleIcon className="h-3 w-3" />
+              <span>Enter Sanctuary</span>
+              <ArrowRight className="h-2.5 w-2.5" />
+            </Link>
           </div>
         </div>
       </header>
 
-      {/* Main Publication Masthead */}
-      <div className="max-w-6xl w-full mx-auto px-6 pt-6 pb-2 text-center">
-        <h1 className="masthead-title text-4xl sm:text-6xl md:text-7xl tracking-tight text-foreground">
+      {/* 2. HERO PUBLICATION MASTHEAD */}
+      <section className="max-w-6xl w-full mx-auto px-6 pt-10 pb-6 text-center flex flex-col items-center">
+        <Link href="/" className="inline-block group focus:outline-none mb-3">
+          <CommonsSealVector 
+            size={92} 
+            className="transition-transform duration-700 group-hover:scale-105 group-hover:rotate-6 drop-shadow-md" 
+          />
+        </Link>
+        
+        <span className="kicker block text-[#3368A0] dark:text-[#66A3BF] mb-1">
+          AN EDITORIAL BROADSIDE & DIGITAL SANCTUARY § EST. 2026
+        </span>
+        
+        <h1 className="masthead-title text-5xl sm:text-7xl md:text-8xl tracking-tight text-foreground">
           THE COMMONS
         </h1>
-        <p className="font-serif italic text-sm sm:text-base text-muted-foreground mt-1 max-w-lg mx-auto">
-          Tactile digital sanctuary for reflection, community, and craft.
+        
+        <p className="font-serif italic text-base sm:text-xl text-muted-foreground mt-2 max-w-2xl mx-auto leading-relaxed">
+          A timeless haven for reflection, private journaling, and cryptographic record-keeping.
         </p>
 
         {/* Folio Line */}
-        <div className="folio-bar py-2 my-4 flex items-center justify-between text-muted-foreground text-xs">
+        <div className="folio-bar w-full py-2.5 my-6 flex items-center justify-between text-muted-foreground text-xs font-mono">
           <span>VOL. I — NO. 01</span>
-          <span>AUTUMN / 2026</span>
+          <span className="font-serif italic text-[#3368A0] dark:text-[#66A3BF]">Littera Scripta Manet</span>
+          <span>AUTUMN / 2026 EDITION</span>
         </div>
-      </div>
+      </section>
 
-      {/* Main Magazine Layout (Reduced Text, Direct Actions) */}
-      <main className="max-w-6xl w-full mx-auto px-6 pb-16 flex-1 space-y-10">
-        
-        {/* Top Hero Section: Daily Diary + Citizen Profile Spread */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+      {/* 3. HERO PROCLAMATION & CALL TO ACTION */}
+      <section className="max-w-6xl w-full mx-auto px-6 pb-16">
+        <div className="border-t-2 border-b-2 border-[#3368A0] py-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           
-          {/* Main Daily Diary Centerpiece (7 Cols) */}
-          <div className="lg:col-span-7 border-t-2 border-[#8C3A27] pt-4 flex flex-col justify-between space-y-4">
+          <div className="lg:col-span-7 space-y-6">
+            <span className="kicker text-[#3368A0] dark:text-[#66A3BF]">
+              § 01 • THE EDITORIAL DOCTRINE
+            </span>
             
-            <div className="flex items-center justify-between">
-              <span className="kicker text-[#8C3A27] dark:text-[#E59375]">FEATURED • DAILY DIARY</span>
-              <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                DAILY RITUAL
-              </span>
+            <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.08]">
+              Reclaiming the Dignity of the Written Word.
+            </h2>
+            
+            <p className="drop-cap text-base text-foreground/90 leading-relaxed font-serif">
+              In an age of frenzied feeds, intrusive telemetry, and disposable notifications, The Commons offers an enduring digital retreat. Here, your daily journal entries, philosophical monographs, and archived records are shaped with high-craft editorial broadsheet typography and secured by strict PostgreSQL Row-Level Security.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
+              <Link href="/login" className="w-full sm:w-auto">
+                <Button 
+                  size="lg" 
+                  className="w-full sm:w-auto h-12 bg-[#3368A0] hover:bg-[#285380] text-white font-serif text-sm tracking-wide gap-3 rounded-none px-6 shadow-md cursor-pointer transition-all"
+                >
+                  <GoogleIcon className="h-4 w-4" />
+                  <span>Enter with Google Account</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+
+              <Link href="/dev/design-system" className="w-full sm:w-auto">
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="w-full sm:w-auto h-12 border-border hover:bg-muted font-mono text-xs rounded-none px-5 cursor-pointer"
+                >
+                  <Sliders className="h-3.5 w-3.5 mr-2 text-[#3368A0] dark:text-[#66A3BF]" />
+                  <span>Inspect Design Codex</span>
+                </Button>
+              </Link>
             </div>
-
-            <div className="flex flex-col sm:flex-row items-center gap-6 py-2">
-              {/* Daily Diary Tactile Book SVG in authentic Parchment & Wax colors */}
-              <div className="w-full sm:w-1/2 flex justify-center">
-                <Link href="/daily-diary" className="group block focus:outline-none" title="Open Daily Diary">
-                  <svg
-                    viewBox="0 0 320 240"
-                    className="w-full max-w-[210px] drop-shadow-xl transition-transform duration-500 group-hover:scale-105 group-hover:-rotate-1 cursor-pointer"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <defs>
-                      <linearGradient id="homeCoverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#8C3A27" />
-                        <stop offset="50%" stopColor="#732E1E" />
-                        <stop offset="100%" stopColor="#4A1C12" />
-                      </linearGradient>
-                      <linearGradient id="homeSpineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#38291E" />
-                        <stop offset="60%" stopColor="#2C241E" />
-                        <stop offset="100%" stopColor="#1E1713" />
-                      </linearGradient>
-                      <linearGradient id="homeRibbonGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#C48C28" />
-                        <stop offset="50%" stopColor="#FBD38D" />
-                        <stop offset="100%" stopColor="#9E6E1A" />
-                      </linearGradient>
-                      <linearGradient id="homePaperGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#FCFAF5" />
-                        <stop offset="60%" stopColor="#F4EAD4" />
-                        <stop offset="100%" stopColor="#E5D6BB" />
-                      </linearGradient>
-                      <linearGradient id="homeSealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#B23A2B" />
-                        <stop offset="100%" stopColor="#6E2316" />
-                      </linearGradient>
-                    </defs>
-
-                    {/* Book Stack */}
-                    <rect x="42" y="24" width="236" height="184" rx="14" fill="#D6C7AA" />
-                    <rect x="46" y="26" width="228" height="180" rx="12" fill="#E6D7BD" />
-                    <rect x="50" y="28" width="220" height="176" rx="10" fill="url(#homePaperGrad)" />
-                    <rect x="40" y="20" width="240" height="190" rx="14" fill="url(#homeCoverGrad)" stroke="#A64B35" strokeWidth="1.5" />
-
-                    {/* Spine */}
-                    <rect x="40" y="20" width="32" height="190" rx="14" fill="url(#homeSpineGrad)" />
-                    <rect x="70" y="20" width="10" height="190" fill="#1C140E" opacity="0.35" />
-                    
-                    {/* Gold Stitches */}
-                    <line x1="56" y1="38" x2="56" y2="48" stroke="#E5A93B" strokeWidth="2.5" strokeLinecap="round" opacity="0.95" />
-                    <line x1="56" y1="88" x2="56" y2="98" stroke="#E5A93B" strokeWidth="2.5" strokeLinecap="round" opacity="0.95" />
-                    <line x1="56" y1="138" x2="56" y2="148" stroke="#E5A93B" strokeWidth="2.5" strokeLinecap="round" opacity="0.95" />
-                    <line x1="56" y1="178" x2="56" y2="188" stroke="#E5A93B" strokeWidth="2.5" strokeLinecap="round" opacity="0.95" />
-
-                    {/* Medallion & Seal */}
-                    <rect x="98" y="52" width="148" height="124" rx="8" fill="#6B291A" stroke="#C48C28" strokeWidth="1" strokeDasharray="3 3" opacity="0.8" />
-                    <circle cx="172" cy="92" r="22" fill="url(#homeSealGrad)" stroke="#C48C28" strokeWidth="1.5" />
-                    <circle cx="172" cy="92" r="18" stroke="#6B8E23" strokeWidth="1" strokeDasharray="2 2" opacity="0.7" />
-                    <path d="M172 75 L175 88 L188 92 L175 96 L172 109 L169 96 L156 92 L169 88 Z" fill="#FBD38D" />
-
-                    {/* Ribbon */}
-                    <path d="M200 20 L200 222 L208 214 L216 222 L216 20 Z" fill="url(#homeRibbonGrad)" opacity="0.95" />
-
-                    {/* Stylus */}
-                    <g transform="rotate(-28 220 160)">
-                      <rect x="163" y="148" width="10" height="115" rx="5" fill="#2C241E" stroke="#C48C28" strokeWidth="1" />
-                      <rect x="160" y="156" width="3" height="30" rx="1.5" fill="#E5A93B" />
-                      <path d="M163 263 L168 274 L173 263 Z" fill="#FBD38D" />
-                    </g>
-                  </svg>
-                </Link>
-              </div>
-
-              <div className="w-full sm:w-1/2 space-y-3">
-                <h2 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-foreground leading-snug">
-                  The Daily Diary
-                </h2>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Your quiet sanctuary for personal reflections, breakthroughs, and mindful routines on vintage parchment paper.
-                </p>
-                <div className="pt-2">
-                  <Link
-                    href="/daily-diary"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#8C3A27] hover:bg-[#732E1E] text-white font-serif text-xs tracking-wide transition-colors shadow-sm cursor-pointer"
-                  >
-                    <span>Open Today&apos;s Journal</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-
           </div>
 
-          {/* Citizen Profile Passport Section (5 Cols — Ruled, No Cards) */}
-          <div className="lg:col-span-5 border-t-2 border-[#3368A0] pt-4 flex flex-col justify-between space-y-4 bg-muted/15 p-5">
-            
-            <div className="flex items-center justify-between border-b border-border/60 pb-2">
-              <span className="kicker text-[#3368A0] dark:text-[#66A3BF]">CITIZEN PASSPORT</span>
-              <span className="text-[10px] font-mono px-2 py-0.5 bg-[#3368A0]/10 text-[#3368A0] dark:text-[#66A3BF] border border-[#3368A0]/30">
-                ACTIVE MEMBER
+          {/* Tactile Book Preview Illustration */}
+          <div className="lg:col-span-5 flex flex-col items-center justify-center p-6 bg-muted/20 border border-border/80">
+            <div className="text-center space-y-3">
+              <span className="font-mono text-[10px] uppercase text-[#8C3A27] dark:text-[#E59375] font-semibold tracking-widest block">
+                PRIMARY SANCTUARY TOME
               </span>
-            </div>
-
-            {/* Profile Avatar & Details */}
-            <div className="flex items-start gap-4">
-              <div className="h-14 w-14 bg-background border border-border flex items-center justify-center text-[#3368A0] dark:text-[#66A3BF] shrink-0">
-                <CitizenProfileSvg className="h-9 w-9" />
-              </div>
               
-              <div className="space-y-1">
-                <h3 className="font-serif text-lg font-bold text-foreground">Explorer</h3>
-                <p className="text-xs text-muted-foreground">The Commons Citizen #001</p>
-                
-                {/* Stats Row */}
-                <div className="flex items-center gap-3 pt-1 font-mono text-[11px] text-muted-foreground">
-                  <span className="flex items-center gap-1 text-[#C48C28] font-bold">
-                    <Flame className="h-3.5 w-3.5 fill-[#C48C28]" />
-                    5-Day Streak
-                  </span>
-                  <span>•</span>
-                  <span>142 Entries</span>
-                </div>
-              </div>
-            </div>
+              <Link href="/login" className="group block focus:outline-none" title="Enter Daily Diary">
+                <svg
+                  viewBox="0 0 320 240"
+                  className="w-full max-w-[240px] mx-auto drop-shadow-2xl transition-transform duration-500 group-hover:scale-105 group-hover:-rotate-1 cursor-pointer"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <defs>
+                    <linearGradient id="landCoverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#8C3A27" />
+                      <stop offset="50%" stopColor="#732E1E" />
+                      <stop offset="100%" stopColor="#4A1C12" />
+                    </linearGradient>
+                    <linearGradient id="landSpineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#5E2214" />
+                      <stop offset="100%" stopColor="#8C3A27" />
+                    </linearGradient>
+                  </defs>
 
-            {/* Profile Quick Action Buttons */}
-            <div className="pt-2 border-t border-border/60 grid grid-cols-2 gap-2">
-              <Link href="/home" className="block">
-                <button className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-background hover:bg-[#3368A0] hover:text-white border border-border text-foreground text-xs font-serif transition-colors cursor-pointer">
-                  <CitizenProfileSvg className="h-3.5 w-3.5" />
-                  <span>Edit Profile</span>
-                </button>
+                  <rect x="25" y="15" width="270" height="210" rx="10" fill="url(#landCoverGrad)" stroke="#4A1C12" strokeWidth="2" />
+                  <rect x="25" y="15" width="26" height="210" rx="3" fill="url(#landSpineGrad)" />
+                  <line x1="51" y1="15" x2="51" y2="225" stroke="#3A140B" strokeWidth="2" />
+                  <line x1="30" y1="40" x2="46" y2="40" stroke="#D4AF37" strokeWidth="1.5" opacity="0.6" />
+                  <line x1="30" y1="200" x2="46" y2="200" stroke="#D4AF37" strokeWidth="1.5" opacity="0.6" />
+                  <rect x="62" y="26" width="222" height="188" rx="6" fill="none" stroke="#C48C28" strokeWidth="1.5" strokeDasharray="6 3" opacity="0.8" />
+                  <rect x="85" y="55" width="176" height="130" rx="4" fill="#F4EAD4" stroke="#8C3A27" strokeWidth="1.5" />
+                  <text x="173" y="95" textAnchor="middle" fill="#2C241E" fontFamily="serif" fontSize="18" fontWeight="bold" letterSpacing="0.05em">
+                    DAILY DIARY
+                  </text>
+                  <text x="173" y="115" textAnchor="middle" fill="#8C3A27" fontFamily="monospace" fontSize="9" letterSpacing="0.15em">
+                    VOL. I — NO. 142
+                  </text>
+                  <circle cx="173" cy="148" r="18" fill="#8C3A27" />
+                  <circle cx="173" cy="148" r="15" fill="none" stroke="#FAF4EB" strokeWidth="1" strokeDasharray="2 2" />
+                  <text x="173" y="152" textAnchor="middle" fill="#FAF4EB" fontFamily="serif" fontSize="11" fontWeight="bold">
+                    C
+                  </text>
+                </svg>
               </Link>
 
-              <Link href="/home" className="block">
-                <button className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-background hover:bg-[#3368A0] hover:text-white border border-border text-foreground text-xs font-serif transition-colors cursor-pointer">
-                  <SettingsCogSvg className="h-3.5 w-3.5" />
-                  <span>Settings</span>
-                </button>
-              </Link>
+              <p className="font-serif italic text-xs text-muted-foreground pt-1">
+                The Daily Diary: aged tea-stained parchment, walnut ink, and mindful rhythm tracking.
+              </p>
             </div>
-
           </div>
 
         </div>
+      </section>
 
-        {/* ==========================================================================
-            FEATURE DEPARTMENTS DIRECTORY (CONCISE, DIRECT BUTTONS)
-            ========================================================================== */}
-        <section className="pt-6 border-t-2 border-border space-y-4">
-          
+      {/* 4. THREE PILLARS OF CRAFT & SECURITY */}
+      <section className="max-w-6xl w-full mx-auto px-6 pb-16">
+        <div className="space-y-6">
           <div className="flex items-center justify-between border-b border-border pb-2">
             <span className="kicker text-[#3368A0] dark:text-[#66A3BF]">
-              ALL DEPARTMENTS & FEATURES
+              § 02 • THE THREE FOUNDATIONAL PILLARS
             </span>
             <span className="font-mono text-xs text-muted-foreground">
-              8 Spaces
+              CORE TENETS
             </span>
           </div>
 
-          {/* Direct Feature Buttons Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
-            {featureDepartments.map((dept) => (
-              <div 
-                key={dept.id}
-                className="border-t border-border/80 pt-3 pb-4 flex flex-col justify-between space-y-3 group hover:border-[#3368A0] transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono text-muted-foreground">{dept.deptNumber}</span>
-                  <span className={`text-[10px] font-mono px-1.5 py-0.2 border ${dept.themeColorClass}`}>
-                    {dept.themeTag}
-                  </span>
-                </div>
-
-                <div>
-                  <h4 className="font-serif font-bold text-base text-foreground group-hover:text-[#3368A0] transition-colors">
-                    {dept.title}
-                  </h4>
-                  <p className="text-xs text-muted-foreground leading-snug">
-                    {dept.subtitle}
-                  </p>
-                </div>
-
-                <Link href={dept.href} className="block pt-1">
-                  <button className="w-full flex items-center justify-between px-3 py-2 bg-muted/40 hover:bg-[#3368A0] hover:text-white border border-border text-foreground text-xs font-serif tracking-wide transition-all group-hover:border-[#3368A0] cursor-pointer">
-                    <span className="flex items-center gap-2 font-medium">
-                      {dept.icon}
-                      <span>{dept.buttonText}</span>
-                    </span>
-                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-                  </button>
-                </Link>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            
+            {/* Pillar 1 */}
+            <div className="border-t-2 border-[#3368A0] pt-4 space-y-3">
+              <div className="flex items-center gap-2 text-[#3368A0] dark:text-[#66A3BF]">
+                <ShieldCheck className="h-5 w-5" />
+                <span className="font-mono text-xs font-bold uppercase tracking-wider">[01] SOVEREIGNTY</span>
               </div>
-            ))}
+              <h3 className="font-serif text-xl font-bold text-foreground">
+                Cryptographic User Isolation
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Every diary reflection and vault item is bound exclusively to your user identity with Postgres Row-Level Security. We enforce zero telemetry and zero corporate data harvesting.
+              </p>
+            </div>
+
+            {/* Pillar 2 */}
+            <div className="border-t-2 border-[#8C3A27] pt-4 space-y-3">
+              <div className="flex items-center gap-2 text-[#8C3A27] dark:text-[#E59375]">
+                <Feather className="h-5 w-5" />
+                <span className="font-mono text-xs font-bold uppercase tracking-wider">[02] TACTILITY</span>
+              </div>
+              <h3 className="font-serif text-xl font-bold text-foreground">
+                Broadside & Ink Aesthetics
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Refusing generic floating SaaS cards. Structured with hairline rules, mastheads, drop-caps, and warm Scandinavian linen tones designed for deep reading and calm thought.
+              </p>
+            </div>
+
+            {/* Pillar 3 */}
+            <div className="border-t-2 border-[#6B8E23] pt-4 space-y-3">
+              <div className="flex items-center gap-2 text-[#6B8E23] dark:text-[#A3C95A]">
+                <Clock className="h-5 w-5" />
+                <span className="font-mono text-xs font-bold uppercase tracking-wider">[03] FOCUS</span>
+              </div>
+              <h3 className="font-serif text-xl font-bold text-foreground">
+                Unbroken Reflection
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                A single-page, fluid interface free from dopamine traps, algorithmic recommendations, or endless scrolling feeds. Your thoughts remain your sanctuary.
+              </p>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* 5. EDITORIAL PULL QUOTE */}
+      <section className="max-w-4xl w-full mx-auto px-6 pb-16 text-center">
+        <div className="pull-quote py-6 px-8 bg-muted/20 border-l-4 border-[#3368A0] text-left sm:text-center">
+          <p className="font-serif italic text-lg sm:text-2xl text-foreground/90 leading-snug">
+            &ldquo;We write not to impress the ephemeral crowd, but to anchor our own soul in the quiet stream of time.&rdquo;
+          </p>
+          <span className="block mt-3 font-mono text-[11px] uppercase tracking-widest text-[#3368A0] dark:text-[#66A3BF]">
+            — The Commons Editorial Manifesto § Vol. I
+          </span>
+        </div>
+      </section>
+
+      {/* 6. CALL TO ACTION REGISTRY SEAL */}
+      <section className="max-w-6xl w-full mx-auto px-6 pb-20">
+        <div className="border-2 border-[#3368A0] dark:border-[#66A3BF] p-8 sm:p-12 text-center bg-card flex flex-col items-center space-y-6">
+          <CommonsSealVector size={96} className="hover:scale-105 transition-transform duration-300" />
+          
+          <div className="space-y-2 max-w-lg">
+            <h3 className="font-serif text-3xl sm:text-4xl font-bold text-foreground">
+              Affix Your Seal & Enter The Commons
+            </h3>
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed font-serif">
+              Join the sanctuary today. Access your personal diary, citizen ledger, and archives with a single click.
+            </p>
           </div>
 
-        </section>
+          <Link href="/login">
+            <Button
+              size="lg"
+              className="h-13 bg-[#3368A0] hover:bg-[#285380] text-white font-serif text-sm tracking-wide gap-3 rounded-none px-8 shadow-md cursor-pointer transition-all"
+            >
+              <GoogleIcon className="h-5 w-5" />
+              <span>Continue with Google</span>
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
 
-      </main>
+          <div className="flex items-center justify-center gap-4 text-[11px] font-mono text-muted-foreground uppercase pt-2">
+            <span>TLS 1.3 ENCRYPTED</span>
+            <span>•</span>
+            <span>POSTGRESQL RLS</span>
+            <span>•</span>
+            <span>ZERO ADS</span>
+          </div>
+        </div>
+      </section>
 
-      {/* Editorial Colophon / Footer */}
-      <footer className="border-t-2 border-border mt-auto bg-muted/30 py-6 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground font-mono">
-          <div>
-            <span className="font-bold text-foreground">THE COMMONS</span> — Editorial Broadside & Digital Sanctuary.
+      {/* 7. EDITORIAL FOOTER */}
+      <footer className="border-t-2 border-border mt-auto bg-muted/30 py-8 px-6">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground font-mono">
+          <div className="flex items-center gap-3">
+            <CommonsSealVector size={20} markOnly />
+            <span className="font-bold text-foreground font-serif text-sm">THE COMMONS</span>
+            <span>•</span>
+            <span>PUBLIC BROADSHEET & LANDING DESK</span>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/daily-diary" className="hover:text-foreground">Daily Diary</Link>
+            <Link href="/login" className="hover:text-foreground">Citizen Login</Link>
             <span>•</span>
-            <Link href="/home" className="hover:text-foreground">Workspace Ledger</Link>
+            <Link href="/dev/design-system" className="hover:text-foreground">Design Codex</Link>
           </div>
         </div>
       </footer>
+
     </div>
   );
 }

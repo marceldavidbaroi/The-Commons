@@ -3,7 +3,6 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import {
-  BookOpen,
   ChevronLeft,
   ChevronRight,
   Sun,
@@ -25,6 +24,7 @@ import {
   X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CommonsSealVector } from "@/components/brand/logo";
 
 interface DiaryEntry {
   pageNumber: number;
@@ -375,10 +375,8 @@ export default function DailyDiarySinglePage() {
               </Button>
             </Link>
 
-            <div className="flex items-center gap-1.5">
-              <div className="h-6 w-6 rounded-full bg-[#8C3A27] text-[#FBF7EE] flex items-center justify-center shadow-xs shrink-0">
-                <BookOpen className="h-3 w-3" />
-              </div>
+            <div className="flex items-center gap-2">
+              <CommonsSealVector size={24} markOnly className="shrink-0 hover:rotate-6 transition-transform" />
               <h1 className="text-xs sm:text-sm font-serif font-bold tracking-wide text-[#3E2E21] dark:text-[#E8EFF6] whitespace-nowrap">
                 The Commons Journal
               </h1>

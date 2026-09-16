@@ -1,0 +1,35 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="sealShineSvg" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#66A3BF" stop-opacity="0.25" />
+      <stop offset="60%" stop-color="#3368A0" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#1E2D3D" stop-opacity="0.18" />
+    </radialGradient>
+  </defs>
+
+  <!-- Outer scalloped broadside boundary -->
+  <circle cx="80" cy="80" r="74" stroke="#3368A0" stroke-width="1.25" stroke-dasharray="3 2" opacity="0.75" />
+  <circle cx="80" cy="80" r="68" stroke="#3368A0" stroke-width="1" opacity="0.45" />
+  <circle cx="80" cy="80" r="60" fill="url(#sealShineSvg)" stroke="#3368A0" stroke-width="1.5" />
+
+  <!-- Inscription text paths -->
+  <path id="svgLogoPathTop" d="M 28 80 A 52 52 0 0 1 132 80" fill="none" />
+  <path id="svgLogoPathBottom" d="M 132 80 A 52 52 0 0 1 28 80" fill="none" />
+  
+  <text font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="7.5" font-weight="600" letter-spacing="0.24em" fill="#3368A0">
+    <textPath href="#svgLogoPathTop" startOffset="50%" text-anchor="middle">
+      THE COMMONS ARCHIVE
+    </textPath>
+  </text>
+  <text font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="6.5" letter-spacing="0.22em" fill="#627282">
+    <textPath href="#svgLogoPathBottom" startOffset="50%" text-anchor="middle">
+      LITTERA SCRIPTA MANET
+    </textPath>
+  </text>
+
+  <!-- Monogram ring & compass star -->
+  <circle cx="80" cy="80" r="32" stroke="#3368A0" stroke-width="1.1" opacity="0.6" />
+  <polygon points="80,54 87,73 106,80 87,87 80,106 73,87 54,80 73,73" fill="#3368A0" />
+  <polygon points="80,63 84,76 97,80 84,84 80,97 76,84 63,80 76,76" fill="#FFFFFF" />
+  <circle cx="80" cy="80" r="3.5" fill="#8C3A27" />
+</svg>
