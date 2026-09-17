@@ -10,7 +10,7 @@ export interface DocItem {
   relativePath: string;
   content: string;
   excerpt: string;
-  typeBadge: "PRD" | "TDD" | "Schema" | "API Contract" | "Guide" | "Architecture" | "Overview" | "Code Stub";
+  typeBadge: "PRD" | "TDD" | "Schema" | "API Contract" | "Guide" | "Architecture" | "Overview" | "Code Stub" | "Matrix";
   wordCount: number;
   readingTimeMin: number;
   orderWeight: number;
@@ -31,6 +31,7 @@ export interface DocCategoryGroup {
 
 function determineBadgeType(fileName: string, content: string): DocItem["typeBadge"] {
   const lowerName = fileName.toLowerCase();
+  if (lowerName.includes("00-page-to-api-matrix") || lowerName.includes("matrix")) return "Matrix";
   if (lowerName.includes("01-prd") || content.includes("# PRD:")) return "PRD";
   if (lowerName.includes("04-tdd") || content.includes("# Technical Design Document")) return "TDD";
   if (lowerName.includes("02-data-model") || lowerName.includes("schema") || lowerName.includes("database")) return "Schema";
@@ -68,6 +69,8 @@ function extractExcerpt(content: string): string {
 }
 
 function getOrderWeight(fileName: string): number {
+  if (fileName.includes("00-overview")) return 0;
+  if (fileName.includes("00-page-to-api-matrix")) return 0;
   if (fileName.includes("01-prd")) return 1;
   if (fileName.includes("02-data-model")) return 2;
   if (fileName.includes("03-api-contract")) return 3;

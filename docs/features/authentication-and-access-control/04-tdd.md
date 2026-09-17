@@ -4,14 +4,15 @@
 
 ```mermaid
 graph TD
-    User[User on Browser] -->|1. Google Sign-In| SupabaseAuth[Supabase OAuth Provider]
-    SupabaseAuth -->|2. Redirect with ?code=| CallbackRoute[/auth/callback Route Handler]
-    CallbackRoute -->|3. exchangeCodeForSession| SetCookies[HTTP-only Session Cookies]
-    CallbackRoute -->|4. Redirect to next or /home| NextPage[Target Application Route]
-    NextPage -->|5. Sync Token & Profile| ZustandStore[Zustand useAuthStore]
-    ZustandStore -->|6. Token Expired / Invalid| AutoLogout[Auto Logout -> /login?redirectUrl=...]
-    NextPage -->|7. Data Query| RLS[(Postgres RLS: auth.uid = user_id)]
+    User["User on Browser"] -->|1. Google Sign-In| SupabaseAuth["Supabase OAuth Provider"]
+    SupabaseAuth -->|2. Redirect with ?code=| CallbackRoute["/auth/callback Route Handler"]
+    CallbackRoute -->|3. exchangeCodeForSession| SetCookies["HTTP-only Session Cookies"]
+    CallbackRoute -->|4. Redirect to next or /home| NextPage["Target Application Route"]
+    NextPage -->|5. Sync Token & Profile| ZustandStore["Zustand useAuthStore"]
+    ZustandStore -->|6. Token Expired / Invalid| AutoLogout["Auto Logout -> /login?redirectUrl=..."]
+    NextPage -->|7. Data Query| RLS[("Postgres RLS: auth.uid = user_id")]
 ```
+
 
 ## 2. Component Hierarchy & File Mapping
 

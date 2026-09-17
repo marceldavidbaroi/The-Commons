@@ -8,7 +8,7 @@ This document defines the standardized **UI-First (Outside-In)** feature enginee
 
 ```mermaid
 graph TD
-    A["Stage 1: UI Design & Mock State<br/>(Client UI, Forms, Skeletons, Interactive UX)"] --> B["Stage 2: Specs & Contracts Update<br/>(PRD, Schema, API Contract, TDD, Stubs)"]
+    A["Stage 1: UI Design & Mock State<br/>(Client UI, Forms, Skeletons, Interactive UX)"] --> B["Stage 2: Specs, Page-to-API Matrix & Contracts<br/>(Page Matrix, PRD, Schema, API Contract, TDD, Stubs)"]
     B --> C["Stage 3: Backend, Schema & RLS<br/>(PostgreSQL, Migrations, Declarative SQL, Types)"]
     C --> D["Stage 4: Data Layer Wiring<br/>(TanStack Query, Zustand, Server Actions/APIs)"]
 ```
@@ -25,9 +25,10 @@ graph TD
 ### Stage 2: Feature Documentation & Contract Refinement
 Once the UI layout and form requirements are validated in browser:
 1. Create or update the feature folder under `docs/features/<feature-name>/` using the templates in `docs/features/_template/`.
-2. Extract the exact data fields needed by the UI into `02-data-model.md`.
-3. Document endpoints/actions in `03-api-contract.md`.
-4. Define TypeScript interfaces and function stubs in `stubs.ts`.
+2. Map all UI actions to endpoints in `00-page-to-api-matrix.md`.
+3. Extract the exact data fields needed by the UI into `02-data-model.md`.
+4. Document endpoints/actions in `03-api-contract.md`.
+5. Define TypeScript interfaces and function stubs in `stubs.ts`.
 
 ### Stage 3: Backend, Database Schema & Security
 1. Write declarative SQL schema in `supabase/schema/` (tables, RLS policies, indexes, triggers).
@@ -35,7 +36,7 @@ Once the UI layout and form requirements are validated in browser:
 3. Generate TypeScript types: `pnpm supabase gen types typescript --local > src/types/supabase.ts`.
 
 ### Stage 4: Wiring & Integration
-1. Implement the API / Server Actions in `src/lib/api/` or `src/actions/`.
+1. Implement the API / Server Actions in `src/lib/api/` or Supabase RPCs.
 2. Wrap queries and mutations with **TanStack Query (v5)** hooks.
 3. Manage transient/client-only UI state with **Zustand (v5)**.
 4. Replace mock UI data with query hooks and verify end-to-end flow.
@@ -48,15 +49,17 @@ Each feature or module maintains its own folder under `docs/features/<feature-na
 
 ```text
 docs/features/<feature-name>/
-├── 01-prd.md          # Product & UX requirements (What & Why)
-├── 02-data-model.md   # SQL schemas, RLS policies, indexes & Zod validation
-├── 03-api-contract.md # Server Actions / REST endpoints, payloads, response shapes
-├── 04-tdd.md          # Technical architecture, component mapping, state flow
-└── stubs.ts           # Concrete TypeScript interfaces & stubbed functions
+├── 00-page-to-api-matrix.md # Page route to API/RPC and cache sync mapping
+├── 01-prd.md                # Product & UX requirements (What & Why)
+├── 02-data-model.md         # SQL schemas, RLS policies, indexes & Zod validation
+├── 03-api-contract.md       # Server Actions / REST endpoints, payloads, response shapes
+├── 04-tdd.md                # Technical architecture, component mapping, state flow
+└── stubs.ts                 # Concrete TypeScript interfaces & stubbed functions
 ```
 
 ### Boilerplate Templates
 Copy from `docs/features/_template/` when starting any new feature:
+- [`00-page-to-api-matrix.md`](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/_template/00-page-to-api-matrix.md)
 - [`01-prd.md`](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/_template/01-prd.md)
 - [`02-data-model.md`](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/_template/02-data-model.md)
 - [`03-api-contract.md`](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/_template/03-api-contract.md)

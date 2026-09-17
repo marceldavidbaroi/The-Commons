@@ -33,6 +33,8 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import mermaid from "mermaid";
+
 interface Props {
   initialDocs: DocItem[];
   categoryGroups: DocCategoryGroup[];
@@ -56,6 +58,54 @@ export default function DocumentReaderClient({ initialDocs, categoryGroups }: Pr
     "Citizen Passport": true,
     "Boilerplate Template": true,
   });
+
+  const selectDocument = (docId: string, updateUrl = true) => {
+    setSelectedDocId(docId);
+    setIsMobileNavOpen(false);
+
+    if (updateUrl && typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("doc", docId);
+      window.history.replaceState({ docId }, "", url.toString());
+    }
+
+    const doc = initialDocs.find((d) => d.id === docId);
+    if (doc?.featureFolder) {
+      setOpenFolders((prev) => ({ ...prev, [doc.featureFolder!]: true }));
+    }
+  };
+
+  // Sync selected doc with URL ?doc= slug on initial load & popstate (browser back/forward)
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const syncFromUrl = () => {
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlDoc = searchParams.get("doc") || searchParams.get("slug") || window.location.hash.replace("#", "");
+
+      if (urlDoc) {
+        const matched = initialDocs.find(
+          (d) =>
+            d.id.toLowerCase() === urlDoc.toLowerCase() ||
+            d.relativePath.toLowerCase().includes(urlDoc.toLowerCase()) ||
+            d.id.toLowerCase().endsWith(urlDoc.toLowerCase())
+        );
+        if (matched) {
+          selectDocument(matched.id, false);
+          return;
+        }
+      } else if (initialDocs.length > 0) {
+        const defaultDoc = initialDocs[0];
+        const url = new URL(window.location.href);
+        url.searchParams.set("doc", defaultDoc.id);
+        window.history.replaceState({ docId: defaultDoc.id }, "", url.toString());
+      }
+    };
+
+    syncFromUrl();
+    window.addEventListener("popstate", syncFromUrl);
+    return () => window.removeEventListener("popstate", syncFromUrl);
+  }, [initialDocs]);
 
   const toggleFolder = (folderName: string) => {
     setOpenFolders((prev) => ({
@@ -162,6 +212,8 @@ export default function DocumentReaderClient({ initialDocs, categoryGroups }: Pr
         return "bg-purple-50 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300 border-purple-200 dark:border-purple-800";
       case "Schema":
         return "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
+      case "Matrix":
+        return "bg-teal-50 text-teal-700 dark:bg-teal-950/70 dark:text-teal-300 border-teal-200 dark:border-teal-800";
       case "API Contract":
         return "bg-amber-50 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300 border-amber-200 dark:border-amber-800";
       case "Architecture":
@@ -245,7 +297,7 @@ export default function DocumentReaderClient({ initialDocs, categoryGroups }: Pr
         
         {/* Left Navigation Tree */}
         <aside
-          className={`fixed inset-y-0 left-0 z-30 w-72 bg-white dark:bg-[#0B0F17] md:bg-transparent border-r border-slate-200 dark:border-slate-800 p-4 flex flex-col gap-3 transform transition-transform duration-200 md:static md:translate-x-0 ${
+          className={`fixed inset-y-0 left-0 z-30 w-72 bg-white dark:bg-[#0B0F17] border-r border-slate-200 dark:border-slate-800 p-4 flex flex-col gap-3 transform transition-transform duration-200 md:translate-x-0 md:sticky md:top-14 md:h-[calc(100vh-3.5rem)] md:self-start ${
             isMobileNavOpen ? "translate-x-0 shadow-2xl pt-16" : "-translate-x-full"
           }`}
         >
@@ -292,7 +344,7 @@ export default function DocumentReaderClient({ initialDocs, categoryGroups }: Pr
           </div>
 
           {/* Grouped & Nested Document List */}
-          <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
+          <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs overscroll-contain">
             {searchQuery || selectedBadgeFilter ? (
               <div className="space-y-1">
                 <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2">
@@ -301,10 +353,7 @@ export default function DocumentReaderClient({ initialDocs, categoryGroups }: Pr
                 {filteredDocs.map((doc) => (
                   <button
                     key={doc.id}
-                    onClick={() => {
-                      setSelectedDocId(doc.id);
-                      setIsMobileNavOpen(false);
-                    }}
+                    onClick={() => selectDocument(doc.id)}
                     className={`w-full text-left p-2 rounded-md transition-colors flex flex-col gap-0.5 ${
                       selectedDocId === doc.id
                         ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-medium"
@@ -372,10 +421,7 @@ export default function DocumentReaderClient({ initialDocs, categoryGroups }: Pr
                                 {subGroup.docs.map((doc) => (
                                   <button
                                     key={doc.id}
-                                    onClick={() => {
-                                      setSelectedDocId(doc.id);
-                                      setIsMobileNavOpen(false);
-                                    }}
+                                    onClick={() => selectDocument(doc.id)}
                                     className={`w-full text-left px-2 py-1 rounded transition-colors flex items-center justify-between gap-1 ${
                                       selectedDocId === doc.id
                                         ? "bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-medium"
@@ -406,10 +452,7 @@ export default function DocumentReaderClient({ initialDocs, categoryGroups }: Pr
                       {group.docs.map((doc) => (
                         <button
                           key={doc.id}
-                          onClick={() => {
-                            setSelectedDocId(doc.id);
-                            setIsMobileNavOpen(false);
-                          }}
+                          onClick={() => selectDocument(doc.id)}
                           className={`w-full text-left px-2.5 py-1.5 rounded-md transition-colors flex items-center justify-between gap-1.5 ${
                             selectedDocId === doc.id
                               ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-medium border-l-2 border-blue-600 rounded-l-none pl-2"
@@ -618,9 +661,15 @@ function CleanMarkdownRenderer({ content }: { content: string }) {
     let alertBuffer: string[] = [];
 
     const flushCodeBlock = (key: number) => {
-      elements.push(
-        <CodeBlockViewer key={`code-${key}`} code={codeBuffer.join("\n")} language={codeLanguage} />
-      );
+      if (codeLanguage.toLowerCase() === "mermaid") {
+        elements.push(
+          <MermaidViewer key={`mermaid-${key}`} code={codeBuffer.join("\n")} />
+        );
+      } else {
+        elements.push(
+          <CodeBlockViewer key={`code-${key}`} code={codeBuffer.join("\n")} language={codeLanguage} />
+        );
+      }
       codeBuffer = [];
       inCodeBlock = false;
       codeLanguage = "";
@@ -818,6 +867,147 @@ function CleanMarkdownRenderer({ content }: { content: string }) {
   }, [content]);
 
   return <div className="space-y-1">{renderedElements}</div>;
+}
+
+/**
+ * Live Interactive Mermaid Diagram Viewer
+ */
+function MermaidViewer({ code }: { code: string }) {
+  const [svgContent, setSvgContent] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
+  const [showRaw, setShowRaw] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const uniqueId = React.useId().replace(/[^a-zA-Z0-9]/g, "");
+
+  React.useEffect(() => {
+    let isCancelled = false;
+
+    const renderDiagram = async () => {
+      try {
+        const isDark = document.documentElement.classList.contains("dark");
+        mermaid.initialize({
+          startOnLoad: false,
+          suppressErrorRendering: true,
+          theme: isDark ? "dark" : "default",
+          themeVariables: {
+            fontFamily: "var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif",
+            fontSize: "12px",
+            darkMode: isDark,
+            background: isDark ? "#0B0F17" : "#FFFFFF",
+            primaryColor: isDark ? "#1E293B" : "#F1F5F9",
+            primaryTextColor: isDark ? "#F8FAFC" : "#0F172A",
+            primaryBorderColor: isDark ? "#3B82F6" : "#2563EB",
+            lineColor: isDark ? "#60A5FA" : "#3B82F6",
+            secondaryColor: isDark ? "#1E293B" : "#F8FAFC",
+            tertiaryColor: isDark ? "#0B0F17" : "#FFFFFF",
+          },
+          securityLevel: "loose",
+        });
+
+        const id = `mermaid-svg-${uniqueId}-${Math.random().toString(36).substring(2, 7)}`;
+        const { svg } = await mermaid.render(id, code.trim());
+        if (!isCancelled) {
+          setSvgContent(svg);
+          setError(null);
+        }
+      } catch (err: any) {
+        // Clean up any stray error SVG elements Mermaid 12 may have injected
+        if (typeof document !== "undefined") {
+          const strayEl = document.getElementById(`dmermaid-svg-${uniqueId}`);
+          if (strayEl) strayEl.remove();
+        }
+        if (!isCancelled) {
+          setError(err?.message || "Error rendering diagram");
+        }
+      }
+    };
+
+
+    renderDiagram();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [code, uniqueId]);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="my-6 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B0F17] overflow-hidden shadow-xs">
+      <div className="flex items-center justify-between px-3.5 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+          <span className="font-semibold text-slate-700 dark:text-slate-300">
+            Entity Relationship & Architecture Diagram
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-md border border-slate-200 dark:border-slate-800 p-0.5 bg-white dark:bg-slate-950 text-[11px]">
+            <button
+              onClick={() => setShowRaw(false)}
+              className={`px-2 py-0.5 rounded transition-colors ${
+                !showRaw
+                  ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-medium"
+                  : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              Visual Diagram
+            </button>
+            <button
+              onClick={() => setShowRaw(true)}
+              className={`px-2 py-0.5 rounded transition-colors ${
+                showRaw
+                  ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-medium"
+                  : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              Mermaid Source
+            </button>
+          </div>
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-900 dark:hover:text-white px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          >
+            {copied ? (
+              <>
+                <Check className="h-3 w-3 text-emerald-500" />
+                <span className="text-emerald-500">Copied</span>
+              </>
+            ) : (
+              <>
+                <Copy className="h-3 w-3" />
+                <span>Copy</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {showRaw ? (
+        <pre className="p-4 font-mono text-xs overflow-x-auto leading-relaxed bg-slate-900 text-slate-200">
+          {code}
+        </pre>
+      ) : error ? (
+        <div className="p-4 bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 text-xs space-y-2">
+          <p className="font-semibold">Unable to render visual diagram:</p>
+          <pre className="p-2.5 rounded bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800 text-slate-700 dark:text-slate-300 font-mono text-xs overflow-x-auto">
+            {code}
+          </pre>
+        </div>
+      ) : svgContent ? (
+        <div
+          className="p-6 overflow-x-auto flex justify-center bg-slate-50/40 dark:bg-slate-950/40 [&>svg]:max-w-full [&>svg]:h-auto"
+          dangerouslySetInnerHTML={{ __html: svgContent }}
+        />
+      ) : (
+        <div className="p-8 text-center text-xs text-slate-400">Rendering visual diagram...</div>
+      )}
+    </div>
+  );
 }
 
 /**

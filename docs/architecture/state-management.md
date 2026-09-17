@@ -19,12 +19,13 @@ We maintain a strict separation between **Server State** (data originating from 
   ┌─────────────────────────┐     ┌─────────────────────────┐
   │     TanStack Query      │     │      Zustand Stores     │
   │ • User Profile & Session│     │ • Auth Store            │
-  │ • User Items & Ordering │     │ • Diary State & Search  │
-  │ • Query Keys Factory    │     │ • UI Density & Reader   │
-  │ • Optimistic Updates    │     │ • Local Storage Persist │
+  │ • User Items & Ordering │     │ • Diary Store & Search  │
+  │ • Diary Overview & TOC  │     │ • UI Density & Reader   │
+  │ • Query Keys Factory    │     │ • Local Storage Persist │
+  │ • In-Place Updates      │     │                         │
   └────────────┬────────────┘     └─────────────────────────┘
                │
-      Supabase Postgres RPC
+      Supabase Postgres RPC & Tables
                │
                ▼
      ┌───────────────────┐
@@ -61,6 +62,17 @@ export const userItemKeys = {
   list: (filters: UserItemFilters) => [...userItemKeys.lists(), filters] as const,
   detail: (id: string) => [...userItemKeys.all, "detail", id] as const,
 };
+
+// src/hooks/queries/use-diaries.ts
+export const diaryKeys = {
+  all: ["diaries"] as const,
+  lists: () => [...diaryKeys.all, "list"] as const,
+  overview: () => [...diaryKeys.all, "overview"] as const,
+  stats: (diaryId?: string) => [...diaryKeys.all, "stats", diaryId || "global"] as const,
+  detail: (diaryId: string) => [...diaryKeys.all, "detail", diaryId] as const,
+  entries: (diaryId?: string) => [...diaryKeys.all, "entries", diaryId || "all"] as const,
+  entry: (diaryId: string, entryId: string) => [...diaryKeys.all, "entry", diaryId, entryId] as const,
+};
 ```
 
 ### Key Query & Mutation Hooks
@@ -73,6 +85,13 @@ export const userItemKeys = {
 | `useUserItems(filters)` | Query | Executes database RPC `get_sorted_user_items` with fallback to table query. |
 | `useReorderUserItemsMutation()` | Mutation | Optimistically reorders items before committing to RPC `reorder_user_items`. |
 | `useUpdateSortPreferencesMutation()` | Mutation | Updates default sort order JSONB in profile and invalidates item queries. |
+| `useDiariesOverview()` | Query | Executes RPC `get_user_diaries_overview` returning tomes with joined entry counts. |
+| `useDiaryEntries(diaryId)` | Query | Fetches all pages for a tome sorted by `page_number DESC`. |
+| `useDiaryStats(diaryId)` | Query | Executes RPC `get_diary_stats` for global or tome-specific analytics. |
+| `useCreateDiaryMutation()` | Mutation | Atomically creates new tome + page 1 via RPC `create_diary_with_first_page`. |
+| `useUpdateDiaryMutation()` | Mutation | Surgically updates tome metadata via table update with RLS. |
+| `useDeleteDiaryMutation()` | Mutation | Deletes diary and cascades entries via table delete. |
+| `useReorderDiariesMutation()` | Mutation | Persists custom diary ordering via RPC `reorder_diaries`. |
 
 ---
 
@@ -88,7 +107,7 @@ const { user, isAuthenticated, isLoading } = useAuthStore();
 ```
 
 ### 2. `useDiaryStore` ([`src/stores/diary-store.ts`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/stores/diary-store.ts))
-Manages Daily Diary view state, search query, page turning index, and favorite heart overrides with local storage persistence:
+Manages Daily Diary view state, search query, active tome/page index, and favorite heart overrides with local storage persistence:
 
 ```typescript
 const searchQuery = useDiaryStore((s) => s.searchQuery);
@@ -118,4 +137,4 @@ Refactored to trigger `useGoogleSignInMutation()` and display reactive error dis
 
 1. **Never duplicate server data in Zustand**: Fetch server entities using TanStack Query hooks; use Zustand only for transient client state or optimistic overrides.
 2. **Always use atomic selectors**: Extract specific properties `useDiaryStore((s) => s.searchQuery)` to avoid unnecessary component re-renders.
-3. **Always invalidate related queries upon mutation**: Use query key factories (`queryClient.invalidateQueries({ queryKey: userItemKeys.all })`) inside `onSuccess` or `onSettled` handlers.
+3. **Always invalidate or surgically update related queries upon mutation**: Use query key factories (`queryClient.invalidateQueries({ queryKey: diaryKeys.overview() })` or `queryClient.setQueryData`) inside `onSuccess` or `onSettled` handlers.

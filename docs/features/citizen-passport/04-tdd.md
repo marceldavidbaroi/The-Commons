@@ -4,11 +4,12 @@
 
 ```mermaid
 graph TD
-    PassportPage[/citizen-passport] --> Hook[usePassportProfileQuery]
-    Hook --> SupabaseClient[Supabase Profiles Table]
-    SettingsPage[/settings] --> Mutation[useUpdateProfileMutation]
-    Mutation --> Toast[Feedback Notification]
+    PassportPage["/citizen-passport"] --> Hook["usePassportProfileQuery"]
+    Hook --> SupabaseClient["Supabase Profiles Table"]
+    SettingsPage["/settings"] --> Mutation["useUpdateProfileMutation"]
+    Mutation --> Toast["Feedback Notification"]
 ```
+
 
 ## 2. Component Hierarchy & File Mapping
 

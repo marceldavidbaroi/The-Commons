@@ -8,7 +8,7 @@ Welcome to the documentation for **The Commons**. This directory serves as the s
 
 ### 1. [Features](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features)
 - [**Authentication & Access Control (RBAC)**](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/authentication-and-access-control/01-prd.md) — Supabase Auth, Google OAuth, magic link OTP, roles (`admin`, `member`, `guest`), SSR session handling, and edge route middleware.
-- [**Daily Diary & Multi-Tome Journaling**](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/daily-diary/01-prd.md) — Multi-tome journal library, 2-page tactile editor, gratitude rituals, and vitality streaks.
+- [**Daily Diary & Multi-Tome Journaling**](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/daily-diary/01-prd.md) — Multi-tome journal library, 2-page tactile editor, gratitude rituals, and vitality streaks. ([Page-to-API Matrix](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/daily-diary/00-page-to-api-matrix.md))
 - [**Citizen Passport & Identity**](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/citizen-passport/01-prd.md) — Archival citizen clearance, identity ledger, badges, and profile preferences.
 - [**Design System & Visual Identity**](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/design-system.md) — Curated tokens, official broadside seal logo, and feature-scoped styling.
 - [**User Profiles & Preferences**](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/user-profiles-and-preferences.md) — Profiles schema, email preferences, and custom sorting.
