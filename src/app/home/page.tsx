@@ -84,14 +84,14 @@ interface FeatureDepartment {
 
 const featureDepartments: FeatureDepartment[] = [
   {
-    id: "daily-diary",
+    id: "daily-diaries",
     deptNumber: "01",
-    title: "The Daily Diary",
-    subtitle: "Aged parchment, walnut ink & intimate prompts.",
-    href: "/daily-diary",
-    buttonText: "Open Diary",
+    title: "My Diaries",
+    subtitle: "Chronicles archive, aged parchment & intimate prompts.",
+    href: "/my-diaries",
+    buttonText: "Browse Diaries",
     icon: <Feather className="h-4 w-4" />,
-    themeTag: "Parchment & Ink",
+    themeTag: "Chronicles Archive",
     themeColorClass: "border-[#8C3A27] text-[#8C3A27] dark:text-[#E59375]",
   },
   {
@@ -154,7 +154,7 @@ const featureDepartments: FeatureDepartment[] = [
     deptNumber: "07",
     title: "Rhythms & Streaks",
     subtitle: "Consistency logs & mindful habit tracking.",
-    href: "/daily-diary",
+    href: "/my-diaries",
     buttonText: "View Rhythms",
     icon: <Flame className="h-4 w-4" />,
     themeTag: "Vitality",
@@ -188,7 +188,7 @@ export default function HomePage() {
       <header className="border-b border-border/80 bg-muted/30 px-6 py-2.5">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] font-mono tracking-wider text-muted-foreground uppercase">
           <div className="flex items-center gap-3">
-            <CommonsLogo variant="horizontal" size="sm" href="/" subtitle="AUTHENTICATED CITIZEN LEDGER" showFolio />
+            <CommonsLogo variant="horizontal" size="sm" href="/home" subtitle="AUTHENTICATED CITIZEN LEDGER" showFolio />
           </div>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1">
@@ -242,7 +242,7 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row items-center gap-6 py-2">
               {/* Daily Diary Tactile Book SVG in authentic Parchment & Wax colors */}
               <div className="w-full sm:w-1/2 flex justify-center">
-                <Link href="/daily-diary" className="group block focus:outline-none" title="Open Daily Diary">
+                <Link href="/my-diaries" className="group block focus:outline-none" title="Open Daily Diary">
                   <svg
                     viewBox="0 0 320 240"
                     className="w-full max-w-[210px] drop-shadow-xl transition-transform duration-500 group-hover:scale-105 group-hover:-rotate-1 cursor-pointer"
@@ -302,11 +302,10 @@ export default function HomePage() {
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   A tranquil single-page tactile canvas. Crafted with antique parchment textures, walnut ink typography, gratitude prompts, and mood rhythm tracking.
                 </p>
-                <div className="pt-1">
-                  <Link href="/daily-diary">
-                    <button className="px-5 py-2.5 bg-[#8C3A27] hover:bg-[#732E1E] text-white font-serif text-xs tracking-wide flex items-center gap-2 cursor-pointer shadow-xs transition-colors">
-                      <Feather className="h-3.5 w-3.5" />
-                      <span>Open Journal Sheet</span>
+                <div className="pt-1 flex items-center gap-2 flex-wrap">
+                  <Link href="/my-diaries">
+                    <button className="px-4 py-2.5 bg-[#3368A0] hover:bg-[#264F7A] text-white font-serif text-xs tracking-wide flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors">
+                      <span>Browse My Diaries</span>
                       <ArrowRight className="h-3 w-3" />
                     </button>
                   </Link>
@@ -441,7 +440,7 @@ export default function HomePage() {
             <span className="font-bold text-foreground">THE COMMONS</span> — Editorial Broadside & Digital Sanctuary.
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/daily-diary" className="hover:text-foreground">Daily Diary</Link>
+            <Link href="/my-diaries" className="hover:text-foreground">My Diaries</Link>
             <span>•</span>
             <Link href="/login" className="hover:text-foreground">Citizen Passport</Link>
           </div>

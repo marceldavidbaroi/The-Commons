@@ -47,8 +47,17 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/oauth') ||
     pathname.startsWith('/dev')
 
+  // 1. Authenticated user accessing landing page or login -> redirect straight to /home
+  if (user) {
+    if (pathname === '/' || pathname.startsWith('/login')) {
+      const homeUrl = request.nextUrl.clone()
+      homeUrl.pathname = '/home'
+      return NextResponse.redirect(homeUrl)
+    }
+  }
+
+  // 2. Unauthenticated user attempting to access protected feature routes (/home, /my-diaries, etc.)
   if (!user && !isPublicRoute) {
-    // Unauthenticated user attempting to access protected feature routes (/home, /daily-diary, etc.)
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/login'
     loginUrl.searchParams.set('redirect', pathname)

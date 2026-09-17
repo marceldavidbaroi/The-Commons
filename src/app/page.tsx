@@ -1,25 +1,25 @@
 import React from "react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { 
   ArrowRight, 
   Feather, 
   Calendar, 
   Clock, 
   ShieldCheck,
-  Sliders
+  Sliders,
+  BookOpen
 } from "lucide-react";
 import { CommonsSealVector, CommonsLogo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { CitizenStatus } from "@/components/brand/citizen-status";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata = {
   title: "The Commons — A Tactile Digital Sanctuary & Editorial Broadside",
   description: "An authentic magazine broadsheet for daily journaling, reflective inquiry, and encrypted record-keeping.",
 };
 
-/* ==========================================================================
-   OFFICIAL GOOGLE SVG VECTOR
-   ========================================================================== */
 function GoogleIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className}>
@@ -43,7 +43,16 @@ function GoogleIcon({ className = "w-4 h-4" }: { className?: string }) {
   );
 }
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    redirect("/home");
+  }
+
   const todayDate = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     year: "numeric",
@@ -66,6 +75,11 @@ export default function LandingPage() {
               <Calendar className="h-3 w-3 text-[#3368A0]" />
               {todayDate}
             </span>
+            <span className="text-border">|</span>
+            <Link href="/my-diaries" className="hover:text-foreground text-[#3368A0] dark:text-[#66A3BF] font-semibold transition-colors flex items-center gap-1">
+              <BookOpen className="h-3 w-3" />
+              <span>My Diaries</span>
+            </Link>
             <span className="text-border">|</span>
             <CitizenStatus />
           </div>
@@ -119,25 +133,25 @@ export default function LandingPage() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
-              <Link href="/login" className="w-full sm:w-auto">
+              <Link href="/my-diaries" className="w-full sm:w-auto">
                 <Button 
                   size="lg" 
-                  className="w-full sm:w-auto h-12 bg-[#3368A0] hover:bg-[#285380] text-white font-serif text-sm tracking-wide gap-3 rounded-none px-6 shadow-md cursor-pointer transition-all"
+                  className="w-full sm:w-auto h-12 bg-[#3368A0] hover:bg-[#285380] text-white font-serif text-sm tracking-wide gap-2 rounded-none px-6 shadow-md cursor-pointer transition-all"
                 >
-                  <GoogleIcon className="h-4 w-4" />
-                  <span>Enter with Google Account</span>
+                  <BookOpen className="h-4 w-4" />
+                  <span>Open My Diaries Library</span>
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
               </Link>
 
-              <Link href="/dev/design-system" className="w-full sm:w-auto">
+              <Link href="/login" className="w-full sm:w-auto">
                 <Button 
-                  variant="outline" 
+                  variant="outline"
                   size="lg" 
-                  className="w-full sm:w-auto h-12 border-border hover:bg-muted font-mono text-xs rounded-none px-5 cursor-pointer"
+                  className="w-full sm:w-auto h-12 border-border hover:bg-muted font-mono text-xs rounded-none px-5 cursor-pointer gap-2"
                 >
-                  <Sliders className="h-3.5 w-3.5 mr-2 text-[#3368A0] dark:text-[#66A3BF]" />
-                  <span>Inspect Design Codex</span>
+                  <GoogleIcon className="h-4 w-4" />
+                  <span>Citizen Sign In</span>
                 </Button>
               </Link>
             </div>
@@ -149,28 +163,28 @@ export default function LandingPage() {
               <span className="font-mono text-[10px] uppercase text-[#8C3A27] dark:text-[#E59375] font-semibold tracking-widest block">
                 PRIMARY SANCTUARY TOME
               </span>
-              
-              <Link href="/login" className="group block focus:outline-none" title="Enter Daily Diary">
+
+              <Link href="/my-diaries" className="group block focus:outline-none" title="Open My Diaries">
                 <svg
                   viewBox="0 0 320 240"
-                  className="w-full max-w-[240px] mx-auto drop-shadow-2xl transition-transform duration-500 group-hover:scale-105 group-hover:-rotate-1 cursor-pointer"
+                  className="w-full max-w-[210px] mx-auto drop-shadow-xl transition-transform duration-500 group-hover:scale-105 group-hover:-rotate-1 cursor-pointer"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <defs>
-                    <linearGradient id="landCoverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <linearGradient id="bookCoverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                       <stop offset="0%" stopColor="#8C3A27" />
                       <stop offset="50%" stopColor="#732E1E" />
                       <stop offset="100%" stopColor="#4A1C12" />
                     </linearGradient>
-                    <linearGradient id="landSpineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <linearGradient id="spineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                       <stop offset="0%" stopColor="#5E2214" />
                       <stop offset="100%" stopColor="#8C3A27" />
                     </linearGradient>
                   </defs>
 
-                  <rect x="25" y="15" width="270" height="210" rx="10" fill="url(#landCoverGrad)" stroke="#4A1C12" strokeWidth="2" />
-                  <rect x="25" y="15" width="26" height="210" rx="3" fill="url(#landSpineGrad)" />
+                  <rect x="25" y="15" width="270" height="210" rx="10" fill="url(#bookCoverGrad)" stroke="#4A1C12" strokeWidth="2" />
+                  <rect x="25" y="15" width="26" height="210" rx="3" fill="url(#spineGrad)" />
                   <line x1="51" y1="15" x2="51" y2="225" stroke="#3A140B" strokeWidth="2" />
                   <line x1="30" y1="40" x2="46" y2="40" stroke="#D4AF37" strokeWidth="1.5" opacity="0.6" />
                   <line x1="30" y1="200" x2="46" y2="200" stroke="#D4AF37" strokeWidth="1.5" opacity="0.6" />
@@ -191,7 +205,7 @@ export default function LandingPage() {
               </Link>
 
               <p className="font-serif italic text-xs text-muted-foreground pt-1">
-                The Daily Diary: aged tea-stained parchment, walnut ink, and mindful rhythm tracking.
+                The Daily Diaries: aged tea-stained parchment, walnut ink, and mindful reflection.
               </p>
             </div>
           </div>
@@ -281,17 +295,17 @@ export default function LandingPage() {
               Affix Your Seal & Enter The Commons
             </h3>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed font-serif">
-              Join the sanctuary today. Access your personal diary, citizen ledger, and archives with a single click.
+              Access your personal diaries, citizen ledger, and archives with a single click.
             </p>
           </div>
 
-          <Link href="/login">
+          <Link href="/my-diaries">
             <Button
               size="lg"
               className="h-13 bg-[#3368A0] hover:bg-[#285380] text-white font-serif text-sm tracking-wide gap-3 rounded-none px-8 shadow-md cursor-pointer transition-all"
             >
-              <GoogleIcon className="h-5 w-5" />
-              <span>Continue with Google</span>
+              <BookOpen className="h-5 w-5" />
+              <span>Explore My Diaries</span>
               <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
@@ -316,6 +330,8 @@ export default function LandingPage() {
             <span>PUBLIC BROADSHEET & LANDING DESK</span>
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/my-diaries" className="hover:text-foreground">My Diaries</Link>
+            <span>•</span>
             <Link href="/login" className="hover:text-foreground">Citizen Login</Link>
             <span>•</span>
             <Link href="/dev/design-system" className="hover:text-foreground">Design Codex</Link>

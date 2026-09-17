@@ -1,81 +1,309 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import {
+  Diary,
+  DiaryEntry,
+  DiaryTheme,
+  INITIAL_DIARIES,
+  INITIAL_ENTRIES,
+} from "@/types/diary";
+
+export type DiarySortOption = "newest" | "oldest" | "vitality-high" | "vitality-low";
+export type DiaryViewMode = "grid" | "list";
 
 export interface DiaryStoreState {
+  diaries: Diary[];
+  entries: DiaryEntry[];
+  activeDiaryId: string;
   currentPageIndex: number;
+  currentEntryId: string | null;
   searchQuery: string;
-  selectedDate: string | null;
-  activeFilter: "all" | "favorites" | "prompts";
-  isDrafting: boolean;
-  heartOverrides: Record<number, boolean>; // pageNumber -> boolean
+  activeFilter: "all" | "favorites" | "high-vitality";
+  activeMoodFilter: string;
+  sortBy: DiarySortOption;
+  viewMode: DiaryViewMode;
 
-  // Actions
+  // Diary Actions
+  setDiaries: (diaries: Diary[]) => void;
+  createDiary: (data: {
+    name: string;
+    description: string;
+    theme: DiaryTheme;
+    coverColor?: string;
+  }) => Diary;
+  updateDiary: (id: string, updates: Partial<Diary>) => void;
+  deleteDiary: (id: string) => void;
+  getDiaryById: (id: string) => Diary | undefined;
+  getEntriesByDiaryId: (diaryId: string) => DiaryEntry[];
+  setActiveDiaryId: (id: string) => void;
+
+  // Entry Actions
+  setEntries: (entries: DiaryEntry[]) => void;
+  getEntryById: (idOrPage: string | number) => DiaryEntry | undefined;
+  updateEntry: (idOrPage: string | number, updates: Partial<DiaryEntry>) => void;
+  createEntry: (diaryId?: string, customData?: Partial<DiaryEntry>) => DiaryEntry;
+  deleteEntry: (idOrPage: string | number) => void;
+  toggleHeart: (idOrPage: string | number) => void;
+
   setCurrentPageIndex: (index: number) => void;
-  nextPage: (maxPages: number) => void;
-  prevPage: () => void;
+  setCurrentEntryId: (id: string | null) => void;
   setSearchQuery: (query: string) => void;
-  setSelectedDate: (date: string | null) => void;
-  setActiveFilter: (filter: "all" | "favorites" | "prompts") => void;
-  setIsDrafting: (isDrafting: boolean) => void;
-  toggleHeart: (pageNumber: number, currentHearted?: boolean) => void;
+  setActiveFilter: (filter: "all" | "favorites" | "high-vitality") => void;
+  setActiveMoodFilter: (mood: string) => void;
+  setSortBy: (sort: DiarySortOption) => void;
+  setViewMode: (mode: DiaryViewMode) => void;
   resetDiaryState: () => void;
 }
 
 export const useDiaryStore = create<DiaryStoreState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
+      diaries: INITIAL_DIARIES,
+      entries: INITIAL_ENTRIES,
+      activeDiaryId: "diary-vintage-1",
       currentPageIndex: 0,
+      currentEntryId: "142",
       searchQuery: "",
-      selectedDate: null,
       activeFilter: "all",
-      isDrafting: false,
-      heartOverrides: {},
+      activeMoodFilter: "all",
+      sortBy: "newest",
+      viewMode: "grid",
 
-      setCurrentPageIndex: (index) => set({ currentPageIndex: Math.max(0, index) }),
+      setDiaries: (diaries) => set({ diaries }),
 
-      nextPage: (maxPages) =>
+      createDiary: ({ name, description, theme, coverColor }) => {
+        const id = `diary-${theme}-${Date.now().toString(36)}`;
+        const now = new Date().toISOString();
+        const defaultColor =
+          coverColor ||
+          (theme === "vintage" ? "#8C3A27" : theme === "classic" ? "#1E3A5F" : "#172330");
+
+        const newDiary: Diary = {
+          id,
+          name: name.trim() || "Untitled Tome",
+          description: description.trim() || "A private chronicle for thoughts and daily records.",
+          theme,
+          coverColor: defaultColor,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        // Also create the first initial blank page for this new diary
+        const highestPage = get().entries.reduce(
+          (max, e) => Math.max(max, e.pageNumber || 0),
+          142
+        );
+        const newPageNum = highestPage + 1;
+        const today = new Date();
+        const newEntryId = String(newPageNum);
+
+        const firstEntry: DiaryEntry = {
+          id: newEntryId,
+          diaryId: id,
+          pageNumber: newPageNum,
+          dateStr: today.toLocaleDateString("en-US", {
+            month: "long",
+            day: "numeric",
+          }),
+          dayOfWeek: today.toLocaleDateString("en-US", { weekday: "long" }),
+          yearStr: `Anno ${today.getFullYear()}`,
+          title: "",
+          description: "",
+          gratitude: ["", "", ""],
+          energyLevel: 3,
+          startTime: "09:00",
+          endTime: "17:00",
+          mood: "🌿 Calm",
+          weather: "sunny",
+          isHearted: false,
+          tags: ["Fresh Inscription"],
+          createdAt: now,
+        };
+
         set((state) => ({
-          currentPageIndex: Math.min(maxPages - 1, state.currentPageIndex + 1),
+          diaries: [newDiary, ...state.diaries],
+          entries: [firstEntry, ...state.entries],
+          activeDiaryId: id,
+          currentEntryId: newEntryId,
+        }));
+
+        return newDiary;
+      },
+
+      updateDiary: (id, updates) =>
+        set((state) => ({
+          diaries: state.diaries.map((d) =>
+            d.id === id ? { ...d, ...updates, updatedAt: new Date().toISOString() } : d
+          ),
         })),
 
-      prevPage: () =>
+      deleteDiary: (id) =>
         set((state) => ({
-          currentPageIndex: Math.max(0, state.currentPageIndex - 1),
+          diaries: state.diaries.filter((d) => d.id !== id),
+          entries: state.entries.filter((e) => e.diaryId !== id),
         })),
 
-      setSearchQuery: (searchQuery) => set({ searchQuery, currentPageIndex: 0 }),
+      getDiaryById: (id) => {
+        return get().diaries.find((d) => d.id === id);
+      },
 
-      setSelectedDate: (selectedDate) => set({ selectedDate }),
+      getEntriesByDiaryId: (diaryId) => {
+        return get().entries.filter((e) => e.diaryId === diaryId);
+      },
 
-      setActiveFilter: (activeFilter) => set({ activeFilter, currentPageIndex: 0 }),
+      setActiveDiaryId: (activeDiaryId) => set({ activeDiaryId }),
 
-      setIsDrafting: (isDrafting) => set({ isDrafting }),
+      setEntries: (entries) => set({ entries }),
 
-      toggleHeart: (pageNumber, currentHearted = false) =>
+      getEntryById: (idOrPage) => {
+        const idStr = String(idOrPage);
+        const state = get();
+        // 1. Direct match on entry id / pageNumber
+        let found = state.entries.find(
+          (e) =>
+            e.id === idStr ||
+            String(e.pageNumber) === idStr ||
+            `page-${e.pageNumber}` === idStr
+        );
+        if (found) return found;
+
+        // 2. If it's a diaryId, return the latest entry for that diary
+        const diaryEntries = state.entries.filter((e) => e.diaryId === idStr);
+        if (diaryEntries.length > 0) {
+          return diaryEntries[0];
+        }
+
+        return state.entries[0];
+      },
+
+      updateEntry: (idOrPage, updates) =>
         set((state) => {
-          const currentVal = state.heartOverrides[pageNumber] ?? currentHearted;
+          const idStr = String(idOrPage);
+          const updatedEntries = state.entries.map((entry) => {
+            if (
+              entry.id === idStr ||
+              String(entry.pageNumber) === idStr ||
+              `page-${entry.pageNumber}` === idStr
+            ) {
+              return {
+                ...entry,
+                ...updates,
+                updatedAt: new Date().toISOString(),
+              };
+            }
+            return entry;
+          });
+          return { entries: updatedEntries };
+        }),
+
+      createEntry: (diaryId, customData) => {
+        const state = get();
+        const targetDiaryId = diaryId || state.activeDiaryId || state.diaries[0]?.id || "diary-vintage-1";
+        const highestPage = state.entries.reduce(
+          (max, e) => Math.max(max, e.pageNumber || 0),
+          142
+        );
+        const newPageNum = highestPage + 1;
+        const today = new Date();
+        const newId = String(newPageNum);
+
+        const newEntry: DiaryEntry = {
+          id: newId,
+          diaryId: targetDiaryId,
+          pageNumber: newPageNum,
+          dateStr: today.toLocaleDateString("en-US", {
+            month: "long",
+            day: "numeric",
+          }),
+          dayOfWeek: today.toLocaleDateString("en-US", { weekday: "long" }),
+          yearStr: `Anno ${today.getFullYear()}`,
+          title: "",
+          description: "",
+          gratitude: ["", "", ""],
+          energyLevel: 3,
+          startTime: "09:00",
+          endTime: "17:00",
+          mood: "🌿 Calm",
+          weather: "sunny",
+          isHearted: false,
+          tags: ["Daily Reflection"],
+          createdAt: new Date().toISOString(),
+          ...customData,
+        };
+
+        set((s) => ({
+          entries: [newEntry, ...s.entries],
+          currentEntryId: newId,
+          activeDiaryId: targetDiaryId,
+          currentPageIndex: 0,
+        }));
+
+        return newEntry;
+      },
+
+      deleteEntry: (idOrPage) =>
+        set((state) => {
+          const idStr = String(idOrPage);
           return {
-            heartOverrides: {
-              ...state.heartOverrides,
-              [pageNumber]: !currentVal,
-            },
+            entries: state.entries.filter(
+              (e) =>
+                e.id !== idStr &&
+                String(e.pageNumber) !== idStr &&
+                `page-${e.pageNumber}` !== idStr
+            ),
           };
         }),
+
+      toggleHeart: (idOrPage) =>
+        set((state) => {
+          const idStr = String(idOrPage);
+          return {
+            entries: state.entries.map((e) => {
+              if (
+                e.id === idStr ||
+                String(e.pageNumber) === idStr ||
+                `page-${e.pageNumber}` === idStr
+              ) {
+                return { ...e, isHearted: !e.isHearted };
+              }
+              return e;
+            }),
+          };
+        }),
+
+      setCurrentPageIndex: (index) =>
+        set({ currentPageIndex: Math.max(0, index) }),
+
+      setCurrentEntryId: (id) => set({ currentEntryId: id }),
+
+      setSearchQuery: (searchQuery) =>
+        set({ searchQuery, currentPageIndex: 0 }),
+
+      setActiveFilter: (activeFilter) =>
+        set({ activeFilter, currentPageIndex: 0 }),
+
+      setActiveMoodFilter: (activeMoodFilter) =>
+        set({ activeMoodFilter, currentPageIndex: 0 }),
+
+      setSortBy: (sortBy) => set({ sortBy }),
+
+      setViewMode: (viewMode) => set({ viewMode }),
 
       resetDiaryState: () =>
         set({
           currentPageIndex: 0,
           searchQuery: "",
-          selectedDate: null,
           activeFilter: "all",
-          isDrafting: false,
+          activeMoodFilter: "all",
+          sortBy: "newest",
         }),
     }),
     {
-      name: "the-commons-diary-store",
+      name: "the-commons-diary-store-v3",
       partialize: (state) => ({
-        heartOverrides: state.heartOverrides,
-        activeFilter: state.activeFilter,
+        diaries: state.diaries,
+        entries: state.entries,
+        activeDiaryId: state.activeDiaryId,
       }),
     }
   )
