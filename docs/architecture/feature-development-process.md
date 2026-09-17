@@ -25,9 +25,9 @@ graph TD
 ### Stage 2: Feature Documentation & Contract Refinement
 Once the UI layout and form requirements are validated in browser:
 1. Create or update the feature folder under `docs/features/<feature-name>/` using the templates in `docs/features/_template/`.
-2. Map all UI actions to endpoints in `00-page-to-api-matrix.md`.
-3. Extract the exact data fields needed by the UI into `02-data-model.md`.
-4. Document endpoints/actions in `03-api-contract.md`.
+2. Extract the exact data fields needed by the UI into `02-data-model.md`.
+3. Document endpoints/actions in `03-api-contract.md`.
+4. Map all UI actions to endpoints in `05-page-to-api-matrix.md`.
 5. Define TypeScript interfaces and function stubs in `stubs.ts`.
 
 ### Stage 3: Backend, Database Schema & Security
@@ -49,19 +49,19 @@ Each feature or module maintains its own folder under `docs/features/<feature-na
 
 ```text
 docs/features/<feature-name>/
-├── 00-page-to-api-matrix.md # Page route to API/RPC and cache sync mapping
 ├── 01-prd.md                # Product & UX requirements (What & Why)
 ├── 02-data-model.md         # SQL schemas, RLS policies, indexes & Zod validation
 ├── 03-api-contract.md       # Server Actions / REST endpoints, payloads, response shapes
 ├── 04-tdd.md                # Technical architecture, component mapping, state flow
+├── 05-page-to-api-matrix.md # Page route to API/RPC and cache sync mapping
 └── stubs.ts                 # Concrete TypeScript interfaces & stubbed functions
 ```
 
 ### Boilerplate Templates
 Copy from `docs/features/_template/` when starting any new feature:
-- [`00-page-to-api-matrix.md`](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/_template/00-page-to-api-matrix.md)
 - [`01-prd.md`](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/_template/01-prd.md)
 - [`02-data-model.md`](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/_template/02-data-model.md)
 - [`03-api-contract.md`](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/_template/03-api-contract.md)
 - [`04-tdd.md`](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/_template/04-tdd.md)
+- [`05-page-to-api-matrix.md`](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/_template/05-page-to-api-matrix.md)
 - [`stubs.ts`](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/_template/stubs.ts)

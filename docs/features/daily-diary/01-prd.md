@@ -27,7 +27,7 @@
 ## 3. Page Routes & UI Breakdown
 
 > [!TIP]
-> For the complete technical map connecting every page route and component trigger to its corresponding database RPC and TanStack Query cache action, refer to the [Page-to-API Matrix](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/daily-diary/00-page-to-api-matrix.md).
+> For the complete technical map connecting every page route and component trigger to its corresponding database RPC and TanStack Query cache action, refer to the [Page-to-API Matrix](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/daily-diary/05-page-to-api-matrix.md).
 
 | Route / URL | Component / View | Description | Key User Actions |
 |---|---|---|---|

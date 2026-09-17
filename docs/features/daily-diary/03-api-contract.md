@@ -1,7 +1,7 @@
 # API Contract: Daily Diary & Journal RPCs
 
 > [!TIP]
-> For an exhaustive, view-by-view and event-by-event table mapping every UI trigger to its endpoint, see the [Page-to-API Matrix](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/daily-diary/00-page-to-api-matrix.md).
+> For an exhaustive, view-by-view and event-by-event table mapping every UI trigger to its endpoint, see the [Page-to-API Matrix](file:///Users/daviditc/Documents/personal_projects/The-Commons/docs/features/daily-diary/05-page-to-api-matrix.md).
 
 ---
 

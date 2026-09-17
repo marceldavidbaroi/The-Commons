@@ -8,16 +8,6 @@ Whenever you build a new feature, copy the `_template/` directory into `docs/fea
 
 ## 📚 Document Breakdown & Full Forms
 
-### 0. `00-page-to-api-matrix.md` — Page-to-API Matrix & Cache Synchronization
-- **Full Form**: **Page-to-API Mapping Matrix**.
-- **Primary Purpose**: Provides an exhaustive 1-to-1 mapping connecting every page route, UI view, tab, component, and user interaction directly to its underlying API endpoint/RPC, TanStack Query hook, and in-memory cache synchronization strategy.
-- **Key Sections**:
-  - Page-to-API mapping table (Page Route, View/Tab, Component, User Trigger/Event, Target API/RPC/Action, HTTP Method, TanStack Hook / Store Action, Cache Strategy).
-  - Client State & Store Matrix (Zustand store variables, modifying actions, affected views, purposes).
-  - Zero-redundant-call caching and optimistic update strategies.
-
----
-
 ### 1. `01-prd.md` — Product Requirements Document (PRD) / Functional Specification Document (FSD)
 - **Full Form**: **P**roduct **R**equirements **D**ocument (or **F**unctional **S**pecification **D**ocument).
 - **Primary Purpose**: Defines **WHAT** the feature is, **WHY** it is being built, and **HOW** users interact with it from a product and UI perspective.
@@ -62,7 +52,17 @@ Whenever you build a new feature, copy the `_template/` directory into `docs/fea
 
 ---
 
-### 5. `stubs.ts` — Type Definitions & Function Signatures
+### 5. `05-page-to-api-matrix.md` — Page-to-API Matrix & Cache Synchronization
+- **Full Form**: **Page-to-API Mapping Matrix**.
+- **Primary Purpose**: Provides an exhaustive 1-to-1 mapping connecting every page route, UI view, tab, component, and user interaction directly to its underlying API endpoint/RPC, TanStack Query hook, and in-memory cache synchronization strategy.
+- **Key Sections**:
+  - Page-to-API mapping table (Page Route, View/Tab, Component, User Trigger/Event, Target API/RPC/Action, HTTP Method, TanStack Hook / Store Action, Cache Strategy).
+  - Client State & Store Matrix (Zustand store variables, modifying actions, affected views, purposes).
+  - Zero-redundant-call caching and optimistic update strategies.
+
+---
+
+### 6. `stubs.ts` — Type Definitions & Function Signatures
 - **Full Form**: **TypeScript Type Stubs & Interface Declarations**.
 - **Primary Purpose**: Provides concrete TypeScript type targets and declared function headers so code can be written with 100% type safety without guessing object shapes.
 - **Key Sections**:
@@ -75,6 +75,6 @@ Whenever you build a new feature, copy the `_template/` directory into `docs/fea
 
 ## 🔁 Workflow Order (UI-First)
 1. **Design UI**: Build pages and components in `src/` using mock state.
-2. **Fill Specs & Page Matrix**: Complete `00-page-to-api-matrix.md`, `01-prd.md`, `02-data-model.md`, `03-api-contract.md`, `04-tdd.md`, and `stubs.ts` based on what the UI actually needs.
+2. **Fill Specs & Page Matrix**: Complete `01-prd.md`, `02-data-model.md`, `03-api-contract.md`, `04-tdd.md`, `05-page-to-api-matrix.md`, and `stubs.ts` based on what the UI actually needs.
 3. **Database Migration**: Run the SQL schema and generate Supabase types.
 4. **Wire Backend**: Implement Server Actions / RPCs, TanStack Query hooks, Zustand stores, and test end-to-end.

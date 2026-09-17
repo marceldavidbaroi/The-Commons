@@ -546,6 +546,50 @@ export function useDeleteDiaryEntryMutation() {
 }
 
 /**
+ * Mutation to reorder user's diary tomes via 1 SINGLE atomic RPC call (`reorder_diaries`).
+ */
+export function useReorderDiariesMutation() {
+  const queryClient = useQueryClient();
+  const reorderDiariesInStore = useDiaryStore((state) => state.reorderDiaries);
+
+  return useMutation({
+    mutationFn: async (diaryIds: string[]) => {
+      // 1. Instant local store reorder
+      reorderDiariesInStore(diaryIds);
+
+      // 2. Exact 1 API call to Supabase RPC
+      const supabase = createClient();
+      const { error } = await (supabase.rpc as any)("reorder_diaries", {
+        p_diary_ids: diaryIds,
+      });
+
+      if (error) {
+        console.warn("reorder_diaries fallback to local store:", error.message);
+      }
+
+      return diaryIds;
+    },
+    onSuccess: (diaryIds) => {
+      // Reorder TanStack Query cache in-place with 0 refetches
+      queryClient.setQueryData<Diary[]>(diaryKeys.overview(), (old) => {
+        if (!old) return old;
+        const map = new Map(old.map((d) => [d.id, d]));
+        const reordered: Diary[] = [];
+        diaryIds.forEach((id, idx) => {
+          const d = map.get(id);
+          if (d) {
+            reordered.push({ ...d, sortOrder: idx + 1 });
+            map.delete(id);
+          }
+        });
+        map.forEach((d) => reordered.push(d));
+        return reordered;
+      });
+    },
+  });
+}
+
+/**
  * Mutation to update an existing diary tome via 1 SINGLE API call.
  */
 export function useUpdateDiaryMutation() {
@@ -563,6 +607,9 @@ export function useUpdateDiaryMutation() {
         description?: string;
         theme?: DiaryTheme;
         coverColor?: string;
+        isFavorite?: boolean;
+        isArchived?: boolean;
+        sortOrder?: number;
       };
     }) => {
       const defaultCoverColor =
@@ -575,11 +622,14 @@ export function useUpdateDiaryMutation() {
           ? "#172330"
           : undefined);
 
-      const localUpdates = {
-        ...(updates.name ? { name: updates.name.trim() } : {}),
+      const localUpdates: Partial<Diary> = {
+        ...(updates.name !== undefined ? { name: updates.name.trim() } : {}),
         ...(updates.description !== undefined ? { description: updates.description.trim() } : {}),
-        ...(updates.theme ? { theme: updates.theme } : {}),
-        ...(defaultCoverColor ? { coverColor: defaultCoverColor } : {}),
+        ...(updates.theme !== undefined ? { theme: updates.theme } : {}),
+        ...(defaultCoverColor !== undefined ? { coverColor: defaultCoverColor } : {}),
+        ...(updates.isFavorite !== undefined ? { isFavorite: updates.isFavorite } : {}),
+        ...(updates.isArchived !== undefined ? { isArchived: updates.isArchived } : {}),
+        ...(updates.sortOrder !== undefined ? { sortOrder: updates.sortOrder } : {}),
       };
 
       // 1. Instant local store update
@@ -588,10 +638,13 @@ export function useUpdateDiaryMutation() {
       // 2. Exact 1 API call to Supabase table update
       const supabase = createClient();
       const dbPayload: any = {};
-      if (updates.name) dbPayload.name = updates.name.trim();
+      if (updates.name !== undefined) dbPayload.name = updates.name.trim();
       if (updates.description !== undefined) dbPayload.description = updates.description.trim();
-      if (updates.theme) dbPayload.theme = updates.theme;
-      if (defaultCoverColor) dbPayload.cover_color = defaultCoverColor;
+      if (updates.theme !== undefined) dbPayload.theme = updates.theme;
+      if (defaultCoverColor !== undefined) dbPayload.cover_color = defaultCoverColor;
+      if (updates.isFavorite !== undefined) dbPayload.is_favorite = updates.isFavorite;
+      if (updates.isArchived !== undefined) dbPayload.is_archived = updates.isArchived;
+      if (updates.sortOrder !== undefined) dbPayload.sort_order = updates.sortOrder;
 
       const { error } = await (supabase.from("diaries") as any)
         .update(dbPayload)
@@ -612,3 +665,4 @@ export function useUpdateDiaryMutation() {
     },
   });
 }
+

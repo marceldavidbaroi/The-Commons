@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useTransition } from "react";
+import React, { useState, useEffect, useMemo, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -15,6 +15,15 @@ import {
   Loader2,
   Pencil,
   Trash2,
+  Star,
+  Search,
+  ArrowLeftRight,
+  ChevronLeft,
+  ChevronRight,
+  BookMarked,
+  Heart,
+  Archive,
+  BookCheck,
 } from "lucide-react";
 import { CommonsSealVector } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
@@ -28,6 +37,7 @@ import {
   useCreateDiaryMutation,
   useUpdateDiaryMutation,
   useDeleteDiaryMutation,
+  useReorderDiariesMutation,
 } from "@/hooks/queries/use-diaries";
 import { Diary, DiaryEntry, DiaryTheme, INITIAL_DIARIES, INITIAL_ENTRIES } from "@/types/diary";
 
@@ -68,40 +78,101 @@ export const THEME_CONFIGS: Record<
   },
 };
 
+const COLOR_PRESETS = [
+  { label: "Crimson Codex", hex: "#8C3A27" },
+  { label: "Navy Cloth", hex: "#1E3A5F" },
+  { label: "Midnight Studio", hex: "#172330" },
+  { label: "Forest Scribe", hex: "#1E4D38" },
+  { label: "Royal Amber", hex: "#7A4E1D" },
+  { label: "Obsidian Slate", hex: "#2A2E39" },
+];
+
 /* ==========================================================================
    TACTILE BOOK COVER COMPONENT (STYLED BY THEME)
    ========================================================================== */
 function DiaryBookCover({
   diary,
   entriesCount,
+  isFirst,
+  isLast,
   onClick,
   onEdit,
+  onToggleFavorite,
+  onMoveLeft,
+  onMoveRight,
 }: {
   diary: Diary;
   entriesCount: number;
+  isFirst: boolean;
+  isLast: boolean;
   onClick: () => void;
   onEdit: (e: React.MouseEvent) => void;
+  onToggleFavorite: (e: React.MouseEvent) => void;
+  onMoveLeft: (e: React.MouseEvent) => void;
+  onMoveRight: (e: React.MouseEvent) => void;
 }) {
   const theme = diary.theme || "vintage";
   const themeConfig = THEME_CONFIGS[theme] || THEME_CONFIGS.vintage;
+  const coverColor = diary.coverColor || themeConfig.coverColor;
 
   return (
     <div
       onClick={onClick}
-      className="group cursor-pointer flex flex-col items-center select-none relative"
+      className="group cursor-pointer flex flex-col items-center select-none relative w-full max-w-[240px]"
     >
       {/* 3D Book Container */}
-      <div className="relative w-full max-w-[240px] aspect-[3/4] transition-all duration-500 ease-out transform group-hover:-translate-y-3 group-hover:rotate-1">
+      <div className="relative w-full aspect-[3/4] transition-all duration-500 ease-out transform group-hover:-translate-y-3 group-hover:rotate-1">
         
-        {/* Quick Edit Action Button */}
+        {/* Favorite Bookmark Star Badge */}
         <button
           type="button"
-          onClick={onEdit}
-          title="Edit diary name, description, and theme"
-          className="absolute top-2 right-2 z-20 p-1.5 rounded-full bg-background/80 hover:bg-background text-foreground/80 hover:text-foreground border border-border shadow-md opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-xs"
+          onClick={onToggleFavorite}
+          title={diary.isFavorite ? "Remove from favorites" : "Mark as favorite volume"}
+          className={`absolute top-2 left-2 z-20 p-1.5 rounded-full transition-all duration-200 cursor-pointer backdrop-blur-xs border ${
+            diary.isFavorite
+              ? "bg-amber-500/90 text-amber-950 border-amber-400 shadow-md opacity-100 scale-105"
+              : "bg-background/80 hover:bg-background text-muted-foreground hover:text-amber-500 border-border opacity-0 group-hover:opacity-100"
+          }`}
         >
-          <Pencil className="h-3.5 w-3.5 text-[#3368A0] dark:text-[#66A3BF]" />
+          <Star className={`h-3.5 w-3.5 ${diary.isFavorite ? "fill-current" : ""}`} />
         </button>
+
+        {/* Quick Actions Bar (Top Right) */}
+        <div className="absolute top-2 right-2 z-20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Move Left */}
+          {!isFirst && (
+            <button
+              type="button"
+              onClick={onMoveLeft}
+              title="Move tome left"
+              className="p-1.5 rounded-full bg-background/80 hover:bg-background text-foreground/80 hover:text-foreground border border-border shadow-xs transition-colors cursor-pointer backdrop-blur-xs"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          {/* Move Right */}
+          {!isLast && (
+            <button
+              type="button"
+              onClick={onMoveRight}
+              title="Move tome right"
+              className="p-1.5 rounded-full bg-background/80 hover:bg-background text-foreground/80 hover:text-foreground border border-border shadow-xs transition-colors cursor-pointer backdrop-blur-xs"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          {/* Quick Edit Action */}
+          <button
+            type="button"
+            onClick={onEdit}
+            title="Edit diary name, description, and theme"
+            className="p-1.5 rounded-full bg-background/80 hover:bg-background text-foreground/80 hover:text-foreground border border-border shadow-md transition-colors cursor-pointer backdrop-blur-xs"
+          >
+            <Pencil className="h-3.5 w-3.5 text-[#3368A0] dark:text-[#66A3BF]" />
+          </button>
+        </div>
 
         {/* Deep Book Drop Shadow */}
         <div className="absolute inset-x-4 bottom-0 h-6 bg-black/35 dark:bg-black/60 rounded-full blur-md transform translate-y-3 group-hover:translate-y-4 group-hover:blur-lg transition-all" />
@@ -116,13 +187,13 @@ function DiaryBookCover({
           >
             <defs>
               <linearGradient id={`grad_v_${diary.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#8C3A27" />
+                <stop offset="0%" stopColor={coverColor} />
                 <stop offset="50%" stopColor="#6E2B1D" />
                 <stop offset="100%" stopColor="#4A180E" />
               </linearGradient>
               <linearGradient id={`spine_v_${diary.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#4A180E" />
-                <stop offset="100%" stopColor="#8C3A27" />
+                <stop offset="100%" stopColor={coverColor} />
               </linearGradient>
             </defs>
 
@@ -175,7 +246,7 @@ function DiaryBookCover({
           >
             <defs>
               <linearGradient id={`grad_c_${diary.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#1E3A5F" />
+                <stop offset="0%" stopColor={coverColor} />
                 <stop offset="50%" stopColor="#152B47" />
                 <stop offset="100%" stopColor="#0B1829" />
               </linearGradient>
@@ -232,7 +303,7 @@ function DiaryBookCover({
           >
             <defs>
               <linearGradient id={`grad_m_${diary.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#1E293B" />
+                <stop offset="0%" stopColor={coverColor} />
                 <stop offset="50%" stopColor="#0F172A" />
                 <stop offset="100%" stopColor="#020617" />
               </linearGradient>
@@ -276,7 +347,7 @@ function DiaryBookCover({
       </div>
 
       {/* Book Metadata Under Title */}
-      <div className="mt-4 text-center space-y-1 max-w-[220px]">
+      <div className="mt-4 text-center space-y-1 w-full px-1">
         <div className="flex items-center justify-center gap-1.5 text-xs font-mono text-muted-foreground">
           <span className="font-bold text-[#3368A0] dark:text-[#66A3BF]">
             {themeConfig.name}
@@ -292,6 +363,12 @@ function DiaryBookCover({
         <p className="font-serif italic text-xs text-muted-foreground line-clamp-1">
           {diary.description || "A private chronicle for thoughts and daily records."}
         </p>
+
+        {diary.latestEntryDate && (
+          <span className="font-mono text-[10px] text-muted-foreground/80 block">
+            Latest: {diary.latestEntryDate}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -304,9 +381,9 @@ function CreateDiarySlot({ onClick }: { onClick: () => void }) {
   return (
     <div
       onClick={onClick}
-      className="group cursor-pointer flex flex-col items-center select-none"
+      className="group cursor-pointer flex flex-col items-center select-none w-full max-w-[240px]"
     >
-      <div className="relative w-full max-w-[240px] aspect-[3/4] transition-all duration-500 ease-out transform group-hover:-translate-y-3 group-hover:rotate-1">
+      <div className="relative w-full aspect-[3/4] transition-all duration-500 ease-out transform group-hover:-translate-y-3 group-hover:rotate-1">
         
         <div className="absolute inset-x-4 bottom-0 h-6 bg-black/15 dark:bg-black/40 rounded-full blur-md transform translate-y-3 group-hover:translate-y-4 transition-all" />
 
@@ -355,6 +432,7 @@ export default function MyDiariesPage() {
   const createDiaryMutation = useCreateDiaryMutation();
   const updateDiaryMutation = useUpdateDiaryMutation();
   const deleteDiaryMutation = useDeleteDiaryMutation();
+  const reorderDiariesMutation = useReorderDiariesMutation();
 
   // 2. Zustand Store Sync
   const storeDiaries = useDiaryStore((state) => state.diaries);
@@ -365,22 +443,60 @@ export default function MyDiariesPage() {
   const entries = storeEntries.length > 0 ? storeEntries : INITIAL_ENTRIES;
 
   const [mounted, setMounted] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [collectionFilter, setCollectionFilter] = useState<"all" | "favorites" | "archived">("all");
 
   // 3. Modal State for Creating a Diary
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedTheme, setSelectedTheme] = useState<DiaryTheme>("vintage");
+  const [selectedCoverColor, setSelectedCoverColor] = useState<string>("#8C3A27");
 
   // 4. Modal State for Editing a Diary
   const [editingDiary, setEditingDiary] = useState<Diary | null>(null);
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editTheme, setEditTheme] = useState<DiaryTheme>("vintage");
+  const [editCoverColor, setEditCoverColor] = useState<string>("#8C3A27");
+  const [editIsFavorite, setEditIsFavorite] = useState(false);
+  const [editIsArchived, setEditIsArchived] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Filtered Diaries according to tab and search query
+  const filteredDiaries = useMemo(() => {
+    return diaries.filter((d: Diary) => {
+      // 1. Tab filter
+      if (collectionFilter === "favorites" && !d.isFavorite) return false;
+      if (collectionFilter === "archived" && !d.isArchived) return false;
+      if (collectionFilter === "all" && d.isArchived) return false;
+
+      // 2. Search query filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const matchName = d.name.toLowerCase().includes(query);
+        const matchDesc = (d.description || "").toLowerCase().includes(query);
+        return matchName || matchDesc;
+      }
+
+      return true;
+    });
+  }, [diaries, collectionFilter, searchQuery]);
+
+  // Total words across entries
+  const calculatedTotalWords = useMemo(() => {
+    return entries.reduce(
+      (sum, e) => sum + (e.description ? e.description.split(/\s+/).filter(Boolean).length : 0),
+      0
+    );
+  }, [entries]);
+
+  const totalWordsDisplay = stats?.total_words !== undefined && stats.total_words > 0
+    ? stats.total_words
+    : calculatedTotalWords;
 
   const handleOpenDiary = (diaryId: string) => {
     setActiveDiaryId(diaryId);
@@ -397,12 +513,46 @@ export default function MyDiariesPage() {
     });
   };
 
+  const handleToggleFavorite = async (e: React.MouseEvent, diary: Diary) => {
+    e.stopPropagation();
+    try {
+      await updateDiaryMutation.mutateAsync({
+        diaryId: diary.id,
+        updates: {
+          isFavorite: !diary.isFavorite,
+        },
+      });
+    } catch (err) {
+      console.error("Failed to toggle favorite diary:", err);
+    }
+  };
+
+  const handleMoveDiary = async (e: React.MouseEvent, currentIndex: number, direction: "left" | "right") => {
+    e.stopPropagation();
+    const newIndex = direction === "left" ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= filteredDiaries.length) return;
+
+    const reorderedList = [...filteredDiaries];
+    const [moved] = reorderedList.splice(currentIndex, 1);
+    reorderedList.splice(newIndex, 0, moved);
+
+    const diaryIds = reorderedList.map((d) => d.id);
+    try {
+      await reorderDiariesMutation.mutateAsync(diaryIds);
+    } catch (err) {
+      console.error("Failed to reorder diaries:", err);
+    }
+  };
+
   const handleOpenEditModal = (e: React.MouseEvent, diary: Diary) => {
     e.stopPropagation();
     setEditingDiary(diary);
     setEditName(diary.name);
     setEditDescription(diary.description || "");
     setEditTheme(diary.theme || "vintage");
+    setEditCoverColor(diary.coverColor || THEME_CONFIGS[diary.theme || "vintage"].coverColor);
+    setEditIsFavorite(Boolean(diary.isFavorite));
+    setEditIsArchived(Boolean(diary.isArchived));
   };
 
   const handleCreateDiarySubmit = async (e: React.FormEvent) => {
@@ -414,12 +564,14 @@ export default function MyDiariesPage() {
         name,
         description,
         theme: selectedTheme,
+        coverColor: selectedCoverColor,
       });
 
       setIsCreateModalOpen(false);
       setName("");
       setDescription("");
       setSelectedTheme("vintage");
+      setSelectedCoverColor("#8C3A27");
 
       const newDiaryEntries = useDiaryStore.getState().entries.filter((e) => e.diaryId === created.id);
       const firstEntry = newDiaryEntries[0];
@@ -447,6 +599,9 @@ export default function MyDiariesPage() {
           name: editName,
           description: editDescription,
           theme: editTheme,
+          coverColor: editCoverColor,
+          isFavorite: editIsFavorite,
+          isArchived: editIsArchived,
         },
       });
 
@@ -459,7 +614,7 @@ export default function MyDiariesPage() {
   const handleDeleteDiary = async () => {
     if (!editingDiary) return;
     const confirmDelete = window.confirm(
-      `Are you sure you wish to archive and delete "${editingDiary.name}" and all its pages?`
+      `Are you sure you wish to delete "${editingDiary.name}" and all its pages permanently?`
     );
     if (!confirmDelete) return;
 
@@ -474,487 +629,792 @@ export default function MyDiariesPage() {
   return (
     <AuthGuard>
       <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-[#C8DFDB] selection:text-[#193836]">
+        
+        {/* 1. TOP EDITORIAL NAVIGATION */}
+        <SanctuaryNav subtitle="CHRONICLES & TOMES ARCHIVE" />
 
-      
-      {/* 1. TOP EDITORIAL NAVIGATION */}
-      <SanctuaryNav subtitle="CHRONICLES & TOMES ARCHIVE" />
+        {/* 2. OVERVIEW HEADER & GLOBAL ANALYTICS BANNER */}
+        <section className="max-w-6xl w-full mx-auto px-4 sm:px-6 pt-10 pb-6 text-center flex flex-col items-center">
+          <span className="kicker block text-[#3368A0] dark:text-[#66A3BF] mb-1.5 font-mono text-xs tracking-wider uppercase font-semibold">
+            § CITIZEN CHRONICLES & TOMES
+          </span>
 
-      {/* 2. SIMPLE EDITORIAL TITLE */}
-      <section className="max-w-6xl w-full mx-auto px-4 sm:px-6 pt-10 pb-4 text-center flex flex-col items-center">
-        <span className="kicker block text-[#3368A0] dark:text-[#66A3BF] mb-1.5">
-          § CITIZEN CHRONICLES & TOMES
-        </span>
+          <h1 className="masthead-title text-4xl sm:text-5xl md:text-6xl text-foreground font-serif font-bold">
+            My Diaries
+          </h1>
 
-        <h1 className="masthead-title text-4xl sm:text-5xl md:text-6xl text-foreground">
-          My Diaries
-        </h1>
+          <p className="font-serif italic text-base text-muted-foreground mt-2 max-w-xl mx-auto">
+            Select a book volume to open your journal, edit volume properties, or bind a new volume.
+          </p>
 
-        <p className="font-serif italic text-base text-muted-foreground mt-2 max-w-lg mx-auto">
-          Select a book volume to open your journal, edit volume properties, or bind a new volume.
-        </p>
-
-        {/* 3. SANCTUARY QUICK STATS PILL ROW */}
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-xs font-mono">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/40 border border-border">
-            <BookOpen className="h-3.5 w-3.5 text-[#3368A0] dark:text-[#66A3BF]" />
-            <span className="text-muted-foreground">Volumes:</span>
-            <span className="font-bold text-foreground">{diaries.length}</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/40 border border-border">
-            <Layers className="h-3.5 w-3.5 text-[#8C3A27] dark:text-[#E59375]" />
-            <span className="text-muted-foreground">Pages:</span>
-            <span className="font-bold text-foreground">
-              {stats?.total_entries ?? entries.length}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/40 border border-border">
-            <Flame className="h-3.5 w-3.5 text-amber-500" />
-            <span className="text-muted-foreground">Streak:</span>
-            <span className="font-bold text-foreground">
-              {stats?.current_streak ?? 0} {stats?.current_streak === 1 ? "day" : "days"}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/40 border border-border">
-            <Sparkles className="h-3.5 w-3.5 text-emerald-500" />
-            <span className="text-muted-foreground">Avg Vitality:</span>
-            <span className="font-bold text-foreground">
-              {stats?.average_energy ? `${stats.average_energy} / 5` : "3.5 / 5"}
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. BOOKS GALLERY */}
-      <main className="max-w-6xl w-full mx-auto px-4 sm:px-8 py-8 flex-1">
-        {isDiariesLoading && diaries.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-3">
-            <Loader2 className="h-8 w-8 animate-spin text-[#3368A0]" />
-            <span className="font-mono text-xs">Accessing manuscript archive...</span>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 sm:gap-10 justify-items-center">
-            
-            {/* List of Created Diaries */}
-            {diaries.map((diary: Diary) => {
-              const diaryEntries = entries.filter((e: DiaryEntry) => e.diaryId === diary.id);
-              const count = diary.entriesCount ?? diaryEntries.length;
-              return (
-                <DiaryBookCover
-                  key={diary.id}
-                  diary={diary}
-                  entriesCount={count}
-                  onClick={() => handleOpenDiary(diary.id)}
-                  onEdit={(e) => handleOpenEditModal(e, diary)}
-                />
-              );
-            })}
-
-            {/* New Diary Slot */}
-            <CreateDiarySlot onClick={() => setIsCreateModalOpen(true)} />
-
-          </div>
-        )}
-      </main>
-
-      {/* 5. EDITORIAL FOOTER */}
-      <footer className="border-t border-border/80 bg-muted/20 py-6 px-4 sm:px-6 mt-auto">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <CommonsSealVector size={18} markOnly />
-            <span>The Commons © 2026. All chronicles preserved.</span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <Link href="/home" className="hover:text-foreground">Sanctuary</Link>
-            <span>•</span>
-            <Link href="/daily-diary" className="hover:text-foreground">Today&apos;s Entry</Link>
-            <span>•</span>
-            <Link href="/citizen-passport" className="hover:text-foreground">Passport</Link>
-          </div>
-        </div>
-      </footer>
-
-      {/* ========================================================================= */}
-      {/* 6. CREATE DIARY MODAL (NAME, DESCRIPTION, 3 THEMES) */}
-      {/* ========================================================================= */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in-0 duration-200">
-          <div className="relative w-full max-w-lg bg-card border border-border rounded-xl p-6 sm:p-7 shadow-2xl space-y-6">
-            
-            <div className="flex items-start justify-between border-b border-border/70 pb-3">
-              <div className="space-y-1">
-                <span className="kicker text-[#3368A0] dark:text-[#66A3BF]">
-                  § BIND NEW CHRONICLE
+          {/* 3. SANCTUARY SUMMARY STATS BANNER (PRD / Matrix Analytics) */}
+          <div className="w-full mt-8 p-4 sm:p-5 rounded-2xl bg-card/60 backdrop-blur-md border border-border/80 shadow-xs space-y-4 text-left">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/60">
+              <div className="flex items-center gap-2">
+                <CommonsSealVector size={16} markOnly />
+                <span className="font-mono text-xs uppercase tracking-wider font-bold text-foreground">
+                  Manuscript Archive Analytics
                 </span>
-                <h2 className="font-serif text-2xl font-bold text-foreground">
-                  Create a New Diary
-                </h2>
               </div>
+              <span className="font-mono text-[11px] text-muted-foreground">
+                Synced in real-time via PostgreSQL RPC
+              </span>
+            </div>
+
+            {/* Quick Metrics Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+              
+              {/* Volumes */}
+              <div className="p-3 rounded-xl bg-muted/30 border border-border/50 flex flex-col">
+                <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
+                  <BookOpen className="h-3.5 w-3.5 text-[#3368A0] dark:text-[#66A3BF]" />
+                  Volumes
+                </span>
+                <span className="text-xl font-serif font-bold text-foreground mt-1">
+                  {diaries.length}
+                </span>
+              </div>
+
+              {/* Total Pages */}
+              <div className="p-3 rounded-xl bg-muted/30 border border-border/50 flex flex-col">
+                <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
+                  <Layers className="h-3.5 w-3.5 text-[#8C3A27] dark:text-[#E59375]" />
+                  Pages
+                </span>
+                <span className="text-xl font-serif font-bold text-foreground mt-1">
+                  {stats?.total_entries ?? entries.length}
+                </span>
+              </div>
+
+              {/* Streak */}
+              <div className="p-3 rounded-xl bg-muted/30 border border-border/50 flex flex-col">
+                <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
+                  <Flame className="h-3.5 w-3.5 text-amber-500" />
+                  Streak
+                </span>
+                <span className="text-xl font-serif font-bold text-foreground mt-1">
+                  {stats?.current_streak ?? 0} <span className="text-xs font-normal font-sans text-muted-foreground">{stats?.current_streak === 1 ? "day" : "days"}</span>
+                </span>
+              </div>
+
+              {/* Total Words */}
+              <div className="p-3 rounded-xl bg-muted/30 border border-border/50 flex flex-col">
+                <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
+                  <Feather className="h-3.5 w-3.5 text-[#2C5F4D] dark:text-[#62B394]" />
+                  Words
+                </span>
+                <span className="text-xl font-serif font-bold text-foreground mt-1">
+                  {totalWordsDisplay >= 1000 ? `${(totalWordsDisplay / 1000).toFixed(1)}k` : totalWordsDisplay}
+                </span>
+              </div>
+
+              {/* Vitality */}
+              <div className="p-3 rounded-xl bg-muted/30 border border-border/50 flex flex-col">
+                <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
+                  <Sparkles className="h-3.5 w-3.5 text-emerald-500" />
+                  Avg Vitality
+                </span>
+                <span className="text-xl font-serif font-bold text-foreground mt-1">
+                  {stats?.average_energy ? `${stats.average_energy}` : "4.0"} <span className="text-xs font-normal font-sans text-muted-foreground">/ 5</span>
+                </span>
+              </div>
+
+              {/* Hearted Leaves */}
+              <div className="p-3 rounded-xl bg-muted/30 border border-border/50 flex flex-col">
+                <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
+                  <Heart className="h-3.5 w-3.5 text-rose-500" />
+                  Hearted
+                </span>
+                <span className="text-xl font-serif font-bold text-foreground mt-1">
+                  {stats?.hearted_entries ?? entries.filter((e) => e.isHearted).length}
+                </span>
+              </div>
+
+            </div>
+
+            {/* Mood Distribution Chips */}
+            {stats?.mood_breakdown && Object.keys(stats.mood_breakdown).length > 0 && (
+              <div className="pt-2 flex flex-wrap items-center gap-2 text-xs font-mono">
+                <span className="text-muted-foreground mr-1 text-[11px]">Mood Balance:</span>
+                {Object.entries(stats.mood_breakdown).map(([mood, count]) => (
+                  <span
+                    key={mood}
+                    className="px-2.5 py-1 rounded-full bg-background/80 border border-border/60 text-foreground font-medium flex items-center gap-1 shadow-2xs"
+                  >
+                    <span>{mood}</span>
+                    <span className="text-muted-foreground font-bold font-mono">({count})</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 4. TOOLBAR & FILTER CONTROLS */}
+          <div className="w-full mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            
+            {/* Search Bar */}
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search volume archives..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 bg-card/80 border border-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#3368A0]"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Collection Filter Tabs */}
+            <div className="flex items-center gap-1.5 p-1 rounded-lg bg-muted/40 border border-border self-stretch sm:self-auto justify-center">
+              <button
+                type="button"
+                onClick={() => setCollectionFilter("all")}
+                className={`px-3 py-1 rounded-md text-xs font-mono transition-colors cursor-pointer ${
+                  collectionFilter === "all"
+                    ? "bg-background text-foreground font-bold shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                All Volumes ({diaries.filter((d) => !d.isArchived).length})
+              </button>
 
               <button
                 type="button"
-                onClick={() => setIsCreateModalOpen(false)}
-                className="p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+                onClick={() => setCollectionFilter("favorites")}
+                className={`px-3 py-1 rounded-md text-xs font-mono transition-colors flex items-center gap-1 cursor-pointer ${
+                  collectionFilter === "favorites"
+                    ? "bg-background text-amber-600 dark:text-amber-400 font-bold shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
               >
-                <X className="h-5 w-5" />
+                <Star className="h-3 w-3 fill-current" />
+                Favorites ({diaries.filter((d) => d.isFavorite).length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCollectionFilter("archived")}
+                className={`px-3 py-1 rounded-md text-xs font-mono transition-colors flex items-center gap-1 cursor-pointer ${
+                  collectionFilter === "archived"
+                    ? "bg-background text-foreground font-bold shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Archive className="h-3 w-3" />
+                Archived ({diaries.filter((d) => d.isArchived).length})
               </button>
             </div>
 
-            <form onSubmit={handleCreateDiarySubmit} className="space-y-5">
+          </div>
+        </section>
+
+        {/* 5. TACTILE BOOK GALLERY */}
+        <main className="max-w-6xl w-full mx-auto px-4 sm:px-8 py-6 flex-1">
+          {isDiariesLoading && diaries.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24 text-muted-foreground space-y-3">
+              <Loader2 className="h-8 w-8 animate-spin text-[#3368A0]" />
+              <span className="font-mono text-xs">Accessing manuscript archive...</span>
+            </div>
+          ) : filteredDiaries.length === 0 && collectionFilter !== "all" ? (
+            <div className="p-12 text-center border-2 border-dashed border-border rounded-2xl max-w-md mx-auto my-12 space-y-3 bg-muted/10">
+              <BookMarked className="h-10 w-10 text-muted-foreground mx-auto" />
+              <h3 className="font-serif text-lg font-bold text-foreground">
+                No {collectionFilter} volumes found
+              </h3>
+              <p className="text-xs font-serif text-muted-foreground">
+                You currently have no diaries marked under this filter preset.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCollectionFilter("all")}
+                className="font-mono text-xs"
+              >
+                Reset Filter
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 sm:gap-10 justify-items-center">
               
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono uppercase text-muted-foreground font-semibold block">
-                  Diary Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Morning Inquiries, Architectural Codex..."
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#3368A0]"
-                />
-              </div>
+              {/* List of Created Diaries */}
+              {filteredDiaries.map((diary: Diary, idx: number) => {
+                const diaryEntries = entries.filter((e: DiaryEntry) => e.diaryId === diary.id);
+                const count = diary.entriesCount ?? diaryEntries.length;
+                return (
+                  <DiaryBookCover
+                    key={diary.id}
+                    diary={diary}
+                    entriesCount={count}
+                    isFirst={idx === 0}
+                    isLast={idx === filteredDiaries.length - 1}
+                    onClick={() => handleOpenDiary(diary.id)}
+                    onEdit={(e) => handleOpenEditModal(e, diary)}
+                    onToggleFavorite={(e) => handleToggleFavorite(e, diary)}
+                    onMoveLeft={(e) => handleMoveDiary(e, idx, "left")}
+                    onMoveRight={(e) => handleMoveDiary(e, idx, "right")}
+                  />
+                );
+              })}
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono uppercase text-muted-foreground font-semibold block">
-                  Description
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Brief intention or purpose of this volume..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#3368A0] resize-none"
-                />
-              </div>
+              {/* New Diary Slot */}
+              <CreateDiarySlot onClick={() => setIsCreateModalOpen(true)} />
 
-              <div className="space-y-2">
-                <label className="text-xs font-mono uppercase text-muted-foreground font-semibold block">
-                  Select Visual Tome Theme *
-                </label>
+            </div>
+          )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  
-                  {/* Option 1: Old Book */}
-                  <div
-                    onClick={() => setSelectedTheme("vintage")}
-                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all space-y-2 relative ${
-                      selectedTheme === "vintage"
-                        ? "border-[#8C3A27] bg-[#8C3A27]/5 dark:bg-[#8C3A27]/10"
-                        : "border-border hover:border-border/80 bg-muted/20"
-                    }`}
-                  >
-                    {selectedTheme === "vintage" && (
-                      <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#8C3A27] text-white flex items-center justify-center text-[10px]">
-                        <Check className="h-2.5 w-2.5" />
-                      </span>
-                    )}
+          {/* 6. SAMPLE PROMPT INSPIRATIONS (PRD Empty / Inspiration State) */}
+          {diaries.length <= 2 && (
+            <section className="mt-16 p-6 sm:p-8 rounded-2xl bg-card border border-border/80 text-center max-w-3xl mx-auto space-y-4">
+              <span className="font-mono text-xs uppercase tracking-wider text-[#3368A0] dark:text-[#66A3BF] font-semibold">
+                § INSPIRATION FOR YOUR MANUSCRIPTS
+              </span>
+              <h2 className="font-serif text-2xl font-bold text-foreground">
+                Craft Your Personal Sanctuary of Chronicles
+              </h2>
+              <p className="font-serif italic text-sm text-muted-foreground max-w-lg mx-auto">
+                Begin dedicated tomes for different chapters of your life, distinct inquiry domains, or specialized study notes.
+              </p>
 
-                    <div className="w-8 h-10 rounded bg-[#8C3A27] border border-[#4A180E] flex items-center justify-center text-[10px] text-amber-200 font-serif font-bold shadow-xs">
-                      📜
-                    </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-left">
+                <div
+                  onClick={() => {
+                    setName("Morning Inquiries");
+                    setDescription("Daily dawn reflections and gratitude in walnut ink.");
+                    setSelectedTheme("vintage");
+                    setIsCreateModalOpen(true);
+                  }}
+                  className="p-3.5 rounded-xl border border-border hover:border-[#8C3A27] bg-muted/20 hover:bg-muted/40 cursor-pointer transition-all space-y-1"
+                >
+                  <span className="font-serif text-sm font-bold text-foreground block">📜 Morning Inquiries</span>
+                  <p className="text-[11px] text-muted-foreground">Antique codex for quiet morning focus & 3-item gratitude.</p>
+                </div>
 
-                    <div>
-                      <span className="font-serif text-sm font-bold text-foreground block">
-                        Old Book
-                      </span>
-                      <span className="text-[11px] text-muted-foreground leading-tight block">
-                        Aged deckled parchment, walnut cursive ink & red margins.
-                      </span>
-                    </div>
-                  </div>
+                <div
+                  onClick={() => {
+                    setName("Architectural Codex");
+                    setDescription("Technical designs, crafts observations, and structured systems.");
+                    setSelectedTheme("classic");
+                    setIsCreateModalOpen(true);
+                  }}
+                  className="p-3.5 rounded-xl border border-border hover:border-[#1E3A5F] bg-muted/20 hover:bg-muted/40 cursor-pointer transition-all space-y-1"
+                >
+                  <span className="font-serif text-sm font-bold text-foreground block">⚜ Architectural Codex</span>
+                  <p className="text-[11px] text-muted-foreground">Clothbound ledger with ivory paper for project logs.</p>
+                </div>
 
-                  {/* Option 2: Classic Notebook */}
-                  <div
-                    onClick={() => setSelectedTheme("classic")}
-                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all space-y-2 relative ${
-                      selectedTheme === "classic"
-                        ? "border-[#1E3A5F] bg-[#1E3A5F]/5 dark:bg-[#1E3A5F]/10"
-                        : "border-border hover:border-border/80 bg-muted/20"
-                    }`}
-                  >
-                    {selectedTheme === "classic" && (
-                      <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#1E3A5F] text-white flex items-center justify-center text-[10px]">
-                        <Check className="h-2.5 w-2.5" />
-                      </span>
-                    )}
-
-                    <div className="w-8 h-10 rounded bg-[#1E3A5F] border border-[#0B1829] flex items-center justify-center text-[10px] text-amber-300 font-serif font-bold shadow-xs">
-                      ⚜
-                    </div>
-
-                    <div>
-                      <span className="font-serif text-sm font-bold text-foreground block">
-                        Classic Book
-                      </span>
-                      <span className="text-[11px] text-muted-foreground leading-tight block">
-                        Mid-century cloth, cream ivory paper & navy fountain ink.
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Option 3: Modern Book */}
-                  <div
-                    onClick={() => setSelectedTheme("modern")}
-                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all space-y-2 relative ${
-                      selectedTheme === "modern"
-                        ? "border-[#38BDF8] bg-[#38BDF8]/5 dark:bg-[#38BDF8]/10"
-                        : "border-border hover:border-border/80 bg-muted/20"
-                    }`}
-                  >
-                    {selectedTheme === "modern" && (
-                      <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#38BDF8] text-[#0A1420] flex items-center justify-center text-[10px] font-bold">
-                        <Check className="h-2.5 w-2.5" />
-                      </span>
-                    )}
-
-                    <div className="w-8 h-10 rounded bg-[#1E293B] border border-[#334155] flex items-center justify-center text-[10px] text-sky-400 font-sans font-bold shadow-xs">
-                      ⚡
-                    </div>
-
-                    <div>
-                      <span className="font-serif text-sm font-bold text-foreground block">
-                        Modern Book
-                      </span>
-                      <span className="text-[11px] text-muted-foreground leading-tight block">
-                        Matte minimalist studio canvas & sleek modern chips.
-                      </span>
-                    </div>
-                  </div>
-
+                <div
+                  onClick={() => {
+                    setName("Field Observations");
+                    setDescription("Fast daily snapshots, energy tracking, and concise records.");
+                    setSelectedTheme("modern");
+                    setIsCreateModalOpen(true);
+                  }}
+                  className="p-3.5 rounded-xl border border-border hover:border-[#38BDF8] bg-muted/20 hover:bg-muted/40 cursor-pointer transition-all space-y-1"
+                >
+                  <span className="font-serif text-sm font-bold text-foreground block">⚡ Field Observations</span>
+                  <p className="text-[11px] text-muted-foreground">Contemporary minimal studio logbook with vibrant vitality chips.</p>
                 </div>
               </div>
+            </section>
+          )}
+        </main>
 
-              <div className="pt-3 border-t border-border/70 flex items-center justify-end gap-3">
-                <Button
+        {/* 7. EDITORIAL FOOTER */}
+        <footer className="border-t border-border/80 bg-muted/20 py-6 px-4 sm:px-6 mt-auto">
+          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <CommonsSealVector size={18} markOnly />
+              <span>The Commons © 2026. All chronicles preserved.</span>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <Link href="/home" className="hover:text-foreground">Sanctuary</Link>
+              <span>•</span>
+              <Link href="/daily-diary" className="hover:text-foreground">Today&apos;s Entry</Link>
+              <span>•</span>
+              <Link href="/citizen-passport" className="hover:text-foreground">Passport</Link>
+            </div>
+          </div>
+        </footer>
+
+        {/* ========================================================================= */}
+        {/* 8. CREATE DIARY MODAL (NAME, DESCRIPTION, THEMES, COVER COLOR) */}
+        {/* ========================================================================= */}
+        {isCreateModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in-0 duration-200">
+            <div className="relative w-full max-w-lg bg-card border border-border rounded-2xl p-6 sm:p-7 shadow-2xl space-y-6">
+              
+              <div className="flex items-start justify-between border-b border-border/70 pb-3">
+                <div className="space-y-1">
+                  <span className="kicker text-[#3368A0] dark:text-[#66A3BF] font-mono text-xs uppercase font-semibold">
+                    § BIND NEW CHRONICLE
+                  </span>
+                  <h2 className="font-serif text-2xl font-bold text-foreground">
+                    Create a New Diary
+                  </h2>
+                </div>
+
+                <button
                   type="button"
-                  variant="outline"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="font-serif text-xs"
+                  className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
                 >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={createDiaryMutation.isPending}
-                  className="bg-[#3368A0] hover:bg-[#254F7A] text-white font-serif text-xs font-bold px-4 cursor-pointer disabled:opacity-50"
-                >
-                  {createDiaryMutation.isPending ? (
-                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                  ) : (
-                    <Feather className="h-3.5 w-3.5 mr-1.5" />
-                  )}
-                  <span>{createDiaryMutation.isPending ? "Binding Tome..." : "Bind & Inscribe Diary"}</span>
-                </Button>
+                  <X className="h-5 w-5" />
+                </button>
               </div>
 
-            </form>
-
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 7. EDIT DIARY MODAL (NAME, DESCRIPTION, THEME, DELETE) */}
-      {/* ========================================================================= */}
-      {editingDiary && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in-0 duration-200">
-          <div className="relative w-full max-w-lg bg-card border border-border rounded-xl p-6 sm:p-7 shadow-2xl space-y-6">
-            
-            <div className="flex items-start justify-between border-b border-border/70 pb-3">
-              <div className="space-y-1">
-                <span className="kicker text-[#3368A0] dark:text-[#66A3BF]">
-                  § EDIT CHRONICLE PROPERTIES
-                </span>
-                <h2 className="font-serif text-2xl font-bold text-foreground">
-                  Edit Diary Tome
-                </h2>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setEditingDiary(null)}
-                className="p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleUpdateDiarySubmit} className="space-y-5">
-              
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono uppercase text-muted-foreground font-semibold block">
-                  Diary Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Morning Inquiries, Architectural Codex..."
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#3368A0]"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono uppercase text-muted-foreground font-semibold block">
-                  Description
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Brief intention or purpose of this volume..."
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#3368A0] resize-none"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-mono uppercase text-muted-foreground font-semibold block">
-                  Select Visual Tome Theme *
-                </label>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  
-                  {/* Option 1: Old Book */}
-                  <div
-                    onClick={() => setEditTheme("vintage")}
-                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all space-y-2 relative ${
-                      editTheme === "vintage"
-                        ? "border-[#8C3A27] bg-[#8C3A27]/5 dark:bg-[#8C3A27]/10"
-                        : "border-border hover:border-border/80 bg-muted/20"
-                    }`}
-                  >
-                    {editTheme === "vintage" && (
-                      <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#8C3A27] text-white flex items-center justify-center text-[10px]">
-                        <Check className="h-2.5 w-2.5" />
-                      </span>
-                    )}
-
-                    <div className="w-8 h-10 rounded bg-[#8C3A27] border border-[#4A180E] flex items-center justify-center text-[10px] text-amber-200 font-serif font-bold shadow-xs">
-                      📜
-                    </div>
-
-                    <div>
-                      <span className="font-serif text-sm font-bold text-foreground block">
-                        Old Book
-                      </span>
-                      <span className="text-[11px] text-muted-foreground leading-tight block">
-                        Aged deckled parchment, walnut cursive ink & red margins.
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Option 2: Classic Notebook */}
-                  <div
-                    onClick={() => setEditTheme("classic")}
-                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all space-y-2 relative ${
-                      editTheme === "classic"
-                        ? "border-[#1E3A5F] bg-[#1E3A5F]/5 dark:bg-[#1E3A5F]/10"
-                        : "border-border hover:border-border/80 bg-muted/20"
-                    }`}
-                  >
-                    {editTheme === "classic" && (
-                      <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#1E3A5F] text-white flex items-center justify-center text-[10px]">
-                        <Check className="h-2.5 w-2.5" />
-                      </span>
-                    )}
-
-                    <div className="w-8 h-10 rounded bg-[#1E3A5F] border border-[#0B1829] flex items-center justify-center text-[10px] text-amber-300 font-serif font-bold shadow-xs">
-                      ⚜
-                    </div>
-
-                    <div>
-                      <span className="font-serif text-sm font-bold text-foreground block">
-                        Classic Book
-                      </span>
-                      <span className="text-[11px] text-muted-foreground leading-tight block">
-                        Mid-century cloth, cream ivory paper & navy fountain ink.
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Option 3: Modern Book */}
-                  <div
-                    onClick={() => setEditTheme("modern")}
-                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all space-y-2 relative ${
-                      editTheme === "modern"
-                        ? "border-[#38BDF8] bg-[#38BDF8]/5 dark:bg-[#38BDF8]/10"
-                        : "border-border hover:border-border/80 bg-muted/20"
-                    }`}
-                  >
-                    {editTheme === "modern" && (
-                      <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#38BDF8] text-[#0A1420] flex items-center justify-center text-[10px] font-bold">
-                        <Check className="h-2.5 w-2.5" />
-                      </span>
-                    )}
-
-                    <div className="w-8 h-10 rounded bg-[#1E293B] border border-[#334155] flex items-center justify-center text-[10px] text-sky-400 font-sans font-bold shadow-xs">
-                      ⚡
-                    </div>
-
-                    <div>
-                      <span className="font-serif text-sm font-bold text-foreground block">
-                        Modern Book
-                      </span>
-                      <span className="text-[11px] text-muted-foreground leading-tight block">
-                        Matte minimalist studio canvas & sleek modern chips.
-                      </span>
-                    </div>
-                  </div>
-
+              <form onSubmit={handleCreateDiarySubmit} className="space-y-5">
+                
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono uppercase text-muted-foreground font-semibold block">
+                    Diary Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Morning Inquiries, Architectural Codex..."
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#3368A0]"
+                  />
                 </div>
-              </div>
 
-              <div className="pt-3 border-t border-border/70 flex items-center justify-between gap-3">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleDeleteDiary}
-                  disabled={deleteDiaryMutation.isPending}
-                  className="font-serif text-xs gap-1 cursor-pointer bg-red-600 hover:bg-red-700 text-white"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  <span>Delete Tome</span>
-                </Button>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono uppercase text-muted-foreground font-semibold block">
+                    Description
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Brief intention or purpose of this volume..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#3368A0] resize-none"
+                  />
+                </div>
 
-                <div className="flex items-center gap-2">
+                <div className="space-y-2">
+                  <label className="text-xs font-mono uppercase text-muted-foreground font-semibold block">
+                    Select Visual Tome Theme *
+                  </label>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    
+                    {/* Option 1: Old Book */}
+                    <div
+                      onClick={() => {
+                        setSelectedTheme("vintage");
+                        setSelectedCoverColor("#8C3A27");
+                      }}
+                      className={`p-3 rounded-xl border-2 cursor-pointer transition-all space-y-2 relative ${
+                        selectedTheme === "vintage"
+                          ? "border-[#8C3A27] bg-[#8C3A27]/10"
+                          : "border-border hover:border-border/80 bg-muted/20"
+                      }`}
+                    >
+                      {selectedTheme === "vintage" && (
+                        <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#8C3A27] text-white flex items-center justify-center text-[10px]">
+                          <Check className="h-2.5 w-2.5" />
+                        </span>
+                      )}
+
+                      <div className="w-8 h-10 rounded bg-[#8C3A27] border border-[#4A180E] flex items-center justify-center text-[10px] text-amber-200 font-serif font-bold shadow-xs">
+                        📜
+                      </div>
+
+                      <div>
+                        <span className="font-serif text-sm font-bold text-foreground block">
+                          Old Book
+                        </span>
+                        <span className="text-[11px] text-muted-foreground leading-tight block">
+                          Aged deckled parchment, walnut cursive ink & red margins.
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Option 2: Classic Notebook */}
+                    <div
+                      onClick={() => {
+                        setSelectedTheme("classic");
+                        setSelectedCoverColor("#1E3A5F");
+                      }}
+                      className={`p-3 rounded-xl border-2 cursor-pointer transition-all space-y-2 relative ${
+                        selectedTheme === "classic"
+                          ? "border-[#1E3A5F] bg-[#1E3A5F]/10"
+                          : "border-border hover:border-border/80 bg-muted/20"
+                      }`}
+                    >
+                      {selectedTheme === "classic" && (
+                        <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#1E3A5F] text-white flex items-center justify-center text-[10px]">
+                          <Check className="h-2.5 w-2.5" />
+                        </span>
+                      )}
+
+                      <div className="w-8 h-10 rounded bg-[#1E3A5F] border border-[#0B1829] flex items-center justify-center text-[10px] text-amber-300 font-serif font-bold shadow-xs">
+                        ⚜
+                      </div>
+
+                      <div>
+                        <span className="font-serif text-sm font-bold text-foreground block">
+                          Classic Book
+                        </span>
+                        <span className="text-[11px] text-muted-foreground leading-tight block">
+                          Mid-century cloth, cream ivory paper & navy fountain ink.
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Option 3: Modern Book */}
+                    <div
+                      onClick={() => {
+                        setSelectedTheme("modern");
+                        setSelectedCoverColor("#172330");
+                      }}
+                      className={`p-3 rounded-xl border-2 cursor-pointer transition-all space-y-2 relative ${
+                        selectedTheme === "modern"
+                          ? "border-[#38BDF8] bg-[#38BDF8]/10"
+                          : "border-border hover:border-border/80 bg-muted/20"
+                      }`}
+                    >
+                      {selectedTheme === "modern" && (
+                        <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#38BDF8] text-[#0A1420] flex items-center justify-center text-[10px] font-bold">
+                          <Check className="h-2.5 w-2.5" />
+                        </span>
+                      )}
+
+                      <div className="w-8 h-10 rounded bg-[#1E293B] border border-[#334155] flex items-center justify-center text-[10px] text-sky-400 font-sans font-bold shadow-xs">
+                        ⚡
+                      </div>
+
+                      <div>
+                        <span className="font-serif text-sm font-bold text-foreground block">
+                          Modern Book
+                        </span>
+                        <span className="text-[11px] text-muted-foreground leading-tight block">
+                          Matte minimalist studio canvas & sleek modern chips.
+                        </span>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Cover Color Palette Accent Picker */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono uppercase text-muted-foreground font-semibold block">
+                    Spine & Cover Shade
+                  </label>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {COLOR_PRESETS.map((color) => (
+                      <button
+                        key={color.hex}
+                        type="button"
+                        onClick={() => setSelectedCoverColor(color.hex)}
+                        title={color.label}
+                        className={`w-7 h-7 rounded-full border-2 transition-transform cursor-pointer flex items-center justify-center ${
+                          selectedCoverColor === color.hex
+                            ? "scale-110 border-foreground shadow-sm"
+                            : "border-transparent hover:scale-105 opacity-80"
+                        }`}
+                        style={{ backgroundColor: color.hex }}
+                      >
+                        {selectedCoverColor === color.hex && (
+                          <Check className="h-3 w-3 text-white" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-border/70 flex items-center justify-end gap-3">
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setEditingDiary(null)}
+                    onClick={() => setIsCreateModalOpen(false)}
                     className="font-serif text-xs"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    disabled={updateDiaryMutation.isPending}
+                    disabled={createDiaryMutation.isPending}
                     className="bg-[#3368A0] hover:bg-[#254F7A] text-white font-serif text-xs font-bold px-4 cursor-pointer disabled:opacity-50"
                   >
-                    {updateDiaryMutation.isPending ? (
+                    {createDiaryMutation.isPending ? (
                       <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
                     ) : (
-                      <Check className="h-3.5 w-3.5 mr-1.5" />
+                      <Feather className="h-3.5 w-3.5 mr-1.5" />
                     )}
-                    <span>{updateDiaryMutation.isPending ? "Saving Changes..." : "Save Changes"}</span>
+                    <span>{createDiaryMutation.isPending ? "Binding Tome..." : "Bind & Inscribe Diary"}</span>
                   </Button>
                 </div>
+
+              </form>
+
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* 9. EDIT DIARY MODAL (NAME, DESCRIPTION, THEME, COLOR, FAVORITE, ARCHIVE, DELETE) */}
+        {/* ========================================================================= */}
+        {editingDiary && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in-0 duration-200">
+            <div className="relative w-full max-w-lg bg-card border border-border rounded-2xl p-6 sm:p-7 shadow-2xl space-y-6">
+              
+              <div className="flex items-start justify-between border-b border-border/70 pb-3">
+                <div className="space-y-1">
+                  <span className="kicker text-[#3368A0] dark:text-[#66A3BF] font-mono text-xs uppercase font-semibold">
+                    § EDIT CHRONICLE PROPERTIES
+                  </span>
+                  <h2 className="font-serif text-2xl font-bold text-foreground">
+                    Edit Diary Tome
+                  </h2>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setEditingDiary(null)}
+                  className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
 
-            </form>
+              <form onSubmit={handleUpdateDiarySubmit} className="space-y-5">
+                
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono uppercase text-muted-foreground font-semibold block">
+                    Diary Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Morning Inquiries, Architectural Codex..."
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#3368A0]"
+                  />
+                </div>
 
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono uppercase text-muted-foreground font-semibold block">
+                    Description
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Brief intention or purpose of this volume..."
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#3368A0] resize-none"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-mono uppercase text-muted-foreground font-semibold block">
+                    Visual Tome Theme *
+                  </label>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    
+                    {/* Option 1: Old Book */}
+                    <div
+                      onClick={() => setEditTheme("vintage")}
+                      className={`p-3 rounded-xl border-2 cursor-pointer transition-all space-y-2 relative ${
+                        editTheme === "vintage"
+                          ? "border-[#8C3A27] bg-[#8C3A27]/10"
+                          : "border-border hover:border-border/80 bg-muted/20"
+                      }`}
+                    >
+                      {editTheme === "vintage" && (
+                        <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#8C3A27] text-white flex items-center justify-center text-[10px]">
+                          <Check className="h-2.5 w-2.5" />
+                        </span>
+                      )}
+
+                      <div className="w-8 h-10 rounded bg-[#8C3A27] border border-[#4A180E] flex items-center justify-center text-[10px] text-amber-200 font-serif font-bold shadow-xs">
+                        📜
+                      </div>
+
+                      <div>
+                        <span className="font-serif text-sm font-bold text-foreground block">
+                          Old Book
+                        </span>
+                        <span className="text-[11px] text-muted-foreground leading-tight block">
+                          Aged deckled parchment, walnut cursive ink & red margins.
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Option 2: Classic Notebook */}
+                    <div
+                      onClick={() => setEditTheme("classic")}
+                      className={`p-3 rounded-xl border-2 cursor-pointer transition-all space-y-2 relative ${
+                        editTheme === "classic"
+                          ? "border-[#1E3A5F] bg-[#1E3A5F]/10"
+                          : "border-border hover:border-border/80 bg-muted/20"
+                      }`}
+                    >
+                      {editTheme === "classic" && (
+                        <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#1E3A5F] text-white flex items-center justify-center text-[10px]">
+                          <Check className="h-2.5 w-2.5" />
+                        </span>
+                      )}
+
+                      <div className="w-8 h-10 rounded bg-[#1E3A5F] border border-[#0B1829] flex items-center justify-center text-[10px] text-amber-300 font-serif font-bold shadow-xs">
+                        ⚜
+                      </div>
+
+                      <div>
+                        <span className="font-serif text-sm font-bold text-foreground block">
+                          Classic Book
+                        </span>
+                        <span className="text-[11px] text-muted-foreground leading-tight block">
+                          Mid-century cloth, cream ivory paper & navy fountain ink.
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Option 3: Modern Book */}
+                    <div
+                      onClick={() => setEditTheme("modern")}
+                      className={`p-3 rounded-xl border-2 cursor-pointer transition-all space-y-2 relative ${
+                        editTheme === "modern"
+                          ? "border-[#38BDF8] bg-[#38BDF8]/10"
+                          : "border-border hover:border-border/80 bg-muted/20"
+                      }`}
+                    >
+                      {editTheme === "modern" && (
+                        <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#38BDF8] text-[#0A1420] flex items-center justify-center text-[10px] font-bold">
+                          <Check className="h-2.5 w-2.5" />
+                        </span>
+                      )}
+
+                      <div className="w-8 h-10 rounded bg-[#1E293B] border border-[#334155] flex items-center justify-center text-[10px] text-sky-400 font-sans font-bold shadow-xs">
+                        ⚡
+                      </div>
+
+                      <div>
+                        <span className="font-serif text-sm font-bold text-foreground block">
+                          Modern Book
+                        </span>
+                        <span className="text-[11px] text-muted-foreground leading-tight block">
+                          Matte minimalist studio canvas & sleek modern chips.
+                        </span>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Cover Color Palette Accent Picker */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono uppercase text-muted-foreground font-semibold block">
+                    Spine & Cover Shade
+                  </label>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {COLOR_PRESETS.map((color) => (
+                      <button
+                        key={color.hex}
+                        type="button"
+                        onClick={() => setEditCoverColor(color.hex)}
+                        title={color.label}
+                        className={`w-7 h-7 rounded-full border-2 transition-transform cursor-pointer flex items-center justify-center ${
+                          editCoverColor === color.hex
+                            ? "scale-110 border-foreground shadow-sm"
+                            : "border-transparent hover:scale-105 opacity-80"
+                        }`}
+                        style={{ backgroundColor: color.hex }}
+                      >
+                        {editCoverColor === color.hex && (
+                          <Check className="h-3 w-3 text-white" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Toggles for Favorite and Archive */}
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <label className="flex items-center gap-2 p-2.5 rounded-lg border border-border bg-muted/20 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={editIsFavorite}
+                      onChange={(e) => setEditIsFavorite(e.target.checked)}
+                      className="rounded text-[#3368A0] focus:ring-0"
+                    />
+                    <span className="text-xs font-mono font-medium flex items-center gap-1 text-foreground">
+                      <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
+                      Favorite Volume
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-2 p-2.5 rounded-lg border border-border bg-muted/20 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={editIsArchived}
+                      onChange={(e) => setEditIsArchived(e.target.checked)}
+                      className="rounded text-[#3368A0] focus:ring-0"
+                    />
+                    <span className="text-xs font-mono font-medium flex items-center gap-1 text-foreground">
+                      <Archive className="h-3 w-3 text-muted-foreground" />
+                      Archive Volume
+                    </span>
+                  </label>
+                </div>
+
+                <div className="pt-3 border-t border-border/70 flex items-center justify-between gap-3">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleDeleteDiary}
+                    disabled={deleteDiaryMutation.isPending}
+                    className="font-serif text-xs gap-1 cursor-pointer bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>Delete Tome</span>
+                  </Button>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setEditingDiary(null)}
+                      className="font-serif text-xs"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={updateDiaryMutation.isPending}
+                      className="bg-[#3368A0] hover:bg-[#254F7A] text-white font-serif text-xs font-bold px-4 cursor-pointer disabled:opacity-50"
+                    >
+                      {updateDiaryMutation.isPending ? (
+                        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                      ) : (
+                        <Check className="h-3.5 w-3.5 mr-1.5" />
+                      )}
+                      <span>{updateDiaryMutation.isPending ? "Saving Changes..." : "Save Changes"}</span>
+                    </Button>
+                  </div>
+                </div>
+
+              </form>
+
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-    </div>
+      </div>
     </AuthGuard>
   );
 }
-

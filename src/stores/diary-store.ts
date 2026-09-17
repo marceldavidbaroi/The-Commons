@@ -33,6 +33,8 @@ export interface DiaryStoreState {
   }) => Diary;
   updateDiary: (id: string, updates: Partial<Diary>) => void;
   deleteDiary: (id: string) => void;
+  reorderDiaries: (diaryIds: string[]) => void;
+  toggleFavoriteDiary: (id: string) => void;
   getDiaryById: (id: string) => Diary | undefined;
   getEntriesByDiaryId: (diaryId: string) => DiaryEntry[];
   setActiveDiaryId: (id: string) => void;
@@ -142,6 +144,28 @@ export const useDiaryStore = create<DiaryStoreState>()(
         set((state) => ({
           diaries: state.diaries.filter((d) => d.id !== id),
           entries: state.entries.filter((e) => e.diaryId !== id),
+        })),
+
+      reorderDiaries: (diaryIds) =>
+        set((state) => {
+          const map = new Map(state.diaries.map((d) => [d.id, d]));
+          const reordered: Diary[] = [];
+          diaryIds.forEach((id, idx) => {
+            const d = map.get(id);
+            if (d) {
+              reordered.push({ ...d, sortOrder: idx + 1 });
+              map.delete(id);
+            }
+          });
+          map.forEach((d) => reordered.push(d));
+          return { diaries: reordered };
+        }),
+
+      toggleFavoriteDiary: (id) =>
+        set((state) => ({
+          diaries: state.diaries.map((d) =>
+            d.id === id ? { ...d, isFavorite: !d.isFavorite, updatedAt: new Date().toISOString() } : d
+          ),
         })),
 
       getDiaryById: (id) => {

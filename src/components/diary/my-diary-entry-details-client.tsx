@@ -34,6 +34,7 @@ import { useDiaryStore } from "@/stores/diary-store";
 import {
   useDiariesOverview,
   useDiaryEntries,
+  useDiaryStats,
   useUpdateDiaryEntryMutation,
   useCreateDiaryEntryMutation,
   useUpdateDiaryMutation,
@@ -138,6 +139,7 @@ export function MyDiaryEntryDetailsClient({
   // 1. TanStack Query + Supabase Hooks
   const { data: diaries = [] } = useDiariesOverview();
   const { data: fetchedEntries = [] } = useDiaryEntries(diaryId);
+  const { data: stats } = useDiaryStats(diaryId);
   const updateEntryMutation = useUpdateDiaryEntryMutation();
   const createEntryMutation = useCreateDiaryEntryMutation();
   const updateDiaryMutation = useUpdateDiaryMutation();
@@ -156,7 +158,9 @@ export function MyDiaryEntryDetailsClient({
   const [mounted, setMounted] = useState(false);
   const [activeView, setActiveView] = useState<ViewMode>("entry");
   const [isSaved, setIsSaved] = useState(false);
+  const [isAutosaving, setIsAutosaving] = useState(false);
   const [filterMood, setFilterMood] = useState<string>("all");
+  const isFirstMount = React.useRef(true);
 
   useEffect(() => {
     setMounted(true);
@@ -253,6 +257,53 @@ export function MyDiaryEntryDetailsClient({
     });
   };
 
+  // Debounced Autosave effect for seamless synchronization
+  useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    if (!currentEntry) return;
+
+    setIsAutosaving(true);
+    const timer = setTimeout(async () => {
+      try {
+        await updateEntryMutation.mutateAsync({
+          entryId: currentEntry.id,
+          updates: {
+            title: currentEntry.title,
+            description: currentEntry.description,
+            gratitude: currentEntry.gratitude,
+            energyLevel: currentEntry.energyLevel,
+            startTime: currentEntry.startTime,
+            endTime: currentEntry.endTime,
+            mood: currentEntry.mood,
+            weather: currentEntry.weather,
+            isHearted: currentEntry.isHearted,
+          },
+        });
+        setIsAutosaving(false);
+        setIsSaved(true);
+        setTimeout(() => setIsSaved(false), 2000);
+      } catch (err) {
+        setIsAutosaving(false);
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [
+    currentEntry?.title,
+    currentEntry?.description,
+    currentEntry?.gratitude?.[0],
+    currentEntry?.gratitude?.[1],
+    currentEntry?.gratitude?.[2],
+    currentEntry?.energyLevel,
+    currentEntry?.startTime,
+    currentEntry?.endTime,
+    currentEntry?.mood,
+    currentEntry?.weather,
+  ]);
+
   const handleSave = async () => {
     if (!currentEntry) return;
     try {
@@ -343,34 +394,61 @@ export function MyDiaryEntryDetailsClient({
         e.dayOfWeek?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         `#${e.pageNumber}`.includes(searchQuery);
 
-      const matchesMood = filterMood === "all" || e.mood?.includes(filterMood);
+      const matchesMood =
+        filterMood === "all" ||
+        e.mood === filterMood ||
+        e.mood?.toLowerCase().includes(filterMood.toLowerCase());
       return matchesSearch && matchesMood;
     });
   }, [diaryEntries, searchQuery, filterMood]);
 
-  // Summary stats
+  // Summary stats merged from PostgreSQL RPC and local cache
   const summaryStats = useMemo(() => {
-    const totalPages = diaryEntries.length;
-    const heartedCount = diaryEntries.filter((e: DiaryEntry) => e.isHearted).length;
+    const totalPages = stats?.total_entries ?? diaryEntries.length;
+    const heartedCount =
+      stats?.hearted_entries ?? diaryEntries.filter((e: DiaryEntry) => e.isHearted).length;
+    const totalWords =
+      stats?.total_words ??
+      diaryEntries.reduce(
+        (sum, e) => sum + (e.description ? e.description.split(/\s+/).filter(Boolean).length : 0),
+        0
+      );
+    const currentStreak = stats?.current_streak ?? 0;
+    const longestStreak = stats?.longest_streak ?? 0;
 
-    const totalEnergy = diaryEntries.reduce((acc: number, e: DiaryEntry) => acc + (e.energyLevel || 3), 0);
-    const avgEnergy = totalPages > 0 ? (totalEnergy / totalPages).toFixed(1) : "0";
+    const totalEnergy = diaryEntries.reduce(
+      (acc: number, e: DiaryEntry) => acc + (e.energyLevel || 3),
+      0
+    );
+    const avgEnergy = stats?.average_energy
+      ? String(stats.average_energy)
+      : totalPages > 0
+      ? (totalEnergy / totalPages).toFixed(1)
+      : "3.5";
 
-    const moodCounts: Record<string, number> = {};
-    diaryEntries.forEach((e: DiaryEntry) => {
-      moodCounts[e.mood] = (moodCounts[e.mood] || 0) + 1;
-    });
+    const moodCounts: Record<string, number> = stats?.mood_breakdown || {};
+    if (Object.keys(moodCounts).length === 0) {
+      diaryEntries.forEach((e: DiaryEntry) => {
+        if (e.mood) moodCounts[e.mood] = (moodCounts[e.mood] || 0) + 1;
+      });
+    }
 
     const energyCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     diaryEntries.forEach((e: DiaryEntry) => {
       energyCounts[e.energyLevel] = (energyCounts[e.energyLevel] || 0) + 1;
     });
 
-    const allGratitudes: { text: string; pageNumber: number; dateStr: string; entryId: string }[] = [];
+    const allGratitudes: { text: string; pageNumber: number; dateStr: string; entryId: string }[] =
+      [];
     diaryEntries.forEach((e: DiaryEntry) => {
-      e.gratitude.forEach((g: string) => {
-        if (g.trim()) {
-          allGratitudes.push({ text: g, pageNumber: e.pageNumber, dateStr: e.dateStr, entryId: e.id });
+      e.gratitude?.forEach((g: string) => {
+        if (g && g.trim()) {
+          allGratitudes.push({
+            text: g,
+            pageNumber: e.pageNumber,
+            dateStr: e.dateStr,
+            entryId: e.id,
+          });
         }
       });
     });
@@ -378,12 +456,15 @@ export function MyDiaryEntryDetailsClient({
     return {
       totalPages,
       heartedCount,
+      totalWords,
+      currentStreak,
+      longestStreak,
       avgEnergy,
       moodCounts,
       energyCounts,
       allGratitudes,
     };
-  }, [diaryEntries]);
+  }, [diaryEntries, stats]);
 
   if (!mounted || !currentEntry) {
     return (
@@ -588,13 +669,19 @@ export function MyDiaryEntryDetailsClient({
               <Button
                 size="sm"
                 onClick={handleSave}
+                disabled={isAutosaving}
                 className={`h-6.5 px-2.5 rounded-full font-serif font-semibold text-xs shadow-xs gap-1 shrink-0 cursor-pointer ${themeSaveBtn}`}
                 title="Save & Inscribe"
               >
-                {isSaved ? (
+                {isAutosaving ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin text-amber-200" />
+                    <span>Ink drying...</span>
+                  </>
+                ) : isSaved ? (
                   <>
                     <Check className="h-3 w-3 text-amber-200" />
-                    <span>Saved!</span>
+                    <span>Saved</span>
                   </>
                 ) : (
                   <>
@@ -1178,7 +1265,7 @@ export function MyDiaryEntryDetailsClient({
                     </div>
                     <div className="flex items-center gap-1 shrink-0 overflow-x-auto max-w-full">
                       <span className="font-mono text-[10px] text-[#5C4A3A] dark:text-[#94A8BA] uppercase mr-1">Mood:</span>
-                      {["all", "Joyful", "Serene", "Reflective", "Melancholy"].map((m) => (
+                      {["all", ...MOOD_LIST.map((m) => m.label)].map((m) => (
                         <button
                           key={m}
                           onClick={() => setFilterMood(m === "all" ? "all" : m)}
@@ -1318,7 +1405,7 @@ export function MyDiaryEntryDetailsClient({
                     </div>
                     <div className="flex items-center gap-1 shrink-0 overflow-x-auto max-w-full">
                       <span className="font-mono text-[10px] text-muted-foreground uppercase mr-1">Mood:</span>
-                      {["all", "Joyful", "Serene", "Reflective", "Focused"].map((m) => (
+                      {["all", ...MOOD_LIST.map((m) => m.label)].map((m) => (
                         <button
                           key={m}
                           onClick={() => setFilterMood(m === "all" ? "all" : m)}
@@ -1451,7 +1538,7 @@ export function MyDiaryEntryDetailsClient({
                     </div>
 
                     <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-                      {["all", "Joyful", "Serene", "Reflective", "Focused", "Melancholy"].map((m) => (
+                      {["all", ...MOOD_LIST.map((m) => m.label)].map((m) => (
                         <button
                           key={m}
                           onClick={() => setFilterMood(m === "all" ? "all" : m)}
@@ -1570,24 +1657,47 @@ export function MyDiaryEntryDetailsClient({
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="p-3.5 bg-[#EAE0C8] dark:bg-[#1A2330] rounded-md border border-[#8C3A27]/30 text-center space-y-1">
+                  {/* Vintage Metrics Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
+                    <div className="p-3 bg-[#EAE0C8] dark:bg-[#1A2330] rounded-md border border-[#8C3A27]/30 text-center space-y-0.5">
                       <span className="text-[10px] font-mono text-[#5C4A3A] dark:text-[#94A8BA] uppercase block">Inscribed Leaves</span>
-                      <span className="text-2xl font-serif font-bold text-[#8C3A27] dark:text-[#E59375]">{summaryStats.totalPages}</span>
+                      <span className="text-xl font-serif font-bold text-[#8C3A27] dark:text-[#E59375]">{summaryStats.totalPages}</span>
                     </div>
-                    <div className="p-3.5 bg-[#EAE0C8] dark:bg-[#1A2330] rounded-md border border-[#8C3A27]/30 text-center space-y-1">
-                      <span className="text-[10px] font-mono text-[#5C4A3A] dark:text-[#94A8BA] uppercase block">Illuminated Stars</span>
-                      <span className="text-2xl font-serif font-bold text-[#B23A2B]">{summaryStats.heartedCount}</span>
+                    <div className="p-3 bg-[#EAE0C8] dark:bg-[#1A2330] rounded-md border border-[#8C3A27]/30 text-center space-y-0.5">
+                      <span className="text-[10px] font-mono text-[#5C4A3A] dark:text-[#94A8BA] uppercase block">Writing Streak</span>
+                      <span className="text-xl font-serif font-bold text-amber-600 dark:text-amber-400">{summaryStats.currentStreak}d</span>
                     </div>
-                    <div className="p-3.5 bg-[#EAE0C8] dark:bg-[#1A2330] rounded-md border border-[#8C3A27]/30 text-center space-y-1">
-                      <span className="text-[10px] font-mono text-[#5C4A3A] dark:text-[#94A8BA] uppercase block">Mean Vigor (1-5)</span>
-                      <span className="text-2xl font-serif font-bold text-[#2C241E] dark:text-[#F4EAD4]">{summaryStats.avgEnergy}</span>
+                    <div className="p-3 bg-[#EAE0C8] dark:bg-[#1A2330] rounded-md border border-[#8C3A27]/30 text-center space-y-0.5">
+                      <span className="text-[10px] font-mono text-[#5C4A3A] dark:text-[#94A8BA] uppercase block">Words Written</span>
+                      <span className="text-xl font-serif font-bold text-[#2C5F4D] dark:text-[#62B394]">
+                        {summaryStats.totalWords >= 1000 ? `${(summaryStats.totalWords / 1000).toFixed(1)}k` : summaryStats.totalWords}
+                      </span>
                     </div>
-                    <div className="p-3.5 bg-[#EAE0C8] dark:bg-[#1A2330] rounded-md border border-[#8C3A27]/30 text-center space-y-1">
-                      <span className="text-[10px] font-mono text-[#5C4A3A] dark:text-[#94A8BA] uppercase block">Recorded Graces</span>
-                      <span className="text-2xl font-serif font-bold text-[#8C3A27] dark:text-[#E59375]">{summaryStats.allGratitudes.length}</span>
+                    <div className="p-3 bg-[#EAE0C8] dark:bg-[#1A2330] rounded-md border border-[#8C3A27]/30 text-center space-y-0.5">
+                      <span className="text-[10px] font-mono text-[#5C4A3A] dark:text-[#94A8BA] uppercase block">Illuminated</span>
+                      <span className="text-xl font-serif font-bold text-[#B23A2B]">{summaryStats.heartedCount}</span>
+                    </div>
+                    <div className="p-3 bg-[#EAE0C8] dark:bg-[#1A2330] rounded-md border border-[#8C3A27]/30 text-center space-y-0.5">
+                      <span className="text-[10px] font-mono text-[#5C4A3A] dark:text-[#94A8BA] uppercase block">Mean Vigor</span>
+                      <span className="text-xl font-serif font-bold text-[#2C241E] dark:text-[#F4EAD4]">{summaryStats.avgEnergy}</span>
+                    </div>
+                    <div className="p-3 bg-[#EAE0C8] dark:bg-[#1A2330] rounded-md border border-[#8C3A27]/30 text-center space-y-0.5">
+                      <span className="text-[10px] font-mono text-[#5C4A3A] dark:text-[#94A8BA] uppercase block">Graces Logged</span>
+                      <span className="text-xl font-serif font-bold text-[#8C3A27] dark:text-[#E59375]">{summaryStats.allGratitudes.length}</span>
                     </div>
                   </div>
+
+                  {/* Mood Distribution */}
+                  {Object.keys(summaryStats.moodCounts).length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-[#8C3A27]/20 text-xs font-mono">
+                      <span className="text-muted-foreground text-[11px]">Mood Balance:</span>
+                      {Object.entries(summaryStats.moodCounts).map(([m, count]) => (
+                        <span key={m} className="px-2 py-0.5 rounded-full bg-[#EAE0C8]/60 dark:bg-[#1A2330]/60 border border-[#8C3A27]/20 text-xs">
+                          {m} ({count})
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="space-y-3 pt-2">
                     <div className="flex items-center gap-2 border-b border-[#8C3A27]/25 pb-1.5">
@@ -1654,24 +1764,47 @@ export function MyDiaryEntryDetailsClient({
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="p-3.5 bg-[#F0EBE0] dark:bg-[#162334] rounded border border-[#D4AF37]/30 text-center space-y-1">
+                  {/* Classic Metrics Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
+                    <div className="p-3 bg-[#F0EBE0] dark:bg-[#162334] rounded border border-[#D4AF37]/30 text-center space-y-0.5">
                       <span className="text-[10px] font-mono text-muted-foreground uppercase block">Total Entries</span>
-                      <span className="text-2xl font-serif font-bold text-[#1E3A5F] dark:text-[#FAF7EE]">{summaryStats.totalPages}</span>
+                      <span className="text-xl font-serif font-bold text-[#1E3A5F] dark:text-[#FAF7EE]">{summaryStats.totalPages}</span>
                     </div>
-                    <div className="p-3.5 bg-[#F0EBE0] dark:bg-[#162334] rounded border border-[#D4AF37]/30 text-center space-y-1">
+                    <div className="p-3 bg-[#F0EBE0] dark:bg-[#162334] rounded border border-[#D4AF37]/30 text-center space-y-0.5">
+                      <span className="text-[10px] font-mono text-muted-foreground uppercase block">Streak</span>
+                      <span className="text-xl font-serif font-bold text-amber-600 dark:text-amber-400">{summaryStats.currentStreak}d</span>
+                    </div>
+                    <div className="p-3 bg-[#F0EBE0] dark:bg-[#162334] rounded border border-[#D4AF37]/30 text-center space-y-0.5">
+                      <span className="text-[10px] font-mono text-muted-foreground uppercase block">Words</span>
+                      <span className="text-xl font-serif font-bold text-[#2C5F4D] dark:text-[#62B394]">
+                        {summaryStats.totalWords >= 1000 ? `${(summaryStats.totalWords / 1000).toFixed(1)}k` : summaryStats.totalWords}
+                      </span>
+                    </div>
+                    <div className="p-3 bg-[#F0EBE0] dark:bg-[#162334] rounded border border-[#D4AF37]/30 text-center space-y-0.5">
                       <span className="text-[10px] font-mono text-muted-foreground uppercase block">Bookmarked</span>
-                      <span className="text-2xl font-serif font-bold text-[#D4AF37]">{summaryStats.heartedCount}</span>
+                      <span className="text-xl font-serif font-bold text-[#D4AF37]">{summaryStats.heartedCount}</span>
                     </div>
-                    <div className="p-3.5 bg-[#F0EBE0] dark:bg-[#162334] rounded border border-[#D4AF37]/30 text-center space-y-1">
-                      <span className="text-[10px] font-mono text-muted-foreground uppercase block">Energy Index</span>
-                      <span className="text-2xl font-serif font-bold text-[#1E3A5F] dark:text-[#FAF7EE]">{summaryStats.avgEnergy}/5</span>
+                    <div className="p-3 bg-[#F0EBE0] dark:bg-[#162334] rounded border border-[#D4AF37]/30 text-center space-y-0.5">
+                      <span className="text-[10px] font-mono text-muted-foreground uppercase block">Energy</span>
+                      <span className="text-xl font-serif font-bold text-[#1E3A5F] dark:text-[#FAF7EE]">{summaryStats.avgEnergy}/5</span>
                     </div>
-                    <div className="p-3.5 bg-[#F0EBE0] dark:bg-[#162334] rounded border border-[#D4AF37]/30 text-center space-y-1">
-                      <span className="text-[10px] font-mono text-muted-foreground uppercase block">Gratitude Items</span>
-                      <span className="text-2xl font-serif font-bold text-[#D4AF37]">{summaryStats.allGratitudes.length}</span>
+                    <div className="p-3 bg-[#F0EBE0] dark:bg-[#162334] rounded border border-[#D4AF37]/30 text-center space-y-0.5">
+                      <span className="text-[10px] font-mono text-muted-foreground uppercase block">Gratitudes</span>
+                      <span className="text-xl font-serif font-bold text-[#D4AF37]">{summaryStats.allGratitudes.length}</span>
                     </div>
                   </div>
+
+                  {/* Mood Distribution */}
+                  {Object.keys(summaryStats.moodCounts).length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-[#1E3A5F]/20 text-xs font-mono">
+                      <span className="text-muted-foreground text-[11px]">Mood Registry:</span>
+                      {Object.entries(summaryStats.moodCounts).map(([m, count]) => (
+                        <span key={m} className="px-2 py-0.5 rounded-full bg-[#F0EBE0]/60 dark:bg-[#162334]/60 border border-[#D4AF37]/25 text-xs">
+                          {m} ({count})
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="space-y-3 pt-2">
                     <div className="flex items-center gap-2 border-b border-[#1E3A5F]/20 pb-1.5">
@@ -1738,24 +1871,47 @@ export function MyDiaryEntryDetailsClient({
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
-                      <span className="text-[11px] font-mono text-slate-500 uppercase block">Total Entries</span>
-                      <span className="text-3xl font-sans font-bold text-slate-900 dark:text-white">{summaryStats.totalPages}</span>
+                  {/* Modern Metrics Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-0.5 text-center">
+                      <span className="text-[10px] font-mono text-slate-500 uppercase block">Entries</span>
+                      <span className="text-2xl font-sans font-bold text-slate-900 dark:text-white">{summaryStats.totalPages}</span>
                     </div>
-                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
-                      <span className="text-[11px] font-mono text-slate-500 uppercase block">Favorited</span>
-                      <span className="text-3xl font-sans font-bold text-rose-500">{summaryStats.heartedCount}</span>
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-0.5 text-center">
+                      <span className="text-[10px] font-mono text-slate-500 uppercase block">Streak</span>
+                      <span className="text-2xl font-sans font-bold text-amber-500">{summaryStats.currentStreak}d</span>
                     </div>
-                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
-                      <span className="text-[11px] font-mono text-slate-500 uppercase block">Vitality Score</span>
-                      <span className="text-3xl font-sans font-bold text-sky-500">{summaryStats.avgEnergy}<span className="text-xs text-slate-400">/5</span></span>
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-0.5 text-center">
+                      <span className="text-[10px] font-mono text-slate-500 uppercase block">Words</span>
+                      <span className="text-2xl font-sans font-bold text-emerald-500">
+                        {summaryStats.totalWords >= 1000 ? `${(summaryStats.totalWords / 1000).toFixed(1)}k` : summaryStats.totalWords}
+                      </span>
                     </div>
-                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
-                      <span className="text-[11px] font-mono text-slate-500 uppercase block">Gratitudes Logged</span>
-                      <span className="text-3xl font-sans font-bold text-indigo-500">{summaryStats.allGratitudes.length}</span>
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-0.5 text-center">
+                      <span className="text-[10px] font-mono text-slate-500 uppercase block">Favorited</span>
+                      <span className="text-2xl font-sans font-bold text-rose-500">{summaryStats.heartedCount}</span>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-0.5 text-center">
+                      <span className="text-[10px] font-mono text-slate-500 uppercase block">Vitality</span>
+                      <span className="text-2xl font-sans font-bold text-sky-500">{summaryStats.avgEnergy}<span className="text-xs text-slate-400">/5</span></span>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-0.5 text-center">
+                      <span className="text-[10px] font-mono text-slate-500 uppercase block">Gratitudes</span>
+                      <span className="text-2xl font-sans font-bold text-indigo-500">{summaryStats.allGratitudes.length}</span>
                     </div>
                   </div>
+
+                  {/* Mood Distribution */}
+                  {Object.keys(summaryStats.moodCounts).length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800 text-xs font-mono">
+                      <span className="text-slate-400 text-[11px]">Mood Stream:</span>
+                      {Object.entries(summaryStats.moodCounts).map(([m, count]) => (
+                        <span key={m} className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300">
+                          {m} ({count})
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="space-y-3 pt-2">
                     <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
