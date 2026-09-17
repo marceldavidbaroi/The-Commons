@@ -666,3 +666,57 @@ export function useUpdateDiaryMutation() {
   });
 }
 
+/**
+ * Mutation to bookmark/heart an entry page in Supabase via 1 SINGLE API call.
+ */
+export function useToggleHeartEntryMutation() {
+  const queryClient = useQueryClient();
+  const toggleHeartInStore = useDiaryStore((state) => state.toggleHeart);
+
+  return useMutation({
+    mutationFn: async ({
+      entryId,
+      isHearted,
+      diaryId,
+    }: {
+      entryId: string;
+      isHearted: boolean;
+      diaryId?: string;
+    }) => {
+      // 1. Instant local store toggle
+      toggleHeartInStore(entryId);
+
+      // 2. Exact 1 API call to Supabase table update
+      const supabase = createClient();
+      const { error } = await (supabase.from("diary_entries") as any)
+        .update({ is_hearted: isHearted })
+        .eq("id", entryId);
+
+      if (error) {
+        console.warn("Failed to persist toggle heart to Supabase:", error.message);
+      }
+
+      return { entryId, isHearted, diaryId };
+    },
+    onSuccess: ({ entryId, isHearted, diaryId }) => {
+      // In-place TanStack Query cache sync
+      queryClient.setQueriesData<DiaryEntry[]>({ queryKey: diaryKeys.all }, (old) => {
+        if (!old || !Array.isArray(old)) return old;
+        return old.map((e) => (e.id === entryId ? { ...e, isHearted } : e));
+      });
+      if (diaryId) {
+        queryClient.setQueryData<DiaryStats>(diaryKeys.stats(diaryId), (old) => {
+          if (!old) return old;
+          const currentHearted = old.hearted_entries ?? 0;
+          const newHearted = isHearted ? currentHearted + 1 : Math.max(0, currentHearted - 1);
+          return {
+            ...old,
+            hearted_entries: newHearted,
+          };
+        });
+      }
+    },
+  });
+}
+
+

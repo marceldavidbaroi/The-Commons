@@ -41,6 +41,64 @@ export interface DiaryEntry {
   updatedAt?: string;
 }
 
+export interface DiaryStats {
+  diaryId?: string | null;
+  totalEntries?: number;
+  totalWords?: number;
+  averageEnergy?: number;
+  heartedEntries?: number;
+  currentStreak?: number;
+  longestStreak?: number;
+  moodBreakdown?: Record<string, number>;
+  tags?: string[];
+  topWritingHours?: string[];
+  // Database snake_case fields
+  total_entries?: number;
+  total_words?: number;
+  average_energy?: number;
+  hearted_entries?: number;
+  current_streak?: number;
+  longest_streak?: number;
+  mood_breakdown?: Record<string, number>;
+}
+
+export interface DiaryIndexEntry {
+  id: string;
+  pageNumber: number;
+  dateStr: string;
+  dayOfWeek?: string;
+  yearStr?: string;
+  title: string;
+  snippet: string;
+  mood: string;
+  isHearted: boolean;
+  wordCount: number;
+}
+
+export interface DiarySummary {
+  totalDiaries: number;
+  activeDiaries: number;
+  archivedDiaries: number;
+  totalEntries: number;
+  totalWords: number;
+  averageEnergy: number;
+  currentStreak: number;
+  longestStreak: number;
+  latestEntryDate: string | null;
+  moodBreakdown: Record<string, number>;
+}
+
+export interface PaginationMeta {
+  totalCount: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+  nextOffset: number | null;
+}
+
+export type DiarySortOption = "newest" | "oldest" | "vitality-high" | "vitality-low";
+export type DiaryViewMode = "grid" | "list";
+
 export interface EnergyLevelOption {
   level: number;
   label: string;

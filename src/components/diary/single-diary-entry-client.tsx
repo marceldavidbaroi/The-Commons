@@ -34,6 +34,7 @@ import {
   useUpdateDiaryEntryMutation,
   useCreateDiaryEntryMutation,
   useDeleteDiaryEntryMutation,
+  useToggleHeartEntryMutation,
 } from "@/hooks/queries/use-diaries";
 import { Diary, DiaryEntry, DiaryTheme, ENERGY_LEVELS, MOOD_LIST } from "@/types/diary";
 
@@ -130,6 +131,7 @@ export function SingleDiaryEntryClient({ targetId }: { targetId: string }) {
   const updateEntryMutation = useUpdateDiaryEntryMutation();
   const createEntryMutation = useCreateDiaryEntryMutation();
   const deleteEntryMutation = useDeleteDiaryEntryMutation();
+  const toggleHeartMutation = useToggleHeartEntryMutation();
 
   // 2. Local Zustand Store
   const storeEntries = useDiaryStore((s) => s.entries);
@@ -189,10 +191,10 @@ export function SingleDiaryEntryClient({ targetId }: { targetId: string }) {
   const handleToggleHeart = () => {
     if (!currentEntry) return;
     const nextHeart = !currentEntry.isHearted;
-    toggleHeartStore(currentEntry.id);
-    updateEntryMutation.mutate({
+    toggleHeartMutation.mutate({
       entryId: currentEntry.id,
-      updates: { isHearted: nextHeart },
+      isHearted: nextHeart,
+      diaryId: currentEntry.diaryId,
     });
   };
 
