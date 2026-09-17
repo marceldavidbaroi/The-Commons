@@ -3,6 +3,7 @@
 import React, { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useAuthStore } from "@/stores/auth-store";
 import { CommonsSealVector } from "@/components/brand/logo";
 
 function AuthCallbackHandler() {
@@ -15,31 +16,50 @@ function AuthCallbackHandler() {
 
     async function handleAuthCallback() {
       const supabase = createClient();
-      const next = searchParams.get("next") || searchParams.get("redirect") || "/home";
+      const targetDestination =
+        searchParams.get("redirectUrl") ||
+        searchParams.get("next") ||
+        searchParams.get("redirect") ||
+        "/home";
       const code = searchParams.get("code");
 
       try {
+        let activeSession = null;
+
         if (code) {
           setStatusMessage("Exchanging verification token...");
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
+          activeSession = data.session;
         } else {
           setStatusMessage("Restoring active citizen session...");
           const { data, error } = await supabase.auth.getSession();
           if (error) throw error;
-          if (!data.session) {
+          activeSession = data.session;
+
+          if (!activeSession) {
             // Check if hash has auth parameters
             if (typeof window !== "undefined" && window.location.hash.includes("access_token")) {
               setStatusMessage("Validating identity payload...");
-              // Supabase automatically parses hash when detectSessionInUrl is true
               await new Promise((res) => setTimeout(res, 500));
+              const { data: hashData } = await supabase.auth.getSession();
+              activeSession = hashData.session;
             }
           }
         }
 
+        // Sync to Zustand store before routing
+        if (activeSession) {
+          useAuthStore.getState().setSession({
+            accessToken: activeSession.access_token,
+            expiresAt: activeSession.expires_at ?? null,
+            user: activeSession.user,
+          });
+        }
+
         if (isMounted) {
           setStatusMessage("Sanctuary confirmed. Welcoming citizen...");
-          router.replace(next);
+          router.replace(targetDestination);
         }
       } catch (err: any) {
         console.error("Auth callback verification error:", err);

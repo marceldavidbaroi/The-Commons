@@ -13,30 +13,46 @@ interface AuthGuardProps {
 
 /**
  * Client-Side Auth Guard for Single Page Application (SPA).
- * Protects sanctuary feature routes without requiring server-side middleware.
+ * Protects sanctuary feature routes and handles automatic session expiration logout.
  */
 export function AuthGuard({ children, requireGuest = false }: AuthGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { data: user, isLoading } = useUserSession();
   const authUser = useAuthStore((state) => state.user);
+  const isTokenExpired = useAuthStore((state) => state.isTokenExpired);
+  const resetAuth = useAuthStore((state) => state.resetAuth);
 
   const activeUser = user !== undefined ? user : authUser;
 
   useEffect(() => {
     if (isLoading) return;
 
+    // Check token expiration
+    if (activeUser && isTokenExpired()) {
+      resetAuth();
+      const currentPath = pathname && pathname !== "/" ? encodeURIComponent(pathname) : "";
+      const targetUrl = currentPath
+        ? `/login?error=session_expired&redirectUrl=${currentPath}`
+        : "/login?error=session_expired";
+      router.replace(targetUrl);
+      return;
+    }
+
     if (!requireGuest && !activeUser) {
-      // Unauthenticated visitor attempting to access protected route -> redirect to login
-      const redirectUrl = pathname && pathname !== "/" ? `/login?redirect=${encodeURIComponent(pathname)}` : "/login";
+      // Unauthenticated visitor attempting to access protected route -> redirect to login with return destination
+      const redirectUrl =
+        pathname && pathname !== "/"
+          ? `/login?redirectUrl=${encodeURIComponent(pathname)}`
+          : "/login";
       router.replace(redirectUrl);
     } else if (requireGuest && activeUser) {
       // Authenticated citizen accessing guest-only routes (login/landing) -> redirect to sanctuary home
       router.replace("/home");
     }
-  }, [activeUser, isLoading, requireGuest, router, pathname]);
+  }, [activeUser, isLoading, requireGuest, router, pathname, isTokenExpired, resetAuth]);
 
-  // Loading state with editorial sanctuary aesthetics
+  // Loading state with sanctuary aesthetics
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0d1117] flex flex-col items-center justify-center p-6 text-center">

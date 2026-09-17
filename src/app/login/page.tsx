@@ -50,8 +50,11 @@ function LoginForm() {
 
   const [urlError] = useState<string | null>(() => {
     const errorParam = searchParams.get("error");
+    if (errorParam === "session_expired") {
+      return "Your citizen session has expired. Please authenticate to re-enter your sanctuary.";
+    }
     if (errorParam === "auth_exchange_failed") {
-      return "Authentication verification failed or session expired. Please attempt sign-in again.";
+      return "Authentication verification failed. Please attempt sign-in again.";
     }
     if (errorParam) {
       return `Authentication error: ${errorParam}`;
@@ -62,8 +65,12 @@ function LoginForm() {
   const activeErrorMessage = authError || urlError;
 
   const handleGoogleSignIn = () => {
-    const redirectTarget = searchParams.get("redirect") || searchParams.get("next") || "/home";
-    signInWithGoogle({ redirectTo: redirectTarget });
+    const redirectTarget =
+      searchParams.get("redirectUrl") ||
+      searchParams.get("redirect") ||
+      searchParams.get("next") ||
+      "/home";
+    signInWithGoogle({ redirectUrl: redirectTarget });
   };
 
   const currentDate = new Date().toLocaleDateString("en-US", {

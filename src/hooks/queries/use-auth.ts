@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
+import type { User, Session } from "@supabase/supabase-js";
 import type { Profile } from "@/types/database";
 
 export const authKeys = {
@@ -14,54 +15,73 @@ export const authKeys = {
 };
 
 /**
- * Hook to retrieve current Supabase User and synchronize with Zustand auth store.
+ * Hook to retrieve current Supabase user, access token, and session,
+ * synchronizing with Zustand auth store and handling auto-expiry.
  */
 export function useUserSession() {
-  const setUser = useAuthStore((state) => state.setUser);
-  const setIsLoading = useAuthStore((state) => state.setIsLoading);
+  const setSession = useAuthStore((state) => state.setSession);
+  const resetAuth = useAuthStore((state) => state.resetAuth);
   const queryClient = useQueryClient();
 
   const query = useQuery({
     queryKey: authKeys.user,
-    queryFn: async () => {
+    queryFn: async (): Promise<User | null> => {
       const supabase = createClient();
-      const { data, error } = await supabase.auth.getUser();
-      if (error) {
-        // User not logged in is an expected state, not a throw error
+      const { data, error } = await supabase.auth.getSession();
+      if (error || !data.session) {
         return null;
       }
-      return data.user;
+      // Sync tokens to Zustand
+      setSession({
+        accessToken: data.session.access_token,
+        expiresAt: data.session.expires_at ?? null,
+        user: data.session.user,
+      });
+      return data.session.user;
     },
-    staleTime: 5 * 60 * 1000, // 5 mins
+    staleTime: 2 * 60 * 1000, // 2 mins
   });
 
   // Keep Zustand auth store in sync with TanStack Query data
   useEffect(() => {
     if (!query.isLoading) {
-      setUser(query.data ?? null);
+      if (query.data) {
+        setSession({
+          user: query.data,
+        });
+      } else {
+        resetAuth();
+      }
     }
-  }, [query.data, query.isLoading, setUser]);
+  }, [query.data, query.isLoading, setSession, resetAuth]);
 
   // Listen to Supabase auth state changes for Realtime session sync
   useEffect(() => {
     const supabase = createClient();
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const user = session?.user ?? null;
-      setUser(user);
-      queryClient.setQueryData(authKeys.user, user);
-      if (!user) {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_OUT" || !session) {
+        resetAuth();
+        queryClient.setQueryData(authKeys.user, null);
+        queryClient.setQueryData(authKeys.session, null);
         queryClient.removeQueries({ queryKey: authKeys.all });
       } else {
-        queryClient.invalidateQueries({ queryKey: authKeys.profile(user.id) });
+        setSession({
+          accessToken: session.access_token,
+          expiresAt: session.expires_at ?? null,
+          user: session.user,
+        });
+        queryClient.setQueryData(authKeys.user, session.user);
+        queryClient.setQueryData(authKeys.session, session);
+        queryClient.invalidateQueries({ queryKey: authKeys.profile(session.user.id) });
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [setUser, queryClient]);
+  }, [setSession, resetAuth, queryClient]);
 
   return query;
 }
@@ -71,6 +91,7 @@ export { useUserProfile, useUpdateProfileMutation, profileKeys } from "./use-pro
 
 export interface GoogleSignInOptions {
   redirectTo?: string;
+  redirectUrl?: string;
   next?: string;
 }
 
@@ -88,7 +109,7 @@ export function useGoogleSignInMutation() {
 
       const supabase = createClient();
       const origin = typeof window !== "undefined" ? window.location.origin : "";
-      const target = options?.redirectTo || options?.next || "/home";
+      const target = options?.redirectUrl || options?.redirectTo || options?.next || "/home";
       const callbackUrl = `${origin}/auth/callback?next=${encodeURIComponent(target)}`;
 
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -137,5 +158,3 @@ export function useSignOutMutation() {
     },
   });
 }
-
-
