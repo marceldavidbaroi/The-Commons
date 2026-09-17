@@ -19,6 +19,8 @@ import {
 import { CommonsSealVector } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { SanctuaryNav } from "@/components/navigation/sanctuary-nav";
+import { AuthGuard } from "@/components/auth/auth-guard";
+
 import { useDiaryStore } from "@/stores/diary-store";
 import {
   useDiariesOverview,
@@ -27,7 +29,7 @@ import {
   useUpdateDiaryMutation,
   useDeleteDiaryMutation,
 } from "@/hooks/queries/use-diaries";
-import { Diary, DiaryTheme } from "@/types/diary";
+import { Diary, DiaryEntry, DiaryTheme, INITIAL_DIARIES, INITIAL_ENTRIES } from "@/types/diary";
 
 export const THEME_CONFIGS: Record<
   DiaryTheme,
@@ -348,15 +350,19 @@ export default function MyDiariesPage() {
   const [, startTransition] = useTransition();
 
   // 1. TanStack Query + Supabase Hooks
-  const { data: diaries = [], isLoading: isDiariesLoading } = useDiariesOverview();
+  const { data: rawDiaries = [], isLoading: isDiariesLoading } = useDiariesOverview();
   const { data: stats } = useDiaryStats();
   const createDiaryMutation = useCreateDiaryMutation();
   const updateDiaryMutation = useUpdateDiaryMutation();
   const deleteDiaryMutation = useDeleteDiaryMutation();
 
   // 2. Zustand Store Sync
-  const entries = useDiaryStore((state) => state.entries);
+  const storeDiaries = useDiaryStore((state) => state.diaries);
+  const storeEntries = useDiaryStore((state) => state.entries);
   const setActiveDiaryId = useDiaryStore((state) => state.setActiveDiaryId);
+
+  const diaries = rawDiaries.length > 0 ? rawDiaries : (storeDiaries.length > 0 ? storeDiaries : INITIAL_DIARIES);
+  const entries = storeEntries.length > 0 ? storeEntries : INITIAL_ENTRIES;
 
   const [mounted, setMounted] = useState(false);
 
@@ -466,7 +472,9 @@ export default function MyDiariesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-[#C8DFDB] selection:text-[#193836]">
+    <AuthGuard>
+      <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-[#C8DFDB] selection:text-[#193836]">
+
       
       {/* 1. TOP EDITORIAL NAVIGATION */}
       <SanctuaryNav subtitle="CHRONICLES & TOMES ARCHIVE" />
@@ -530,8 +538,8 @@ export default function MyDiariesPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 sm:gap-10 justify-items-center">
             
             {/* List of Created Diaries */}
-            {diaries.map((diary) => {
-              const diaryEntries = entries.filter((e) => e.diaryId === diary.id);
+            {diaries.map((diary: Diary) => {
+              const diaryEntries = entries.filter((e: DiaryEntry) => e.diaryId === diary.id);
               const count = diary.entriesCount ?? diaryEntries.length;
               return (
                 <DiaryBookCover
@@ -946,5 +954,7 @@ export default function MyDiariesPage() {
       )}
 
     </div>
+    </AuthGuard>
   );
 }
+

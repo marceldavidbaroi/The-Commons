@@ -228,17 +228,22 @@ function LoginForm() {
   );
 }
 
+import { AuthGuard } from "@/components/auth/auth-guard";
+
 export default function LoginPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground font-mono text-xs">
-          <RefreshCw className="h-4 w-4 animate-spin text-[#3368A0]" />
-          <span>LOADING CITIZEN ACCESS DESK...</span>
+    <AuthGuard requireGuest={true}>
+      <Suspense fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="flex items-center gap-2 text-muted-foreground font-mono text-xs">
+            <RefreshCw className="h-4 w-4 animate-spin text-[#3368A0]" />
+            <span>LOADING CITIZEN ACCESS DESK...</span>
+          </div>
         </div>
-      </div>
-    }>
-      <LoginForm />
-    </Suspense>
+      }>
+        <LoginForm />
+      </Suspense>
+    </AuthGuard>
   );
 }
+

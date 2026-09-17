@@ -25,6 +25,8 @@ import {
 import { SanctuaryNav } from "@/components/navigation/sanctuary-nav";
 import { CommonsSealVector } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { AuthGuard } from "@/components/auth/auth-guard";
+
 import { useUserSession } from "@/hooks/queries/use-auth";
 import {
   useUserProfile,
@@ -168,7 +170,9 @@ export default function CitizenPassportPage() {
   const streakDays = passportMetrics?.ritual_streak_days ?? 5;
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-[#C8DFDB] selection:text-[#193836]">
+    <AuthGuard>
+      <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-[#C8DFDB] selection:text-[#193836]">
+
       {/* 1. TOP EDITORIAL NAVIGATION */}
       <SanctuaryNav subtitle="CITIZEN PASSPORT & IDENTITY DESK" />
 
@@ -765,5 +769,7 @@ export default function CitizenPassportPage() {
         </div>
       </footer>
     </div>
+    </AuthGuard>
   );
 }
+

@@ -58,16 +58,17 @@ export interface DiaryStoreState {
 export const useDiaryStore = create<DiaryStoreState>()(
   persist(
     (set, get) => ({
-      diaries: [],
-      entries: [],
-      activeDiaryId: "",
+      diaries: INITIAL_DIARIES,
+      entries: INITIAL_ENTRIES,
+      activeDiaryId: INITIAL_DIARIES[0]?.id || "",
       currentPageIndex: 0,
-      currentEntryId: null,
+      currentEntryId: INITIAL_ENTRIES[0]?.id || null,
       searchQuery: "",
       activeFilter: "all",
       activeMoodFilter: "all",
       sortBy: "newest",
       viewMode: "grid",
+
 
       setDiaries: (diaries) => set({ diaries }),
 
@@ -159,13 +160,14 @@ export const useDiaryStore = create<DiaryStoreState>()(
         const idStr = String(idOrPage);
         const state = get();
         // 1. Direct match on entry id / pageNumber
-        let found = state.entries.find(
+        const found = state.entries.find(
           (e) =>
             e.id === idStr ||
             String(e.pageNumber) === idStr ||
             `page-${e.pageNumber}` === idStr
         );
         if (found) return found;
+
 
         // 2. If it's a diaryId, return the latest entry for that diary
         const diaryEntries = state.entries.filter((e) => e.diaryId === idStr);

@@ -1,6 +1,7 @@
-import React from "react";
+"use client";
+
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { 
   ArrowRight, 
   Feather, 
@@ -12,12 +13,7 @@ import {
 import { CommonsSealVector, CommonsLogo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { CitizenStatus } from "@/components/brand/citizen-status";
-import { createClient } from "@/lib/supabase/server";
-
-export const metadata = {
-  title: "The Commons — A Tactile Digital Sanctuary & Editorial Broadside",
-  description: "An authentic magazine broadsheet for daily journaling, reflective inquiry, and encrypted record-keeping.",
-};
+import { AuthGuard } from "@/components/auth/auth-guard";
 
 function GoogleIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
@@ -42,28 +38,26 @@ function GoogleIcon({ className = "w-4 h-4" }: { className?: string }) {
   );
 }
 
-export default async function LandingPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export default function LandingPage() {
+  const [todayDate, setTodayDate] = useState("Sanctuary Edition");
 
-  if (user) {
-    redirect("/home");
-  }
-
-  const todayDate = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  useEffect(() => {
+    setTodayDate(
+      new Date().toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    );
+  }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-[#C8DFDB] selection:text-[#193836]">
-      
-      {/* 1. TOP COLOPHON & MICRO MASTHEAD */}
-      <header className="border-b border-border/80 bg-muted/30 px-6 py-3">
+    <AuthGuard requireGuest={true}>
+      <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-[#C8DFDB] selection:text-[#193836]">
+        
+        {/* 1. TOP COLOPHON & MICRO MASTHEAD */}
+        <header className="border-b border-border/80 bg-muted/30 px-6 py-3">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] font-mono tracking-wider text-muted-foreground uppercase">
           <div className="flex items-center gap-3">
             <CommonsLogo variant="horizontal" size="sm" href="/" subtitle="DIGITAL SANCTUARY" showFolio />
@@ -351,5 +345,7 @@ export default async function LandingPage() {
       </footer>
 
     </div>
+    </AuthGuard>
   );
 }
+

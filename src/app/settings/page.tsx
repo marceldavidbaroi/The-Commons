@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { SanctuaryNav } from "@/components/navigation/sanctuary-nav";
 import { Button } from "@/components/ui/button";
+import { AuthGuard } from "@/components/auth/auth-guard";
+
 import { useUIStore } from "@/stores/ui-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { useDiaryStore } from "@/stores/diary-store";
@@ -171,7 +173,9 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-[#C8DFDB] selection:text-[#193836]">
+    <AuthGuard>
+      <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-[#C8DFDB] selection:text-[#193836]">
+
       {/* 1. TOP EDITORIAL NAVIGATION */}
       <SanctuaryNav subtitle="SYSTEM CALIBRATION & PREFERENCES DESK" />
 
@@ -701,5 +705,7 @@ export default function SettingsPage() {
         </div>
       </footer>
     </div>
+    </AuthGuard>
   );
 }
+

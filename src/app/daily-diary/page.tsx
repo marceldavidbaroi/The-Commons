@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import SingleDiaryEntryPage from "./[id]/page";
+import { SingleDiaryEntryClient } from "@/components/diary/single-diary-entry-client";
 import { useDiaryStore } from "@/stores/diary-store";
 import { useDiariesOverview, useDiaryEntries } from "@/hooks/queries/use-diaries";
 
@@ -30,6 +30,6 @@ export default function DailyDiaryDefaultPage() {
     );
   }
 
-  const paramsPromise = Promise.resolve({ id: targetId });
-  return <SingleDiaryEntryPage params={paramsPromise} />;
+  return <SingleDiaryEntryClient targetId={targetId} />;
 }
+

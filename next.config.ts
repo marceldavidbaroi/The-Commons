@@ -1,15 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  async redirects() {
-    return [
-      {
-        source: "/platform/login",
-        destination: "/home",
-        permanent: false,
-      },
-    ];
+  output: "export",
+  images: {
+    unoptimized: true,
   },
+  trailingSlash: true,
 };
 
 export default nextConfig;
+

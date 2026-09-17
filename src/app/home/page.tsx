@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import { 
@@ -12,11 +14,8 @@ import {
 } from "lucide-react";
 import { CommonsSealVector } from "@/components/brand/logo";
 import { SanctuaryNav } from "@/components/navigation/sanctuary-nav";
+import { AuthGuard } from "@/components/auth/auth-guard";
 
-export const metadata = {
-  title: "The Commons — Citizen Broadside & Feature Directory",
-  description: "An editorial broadside and tactile digital sanctuary for reflection, community, and craft.",
-};
 
 /* ==========================================================================
    CUSTOM EDITORIAL SVG ICONS (PROFILE & SETTINGS)
@@ -173,7 +172,9 @@ const featureDepartments: FeatureDepartment[] = [
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-[#C8DFDB] selection:text-[#193836]">
+    <AuthGuard>
+      <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-[#C8DFDB] selection:text-[#193836]">
+
       
       {/* Top Editorial Navigation Bar */}
       <SanctuaryNav subtitle="AUTHENTICATED CITIZEN LEDGER" />
@@ -428,5 +429,7 @@ export default function HomePage() {
         </div>
       </footer>
     </div>
+    </AuthGuard>
   );
 }
+

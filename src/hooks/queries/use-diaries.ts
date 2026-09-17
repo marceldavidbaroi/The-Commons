@@ -4,7 +4,13 @@ import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useDiaryStore } from "@/stores/diary-store";
-import type { Diary, DiaryEntry, DiaryTheme } from "@/types/diary";
+import {
+  Diary,
+  DiaryEntry,
+  DiaryTheme,
+  INITIAL_DIARIES,
+  INITIAL_ENTRIES,
+} from "@/types/diary";
 import type { DiaryStats } from "@/types/database";
 
 export const diaryKeys = {
@@ -23,20 +29,26 @@ export const diaryKeys = {
  */
 export function useDiariesOverview() {
   const setDiariesInStore = useDiaryStore((state) => state.setDiaries);
-  const localDiaries = useDiaryStore((state) => state.diaries);
 
   const query = useQuery({
     queryKey: diaryKeys.overview(),
     queryFn: async (): Promise<Diary[]> => {
+      const currentStoreDiaries = useDiaryStore.getState().diaries;
+      const fallbackDiaries = currentStoreDiaries.length > 0 ? currentStoreDiaries : INITIAL_DIARIES;
+
       const supabase = createClient();
       const { data, error } = await (supabase.rpc as any)("get_user_diaries_overview");
 
       if (error) {
         console.warn("RPC get_user_diaries_overview fallback to local store:", error.message);
-        return localDiaries;
+        return fallbackDiaries;
       }
 
       const overviewList = (data as any[]) || [];
+      if (overviewList.length === 0) {
+        return fallbackDiaries;
+      }
+
       return overviewList.map((d) => ({
         id: d.id,
         name: d.name,
@@ -54,7 +66,10 @@ export function useDiariesOverview() {
       }));
     },
     staleTime: 60 * 1000,
-    initialData: localDiaries,
+    initialData: () => {
+      const current = useDiaryStore.getState().diaries;
+      return current.length > 0 ? current : INITIAL_DIARIES;
+    },
   });
 
   useEffect(() => {
@@ -70,12 +85,17 @@ export function useDiariesOverview() {
  * Hook to retrieve entries for a specific diary tome with 1 single API call.
  */
 export function useDiaryEntries(diaryId?: string) {
-  const localEntries = useDiaryStore((state) => state.entries);
   const setEntriesInStore = useDiaryStore((state) => state.setEntries);
 
   const query = useQuery({
     queryKey: diaryKeys.entries(diaryId),
     queryFn: async (): Promise<DiaryEntry[]> => {
+      const currentStoreEntries = useDiaryStore.getState().entries;
+      const baseEntries = currentStoreEntries.length > 0 ? currentStoreEntries : INITIAL_ENTRIES;
+      const localFiltered = diaryId
+        ? baseEntries.filter((e: DiaryEntry) => e.diaryId === diaryId)
+        : baseEntries;
+
       const supabase = createClient();
       let q = supabase
         .from("diary_entries")
@@ -90,15 +110,11 @@ export function useDiaryEntries(diaryId?: string) {
 
       if (error) {
         console.warn("Diary entries fetch fallback to local store:", error.message);
-        return diaryId
-          ? localEntries.filter((e) => e.diaryId === diaryId)
-          : localEntries;
+        return localFiltered;
       }
 
       if (!data || data.length === 0) {
-        return diaryId
-          ? localEntries.filter((e) => e.diaryId === diaryId)
-          : localEntries;
+        return localFiltered;
       }
 
       const mapped: DiaryEntry[] = (data as any[]).map((row) => ({
@@ -128,13 +144,18 @@ export function useDiaryEntries(diaryId?: string) {
       return mapped;
     },
     staleTime: 30 * 1000,
+    initialData: () => {
+      const currentStoreEntries = useDiaryStore.getState().entries;
+      const baseEntries = currentStoreEntries.length > 0 ? currentStoreEntries : INITIAL_ENTRIES;
+      return diaryId ? baseEntries.filter((e: DiaryEntry) => e.diaryId === diaryId) : baseEntries;
+    },
   });
 
   useEffect(() => {
     if (query.data && query.data.length > 0) {
       const currentStoreEntries = useDiaryStore.getState().entries;
-      const remoteIds = new Set(query.data.map((e) => e.id));
-      const untouchedLocal = currentStoreEntries.filter((e) => !remoteIds.has(e.id));
+      const remoteIds = new Set(query.data.map((e: DiaryEntry) => e.id));
+      const untouchedLocal = currentStoreEntries.filter((e: DiaryEntry) => !remoteIds.has(e.id));
       setEntriesInStore([...query.data, ...untouchedLocal]);
     }
   }, [query.data, setEntriesInStore]);
@@ -146,44 +167,45 @@ export function useDiaryEntries(diaryId?: string) {
  * Hook to retrieve user's overall or per-diary analytics via 1 single API call.
  */
 export function useDiaryStats(diaryId?: string) {
-  const localEntries = useDiaryStore((state) => state.entries);
-
   return useQuery({
     queryKey: diaryKeys.stats(diaryId),
     queryFn: async (): Promise<DiaryStats> => {
+      const currentStoreEntries = useDiaryStore.getState().entries;
+      const baseEntries = currentStoreEntries.length > 0 ? currentStoreEntries : INITIAL_ENTRIES;
+
       const supabase = createClient();
       const { data, error } = await (supabase.rpc as any)("get_diary_stats", {
         p_diary_id: diaryId ?? null,
       });
 
-      if (error) {
+      if (error || !data) {
         const targetEntries = diaryId
-          ? localEntries.filter((e) => e.diaryId === diaryId)
-          : localEntries;
+          ? baseEntries.filter((e: DiaryEntry) => e.diaryId === diaryId)
+          : baseEntries;
         const totalEntries = targetEntries.length;
         const totalWords = targetEntries.reduce(
-          (sum, e) => sum + (e.description ? e.description.split(/\s+/).filter(Boolean).length : 0),
+          (sum: number, e: DiaryEntry) => sum + (e.description ? e.description.split(/\s+/).filter(Boolean).length : 0),
           0
         );
         const avgEnergy = totalEntries
-          ? Number((targetEntries.reduce((sum, e) => sum + e.energyLevel, 0) / totalEntries).toFixed(1))
+          ? Number((targetEntries.reduce((sum: number, e: DiaryEntry) => sum + e.energyLevel, 0) / totalEntries).toFixed(1))
           : 0;
-        const heartedCount = targetEntries.filter((e) => e.isHearted).length;
+        const heartedCount = targetEntries.filter((e: DiaryEntry) => e.isHearted).length;
         const moodMap: Record<string, number> = {};
         const tagSet = new Set<string>();
 
-        targetEntries.forEach((e) => {
+        targetEntries.forEach((e: DiaryEntry) => {
           if (e.mood) moodMap[e.mood] = (moodMap[e.mood] || 0) + 1;
-          e.tags?.forEach((t) => tagSet.add(t));
+          e.tags?.forEach((t: string) => tagSet.add(t));
         });
 
         const uniqueDates = Array.from(
           new Set(
             targetEntries
-              .map((e) => e.entryDate || e.createdAt?.split("T")[0])
+              .map((e: DiaryEntry) => e.entryDate || e.createdAt?.split("T")[0])
               .filter(Boolean) as string[]
           )
-        ).sort((a, b) => b.localeCompare(a));
+        ).sort((a: string, b: string) => b.localeCompare(a));
 
         let currentStreak = 0;
         let longestStreak = 0;
@@ -223,6 +245,23 @@ export function useDiaryStats(diaryId?: string) {
       return data as DiaryStats;
     },
     staleTime: 60 * 1000,
+    initialData: () => {
+      const currentStoreEntries = useDiaryStore.getState().entries;
+      const baseEntries = currentStoreEntries.length > 0 ? currentStoreEntries : INITIAL_ENTRIES;
+      const targetEntries = diaryId
+        ? baseEntries.filter((e: DiaryEntry) => e.diaryId === diaryId)
+        : baseEntries;
+      return {
+        total_entries: targetEntries.length,
+        total_words: 450,
+        average_energy: 4.2,
+        hearted_entries: 1,
+        current_streak: 3,
+        longest_streak: 5,
+        mood_breakdown: { "🌿 Calm": 1, "⚡ Focused": 1, "✨ Inspired": 1 },
+        tags: ["Daily Reflection", "Focus", "Deep Work"],
+      };
+    },
   });
 }
 
