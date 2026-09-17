@@ -66,41 +66,8 @@ export function useUserSession() {
   return query;
 }
 
-/**
- * Hook to retrieve User Profile and sorting preferences.
- */
-export function useUserProfile(userId?: string) {
-  const setProfile = useAuthStore((state) => state.setProfile);
-
-  const query = useQuery({
-    queryKey: authKeys.profile(userId),
-    queryFn: async (): Promise<Profile | null> => {
-      if (!userId) return null;
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
-
-      if (error) {
-        console.warn("Could not fetch user profile:", error.message);
-        return null;
-      }
-      return data as Profile;
-    },
-    enabled: Boolean(userId),
-    staleTime: 5 * 60 * 1000,
-  });
-
-  useEffect(() => {
-    if (query.data) {
-      setProfile(query.data);
-    }
-  }, [query.data, setProfile]);
-
-  return query;
-}
+// Re-export user profile hooks
+export { useUserProfile, useUpdateProfileMutation, profileKeys } from "./use-profile";
 
 export interface GoogleSignInOptions {
   redirectTo?: string;
@@ -170,3 +137,5 @@ export function useSignOutMutation() {
     },
   });
 }
+
+

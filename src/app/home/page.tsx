@@ -3,17 +3,15 @@ import Link from "next/link";
 import { 
   ArrowRight, 
   Feather, 
-  Calendar, 
   Clock, 
   PenLine, 
   Flame, 
   FolderArchive, 
-  MessageSquare,
+  MessageSquare, 
   FileText,
-  UserCheck
 } from "lucide-react";
-import { CommonsSealVector, CommonsLogo } from "@/components/brand/logo";
-import { CitizenStatus } from "@/components/brand/citizen-status";
+import { CommonsSealVector } from "@/components/brand/logo";
+import { SanctuaryNav } from "@/components/navigation/sanctuary-nav";
 
 export const metadata = {
   title: "The Commons — Citizen Broadside & Feature Directory",
@@ -108,10 +106,10 @@ const featureDepartments: FeatureDepartment[] = [
   {
     id: "citizen-profile",
     deptNumber: "03",
-    title: "Citizen Profile",
-    subtitle: "Passport, credentials & personalized preferences.",
-    href: "/login",
-    buttonText: "Sign In / Passport",
+    title: "Citizen Passport",
+    subtitle: "Official credentials, sanctuary clearance & identity.",
+    href: "/citizen-passport",
+    buttonText: "Open Passport",
     icon: <CitizenProfileSvg className="h-4 w-4" />,
     themeTag: "Passport",
     themeColorClass: "border-[#3368A0] text-[#3368A0] dark:text-[#66A3BF]",
@@ -120,9 +118,9 @@ const featureDepartments: FeatureDepartment[] = [
     id: "settings",
     deptNumber: "04",
     title: "System Settings",
-    subtitle: "Typography, theme mode & database configuration.",
-    href: "/dev/design-system",
-    buttonText: "Configure",
+    subtitle: "Typography, density, sort engine & security.",
+    href: "/settings",
+    buttonText: "System Settings",
     icon: <SettingsCogSvg className="h-4 w-4" />,
     themeTag: "Settings Dial",
     themeColorClass: "border-[#66A3BF] text-[#66A3BF] dark:text-[#C8DFDB]",
@@ -174,32 +172,11 @@ const featureDepartments: FeatureDepartment[] = [
 ];
 
 export default function HomePage() {
-  const todayDate = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-[#C8DFDB] selection:text-[#193836]">
       
-      {/* Top Colophon / Micro Masthead */}
-      <header className="border-b border-border/80 bg-muted/30 px-6 py-2.5">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] font-mono tracking-wider text-muted-foreground uppercase">
-          <div className="flex items-center gap-3">
-            <CommonsLogo variant="horizontal" size="sm" href="/home" subtitle="AUTHENTICATED CITIZEN LEDGER" showFolio />
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3 w-3 text-[#3368A0]" />
-              {todayDate}
-            </span>
-            <span className="text-border">|</span>
-            <CitizenStatus />
-          </div>
-        </div>
-      </header>
+      {/* Top Editorial Navigation Bar */}
+      <SanctuaryNav subtitle="AUTHENTICATED CITIZEN LEDGER" />
 
       {/* Main Publication Masthead */}
       <div className="max-w-6xl w-full mx-auto px-6 pt-6 pb-2 text-center flex flex-col items-center">
@@ -362,14 +339,14 @@ export default function HomePage() {
 
             {/* Profile Quick Action Buttons */}
             <div className="pt-2 border-t border-border/60 grid grid-cols-2 gap-2">
-              <Link href="/login" className="block">
+              <Link href="/citizen-passport" className="block">
                 <button className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-background hover:bg-[#3368A0] hover:text-white border border-border text-foreground text-xs font-serif transition-colors cursor-pointer">
                   <CitizenProfileSvg className="h-3.5 w-3.5" />
                   <span>Citizen Passport</span>
                 </button>
               </Link>
 
-              <Link href="/dev/design-system" className="block">
+              <Link href="/settings" className="block">
                 <button className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-background hover:bg-[#3368A0] hover:text-white border border-border text-foreground text-xs font-serif transition-colors cursor-pointer">
                   <SettingsCogSvg className="h-3.5 w-3.5" />
                   <span>Settings</span>
@@ -442,7 +419,11 @@ export default function HomePage() {
           <div className="flex items-center gap-4">
             <Link href="/my-diaries" className="hover:text-foreground">My Diaries</Link>
             <span>•</span>
-            <Link href="/login" className="hover:text-foreground">Citizen Passport</Link>
+            <Link href="/citizen-passport" className="hover:text-foreground">Citizen Passport</Link>
+            <span>•</span>
+            <Link href="/settings" className="hover:text-foreground">Settings</Link>
+            <span>•</span>
+            <Link href="/dev/design-system" className="hover:text-foreground">Design System</Link>
           </div>
         </div>
       </footer>

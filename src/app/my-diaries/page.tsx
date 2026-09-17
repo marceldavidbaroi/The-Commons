@@ -5,16 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Feather,
-  Calendar,
   Plus,
-  BookOpen,
-  Sparkles,
   X,
   Check,
-  ArrowLeft,
 } from "lucide-react";
-import { CommonsLogo, CommonsSealVector } from "@/components/brand/logo";
+import { CommonsSealVector } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { SanctuaryNav } from "@/components/navigation/sanctuary-nav";
 import { useDiaryStore } from "@/stores/diary-store";
 import { Diary, DiaryTheme } from "@/types/diary";
 
@@ -377,49 +374,11 @@ export default function MyDiariesPage() {
     });
   };
 
-  const todayFormatted = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-[#C8DFDB] selection:text-[#193836]">
       
-      {/* 1. TOP MINIMAL COLOPHON HEADER */}
-      <header className="border-b border-border/80 bg-muted/30 px-4 sm:px-6 py-3">
-        <div className="max-w-6xl mx-auto flex items-center justify-between text-[11px] font-mono tracking-wider text-muted-foreground uppercase">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/home"
-              className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
-              title="Return to Citizen Ledger (/home)"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Home</span>
-            </Link>
-            <span className="text-border hidden sm:inline">|</span>
-            <CommonsLogo variant="horizontal" size="sm" href="/home" subtitle="DIGITAL SANCTUARY" showFolio />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3 w-3 text-[#3368A0] dark:text-[#66A3BF]" />
-              {todayFormatted}
-            </span>
-            <span className="text-border">|</span>
-            <Button
-              size="sm"
-              onClick={() => setIsModalOpen(true)}
-              className="h-6.5 px-2.5 rounded-full bg-[#3368A0] hover:bg-[#254F7A] text-white font-serif text-xs gap-1 cursor-pointer"
-            >
-              <Plus className="h-3 w-3" />
-              <span>New Diary</span>
-            </Button>
-          </div>
-        </div>
-      </header>
+      {/* 1. TOP EDITORIAL NAVIGATION */}
+      <SanctuaryNav subtitle="CHRONICLES & TOMES ARCHIVE" />
 
       {/* 2. SIMPLE EDITORIAL TITLE */}
       <section className="max-w-6xl w-full mx-auto px-4 sm:px-6 pt-10 pb-4 text-center flex flex-col items-center">
@@ -648,6 +607,22 @@ export default function MyDiariesPage() {
           </div>
         </div>
       )}
+
+      {/* Editorial Footer */}
+      <footer className="border-t-2 border-border mt-auto bg-muted/30 py-6 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground font-mono">
+          <div>
+            <span className="font-bold text-foreground">THE COMMONS</span> — Chronicles & Private Diaries Ledger.
+          </div>
+          <div className="flex items-center gap-4">
+            <Link href="/home" className="hover:text-foreground">Overview</Link>
+            <span>•</span>
+            <Link href="/citizen-passport" className="hover:text-foreground">Citizen Passport</Link>
+            <span>•</span>
+            <Link href="/settings" className="hover:text-foreground">Settings</Link>
+          </div>
+        </div>
+      </footer>
 
     </div>
   );

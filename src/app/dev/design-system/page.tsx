@@ -246,10 +246,31 @@ export default function DesignSystemPage() {
               <span>{isDarkMode ? "Light Mode" : "Dark Mode"}</span>
             </Button>
             <Link
-              href="/"
-              className="text-xs font-medium text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+              href="/home"
+              className="text-xs font-mono text-muted-foreground hover:text-foreground hidden sm:inline transition-colors"
             >
-              <span>App Home</span>
+              Overview
+            </Link>
+            <span className="text-border hidden sm:inline">|</span>
+            <Link
+              href="/citizen-passport"
+              className="text-xs font-mono text-muted-foreground hover:text-foreground hidden sm:inline transition-colors"
+            >
+              Passport
+            </Link>
+            <span className="text-border hidden sm:inline">|</span>
+            <Link
+              href="/settings"
+              className="text-xs font-mono text-muted-foreground hover:text-foreground hidden sm:inline transition-colors"
+            >
+              Settings
+            </Link>
+            <span className="text-border hidden sm:inline">|</span>
+            <Link
+              href="/home"
+              className="text-xs font-medium text-[#3368A0] dark:text-[#66A3BF] hover:underline flex items-center gap-1 transition-colors"
+            >
+              <span>Sanctuary</span>
               <ExternalLink className="h-3 w-3" />
             </Link>
           </div>

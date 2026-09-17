@@ -7,7 +7,6 @@ import {
   Calendar, 
   Clock, 
   ShieldCheck,
-  Sliders,
   BookOpen
 } from "lucide-react";
 import { CommonsSealVector, CommonsLogo } from "@/components/brand/logo";
@@ -81,6 +80,14 @@ export default async function LandingPage() {
               <span>My Diaries</span>
             </Link>
             <span className="text-border">|</span>
+            <Link href="/citizen-passport" className="hover:text-foreground text-muted-foreground transition-colors hidden md:inline">
+              Citizen Passport
+            </Link>
+            <span className="text-border hidden md:inline">|</span>
+            <Link href="/settings" className="hover:text-foreground text-muted-foreground transition-colors hidden md:inline">
+              Settings
+            </Link>
+            <span className="text-border hidden md:inline">|</span>
             <CitizenStatus />
           </div>
         </div>
@@ -331,6 +338,10 @@ export default async function LandingPage() {
           </div>
           <div className="flex items-center gap-4">
             <Link href="/my-diaries" className="hover:text-foreground">My Diaries</Link>
+            <span>•</span>
+            <Link href="/citizen-passport" className="hover:text-foreground">Citizen Passport</Link>
+            <span>•</span>
+            <Link href="/settings" className="hover:text-foreground">Settings</Link>
             <span>•</span>
             <Link href="/login" className="hover:text-foreground">Citizen Login</Link>
             <span>•</span>

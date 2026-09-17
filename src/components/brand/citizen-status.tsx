@@ -39,10 +39,14 @@ export function CitizenStatus({ compact = false }: CitizenStatusProps) {
     if (compact) {
       return (
         <div className="flex items-center gap-2 text-[11px] font-mono">
-          <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+          <Link
+            href="/citizen-passport"
+            className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium hover:underline cursor-pointer"
+            title="Open Citizen Passport"
+          >
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            {displayName}
-          </span>
+            <span>{displayName}</span>
+          </Link>
           <button
             onClick={() => signOut()}
             disabled={isSigningOut}
@@ -56,15 +60,20 @@ export function CitizenStatus({ compact = false }: CitizenStatusProps) {
     }
 
     return (
-      <div className="flex items-center gap-3 text-[11px] font-mono">
-        <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/60 border border-border/80 text-foreground">
-          <ShieldCheck className="h-3.5 w-3.5 text-[#3368A0] dark:text-[#66A3BF]" />
-          <span className="font-semibold uppercase tracking-wider">{displayName}</span>
-          <span className="text-muted-foreground font-normal">({currentUser.email})</span>
-        </div>
+      <div className="flex items-center gap-2 text-[11px] font-mono">
+        <Link
+          href="/citizen-passport"
+          className="flex items-center gap-1.5 px-2.5 py-1 bg-muted/60 hover:bg-[#3368A0]/10 border border-border/80 hover:border-[#3368A0]/60 text-foreground transition-all cursor-pointer group"
+          title="Open Citizen Passport & Clearance"
+        >
+          <ShieldCheck className="h-3.5 w-3.5 text-[#3368A0] dark:text-[#66A3BF] group-hover:scale-110 transition-transform" />
+          <span className="font-semibold uppercase tracking-wider group-hover:text-[#3368A0] transition-colors">{displayName}</span>
+          <span className="text-muted-foreground font-normal hidden sm:inline">({currentUser.email})</span>
+        </Link>
         <button
           onClick={() => signOut()}
           disabled={isSigningOut}
+          title="Sign out of Citizen Sanctuary"
           className="inline-flex items-center gap-1 px-2 py-1 text-muted-foreground hover:text-destructive border border-transparent hover:border-destructive/30 transition-all cursor-pointer uppercase tracking-wider"
         >
           {isSigningOut ? (
@@ -72,7 +81,7 @@ export function CitizenStatus({ compact = false }: CitizenStatusProps) {
           ) : (
             <LogOut className="h-3 w-3" />
           )}
-          <span>Exit</span>
+          <span className="hidden sm:inline">Exit</span>
         </button>
       </div>
     );
