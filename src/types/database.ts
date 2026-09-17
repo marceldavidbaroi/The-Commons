@@ -30,6 +30,42 @@ export interface UserDisplaySettings {
   view_mode: 'grid' | 'list' | 'board';
 }
 
+export interface CitizenStamp {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  category: 'chronicle' | 'ritual' | 'security' | 'provenance';
+  unlocked_at?: string;
+}
+
+export interface CitizenPassportMetadata {
+  residence?: string;
+  clearance_title?: string;
+  ritual_streak_days?: number;
+  unlocked_stamps?: string[];
+  [key: string]: Json | undefined;
+}
+
+export interface CitizenPassportMetrics {
+  user_id: string;
+  full_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  role: UserRole;
+  passport_number: string;
+  residence: string;
+  clearance_title: string;
+  ritual_streak_days: number;
+  unlocked_stamps: string[];
+  total_items: number;
+  pinned_items: number;
+  favorite_items: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Profile {
   id: string;
   email: string;
@@ -41,7 +77,7 @@ export interface Profile {
   sort_preferences: UserSortPreferences;
   email_preferences: UserEmailPreferences;
   display_settings: UserDisplaySettings;
-  metadata: Record<string, Json>;
+  metadata: CitizenPassportMetadata;
   created_at: string;
   updated_at: string;
 }
@@ -90,6 +126,20 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
+      get_citizen_passport_metrics: {
+        Args: Record<string, never>;
+        Returns: CitizenPassportMetrics;
+      };
+      update_citizen_passport: {
+        Args: {
+          p_full_name?: string | null;
+          p_username?: string | null;
+          p_bio?: string | null;
+          p_avatar_url?: string | null;
+          p_metadata?: Json | null;
+        };
+        Returns: Profile;
+      };
       get_sorted_user_items: {
         Args: {
           p_status?: string | null;

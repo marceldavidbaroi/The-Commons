@@ -1,5 +1,5 @@
 -- Table: public.profiles
--- Core user entity scoped per authenticated user with sorting & preferences
+-- Core user entity scoped per authenticated user with citizen passport metadata, sorting & preferences
 
 create table if not exists public.profiles (
   id uuid references auth.users(id) on delete cascade primary key,
@@ -35,11 +35,18 @@ create table if not exists public.profiles (
     'view_mode', 'grid'
   ),
 
-  metadata jsonb not null default '{}'::jsonb,
+  -- Citizen Passport & Sanctuary Metadata (stamps, titles, streaks, residence)
+  metadata jsonb not null default jsonb_build_object(
+    'residence', 'Archival Broadside',
+    'clearance_title', 'Level II Scribe',
+    'ritual_streak_days', 0,
+    'unlocked_stamps', jsonb_build_array('founding_scribe')
+  ),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 -- Comments
-comment on table public.profiles is 'Stores user profile information, sorting preferences, and configuration.';
+comment on table public.profiles is 'Stores user profile information, citizen passport credentials, sorting preferences, and sanctuary configuration.';
 comment on column public.profiles.sort_preferences is 'User-defined default sorting order, pinned items, and custom order arrays.';
+comment on column public.profiles.metadata is 'Stores citizen passport metadata, unlocked stamps, residence, and clearance credentials.';
