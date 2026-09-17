@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, use } from "react";
+import React, { useState, useMemo, useEffect, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -25,10 +25,24 @@ import {
   Clock,
   Quote,
   Flame,
+  Pencil,
+  X,
+  Loader2,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CommonsSealVector } from "@/components/brand/logo";
 import { useDiaryStore } from "@/stores/diary-store";
+import {
+  useDiariesOverview,
+  useDiaryEntries,
+  useDiaryStats,
+  useUpdateDiaryEntryMutation,
+  useCreateDiaryEntryMutation,
+  useUpdateDiaryMutation,
+  useDeleteDiaryMutation,
+  useDeleteDiaryEntryMutation,
+} from "@/hooks/queries/use-diaries";
 import { DiaryEntry, DiaryTheme, ENERGY_LEVELS, MOOD_LIST } from "@/types/diary";
 
 const WEATHER_LIST = [
@@ -124,35 +138,100 @@ export default function MyDiaryEntryDetailsPage({
   const router = useRouter();
   const { diaryId, entryId } = resolvedParams;
 
-  const diaries = useDiaryStore((s) => s.diaries);
-  const entries = useDiaryStore((s) => s.entries);
+  // 1. TanStack Query + Supabase Hooks
+  const { data: diaries = [] } = useDiariesOverview();
+  const { data: fetchedEntries = [] } = useDiaryEntries(diaryId);
+  const { data: statsData } = useDiaryStats(diaryId);
+  const updateEntryMutation = useUpdateDiaryEntryMutation();
+  const createEntryMutation = useCreateDiaryEntryMutation();
+  const updateDiaryMutation = useUpdateDiaryMutation();
+  const deleteDiaryMutation = useDeleteDiaryMutation();
+  const deleteEntryMutation = useDeleteDiaryEntryMutation();
+
+  // 2. Local Zustand Store
+  const storeEntries = useDiaryStore((s) => s.entries);
   const getDiaryById = useDiaryStore((s) => s.getDiaryById);
   const getEntryById = useDiaryStore((s) => s.getEntryById);
   const updateEntryStore = useDiaryStore((s) => s.updateEntry);
-  const createEntryStore = useDiaryStore((s) => s.createEntry);
   const toggleHeartStore = useDiaryStore((s) => s.toggleHeart);
   const searchQuery = useDiaryStore((s) => s.searchQuery);
   const setSearchQuery = useDiaryStore((s) => s.setSearchQuery);
 
+  const [mounted, setMounted] = useState(false);
   const [activeView, setActiveView] = useState<ViewMode>("entry");
   const [isSaved, setIsSaved] = useState(false);
   const [filterMood, setFilterMood] = useState<string>("all");
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Edit Diary Properties Modal State
+  const [isEditDiaryOpen, setIsEditDiaryOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editTheme, setEditTheme] = useState<DiaryTheme>("vintage");
+
   const currentDiary = useMemo(() => {
-    return getDiaryById(diaryId) || diaries[0];
-  }, [diaryId, getDiaryById, diaries]);
+    return diaries.find((d) => d.id === diaryId) || getDiaryById(diaryId) || diaries[0];
+  }, [diaryId, diaries, getDiaryById]);
+
+  const handleOpenEditDiaryModal = () => {
+    if (!currentDiary) return;
+    setEditName(currentDiary.name);
+    setEditDescription(currentDiary.description || "");
+    setEditTheme(currentDiary.theme || "vintage");
+    setIsEditDiaryOpen(true);
+  };
+
+  const handleSaveDiaryProperties = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentDiary || !editName.trim()) return;
+
+    try {
+      await updateDiaryMutation.mutateAsync({
+        diaryId: currentDiary.id,
+        updates: {
+          name: editName,
+          description: editDescription,
+          theme: editTheme,
+        },
+      });
+      setIsEditDiaryOpen(false);
+    } catch (err) {
+      console.error("Failed to update diary properties:", err);
+    }
+  };
+
+  const handleDeleteDiary = async () => {
+    if (!currentDiary) return;
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete the chronicle tome "${currentDiary.name}" and all of its pages? This action cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await deleteDiaryMutation.mutateAsync(currentDiary.id);
+      setIsEditDiaryOpen(false);
+      router.push("/my-diaries");
+    } catch (err) {
+      console.error("Failed to delete diary:", err);
+    }
+  };
 
   const diaryEntries = useMemo(() => {
-    if (!currentDiary) return entries;
-    return entries.filter((e) => e.diaryId === currentDiary.id);
-  }, [entries, currentDiary]);
+    if (!currentDiary) return fetchedEntries.length > 0 ? fetchedEntries : storeEntries;
+    const list = fetchedEntries.length > 0
+      ? fetchedEntries.filter((e) => e.diaryId === currentDiary.id)
+      : storeEntries.filter((e) => e.diaryId === currentDiary.id);
+    return list;
+  }, [fetchedEntries, storeEntries, currentDiary]);
 
   const currentEntry = useMemo(() => {
-    // Look for entry with matching id inside this diary
     const found = diaryEntries.find((e) => e.id === entryId || String(e.pageNumber) === entryId);
     if (found) return found;
-    return diaryEntries[0] || getEntryById(entryId) || entries[0];
-  }, [diaryEntries, entryId, getEntryById, entries]);
+    return diaryEntries[0] || getEntryById(entryId) || storeEntries[0];
+  }, [diaryEntries, entryId, getEntryById, storeEntries]);
 
   const currentDiaryIndex = useMemo(() => {
     if (!currentEntry) return 0;
@@ -170,15 +249,79 @@ export default function MyDiaryEntryDetailsPage({
     updateEntryStore(currentEntry.id, fields);
   };
 
-  const handleSave = () => {
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 1200);
+  const handleToggleHeart = () => {
+    if (!currentEntry) return;
+    const newHeartState = !currentEntry.isHearted;
+    toggleHeartStore(currentEntry.id);
+    updateEntryMutation.mutate({
+      entryId: currentEntry.id,
+      updates: { isHearted: newHeartState },
+    });
   };
 
-  const handleNewPage = () => {
-    const newEntry = createEntryStore(currentDiary?.id);
-    router.push(`/my-diaries/${currentDiary.id}/pages/${newEntry.id}`);
-    setActiveView("entry");
+  const handleSave = async () => {
+    if (!currentEntry) return;
+    try {
+      await updateEntryMutation.mutateAsync({
+        entryId: currentEntry.id,
+        updates: {
+          title: currentEntry.title,
+          description: currentEntry.description,
+          gratitude: currentEntry.gratitude,
+          energyLevel: currentEntry.energyLevel,
+          startTime: currentEntry.startTime,
+          endTime: currentEntry.endTime,
+          mood: currentEntry.mood,
+          weather: currentEntry.weather,
+          isHearted: currentEntry.isHearted,
+        },
+      });
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 1500);
+    } catch (err) {
+      console.error("Failed to save entry:", err);
+    }
+  };
+
+  const handleNewPage = async () => {
+    if (!currentDiary) return;
+    try {
+      const newEntry = await createEntryMutation.mutateAsync({
+        diaryId: currentDiary.id,
+      });
+      router.push(`/my-diaries/${currentDiary.id}/pages/${newEntry.id}`);
+      setActiveView("entry");
+    } catch (err) {
+      console.error("Failed to create new page:", err);
+    }
+  };
+
+  const handleDeletePage = async (targetEntryId?: string) => {
+    const idToDelete = targetEntryId || currentEntry?.id;
+    if (!idToDelete || !currentDiary) return;
+
+    const confirmed = window.confirm(
+      "Are you sure you wish to strike out and delete this diary leaf? This action cannot be undone."
+    );
+    if (!confirmed) return;
+
+    try {
+      await deleteEntryMutation.mutateAsync({
+        entryId: idToDelete,
+        diaryId: currentDiary.id,
+      });
+
+      if (idToDelete === currentEntry?.id) {
+        const remaining = diaryEntries.filter((e) => e.id !== idToDelete);
+        if (remaining.length > 0) {
+          router.push(`/my-diaries/${currentDiary.id}/pages/${remaining[0].id}`);
+        } else {
+          router.push("/my-diaries");
+        }
+      }
+    } catch (err) {
+      console.error("Failed to delete diary page:", err);
+    }
   };
 
   const calculateDuration = (start: string, end: string) => {
@@ -248,7 +391,7 @@ export default function MyDiaryEntryDetailsPage({
     };
   }, [diaryEntries]);
 
-  if (!currentEntry) {
+  if (!mounted || !currentEntry) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6 text-center font-serif">
         <div className="space-y-4">
@@ -315,12 +458,23 @@ export default function MyDiaryEntryDetailsPage({
               </Button>
             </Link>
 
-            <Link href="/my-diaries" className="flex items-center gap-2 hover:opacity-85 transition-opacity" title="Return to My Diaries">
-              <CommonsSealVector size={22} markOnly className="shrink-0 hover:rotate-6 transition-transform" />
-              <span className="text-xs font-serif font-bold tracking-wide truncate max-w-[140px] sm:max-w-[200px]">
-                {currentDiary?.name}
-              </span>
-            </Link>
+            <div className="flex items-center gap-1.5">
+              <Link href="/my-diaries" className="flex items-center gap-2 hover:opacity-85 transition-opacity" title="Return to My Diaries">
+                <CommonsSealVector size={22} markOnly className="shrink-0 hover:rotate-6 transition-transform" />
+                <span className="text-xs font-serif font-bold tracking-wide truncate max-w-[130px] sm:max-w-[180px]">
+                  {currentDiary?.name}
+                </span>
+              </Link>
+
+              <button
+                type="button"
+                onClick={handleOpenEditDiaryModal}
+                className="p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-current/60 hover:text-current cursor-pointer transition-colors"
+                title="Edit Diary Tome Properties"
+              >
+                <Pencil className="h-3 w-3" />
+              </button>
+            </div>
           </div>
 
           {/* Right: Actions Toolbar */}
@@ -419,12 +573,27 @@ export default function MyDiaryEntryDetailsPage({
               variant="outline"
               size="sm"
               onClick={handleNewPage}
-              className="h-6.5 px-2 text-xs font-serif rounded-full flex items-center gap-1 border-current/20 bg-background/50 shrink-0"
+              className="h-6.5 px-2 text-xs font-serif rounded-full flex items-center gap-1 border-current/20 bg-background/50 shrink-0 cursor-pointer"
               title="Turn to Fresh Blank Page"
             >
               <Plus className="h-3 w-3 text-[#8C3A27] dark:text-[#E59375]" />
               <span className="hidden md:inline">Fresh Page</span>
             </Button>
+
+            {/* Delete Active Page */}
+            {activeView === "entry" && currentEntry && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDeletePage()}
+                disabled={deleteEntryMutation.isPending}
+                className="h-6.5 px-2 text-xs font-serif rounded-full flex items-center gap-1 border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/10 shrink-0 cursor-pointer"
+                title="Delete This Page"
+              >
+                <Trash2 className="h-3 w-3" />
+                <span className="hidden md:inline">Delete Page</span>
+              </Button>
+            )}
 
             {/* Seal / Inked Save */}
             <Button
@@ -485,7 +654,7 @@ export default function MyDiaryEntryDetailsPage({
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => toggleHeartStore(currentEntry.id)}
+                        onClick={handleToggleHeart}
                         className="cursor-pointer p-0.5"
                       >
                         <PencilHeart filled={!!currentEntry.isHearted} theme="vintage" />
@@ -682,7 +851,7 @@ export default function MyDiaryEntryDetailsPage({
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => toggleHeartStore(currentEntry.id)}
+                        onClick={handleToggleHeart}
                         className="cursor-pointer p-0.5"
                       >
                         <PencilHeart filled={!!currentEntry.isHearted} theme="classic" />
@@ -868,7 +1037,7 @@ export default function MyDiaryEntryDetailsPage({
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => toggleHeartStore(currentEntry.id)}
+                      onClick={handleToggleHeart}
                       className="cursor-pointer p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                     >
                       <PencilHeart filled={!!currentEntry.isHearted} theme="modern" />
@@ -1141,8 +1310,21 @@ export default function MyDiaryEntryDetailsPage({
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-end gap-2 text-xs font-serif text-[#8C3A27] dark:text-[#E59375] font-bold shrink-0 pt-1 sm:pt-0">
-                          <span>Unroll Parchment ❧</span>
+                        <div className="flex items-center justify-end gap-2 shrink-0 pt-1 sm:pt-0">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeletePage(entry.id);
+                            }}
+                            className="p-1 text-[#5C4A3A] dark:text-[#94A8BA] hover:text-red-600 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                            title="Delete this leaf"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                          <span className="text-xs font-serif text-[#8C3A27] dark:text-[#E59375] font-bold">
+                            Unroll Parchment ❧
+                          </span>
                         </div>
                       </div>
                     );
@@ -1268,9 +1450,22 @@ export default function MyDiaryEntryDetailsPage({
                           </div>
                         </div>
 
-                        <span className="text-xs font-serif text-[#1E3A5F] dark:text-[#D4AF37] font-bold hover:underline shrink-0">
-                          Inspect Ledger Record →
-                        </span>
+                        <div className="flex items-center justify-end gap-2 shrink-0 pt-1 sm:pt-0">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeletePage(entry.id);
+                            }}
+                            className="p-1 text-muted-foreground hover:text-red-600 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                            title="Delete this ledger record"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                          <span className="text-xs font-serif text-[#1E3A5F] dark:text-[#D4AF37] font-bold hover:underline">
+                            Inspect Ledger Record →
+                          </span>
+                        </div>
                       </div>
                     );
                   })}
@@ -1392,10 +1587,23 @@ export default function MyDiaryEntryDetailsPage({
                           </div>
                         </div>
 
-                        <span className="font-sans text-xs font-semibold text-sky-500 group-hover:translate-x-1 transition-transform shrink-0 flex items-center gap-1">
-                          <span>Open</span>
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        </span>
+                        <div className="flex items-center justify-end gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeletePage(entry.id);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                            title="Delete entry"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                          <span className="font-sans text-xs font-semibold text-sky-500 group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                            <span>Open</span>
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </span>
+                        </div>
                       </div>
                     );
                   })}
@@ -1706,6 +1914,202 @@ export default function MyDiaryEntryDetailsPage({
         )}
 
       </main>
+
+      {/* ========================================================================= */}
+      {/* EDIT DIARY TOME PROPERTIES MODAL */}
+      {/* ========================================================================= */}
+      {isEditDiaryOpen && currentDiary && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in-0 duration-200">
+          <div className="relative w-full max-w-lg bg-card border border-border rounded-xl p-6 sm:p-7 shadow-2xl space-y-6">
+            
+            <div className="flex items-start justify-between border-b border-border/70 pb-3">
+              <div className="space-y-1">
+                <span className="kicker text-[#3368A0] dark:text-[#66A3BF]">
+                  § EDIT CHRONICLE PROPERTIES
+                </span>
+                <h2 className="font-serif text-2xl font-bold text-foreground">
+                  Edit Diary Properties
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsEditDiaryOpen(false)}
+                className="p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveDiaryProperties} className="space-y-5">
+              
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono uppercase text-muted-foreground font-semibold block">
+                  Diary Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Morning Inquiries, Architectural Codex..."
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#3368A0]"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono uppercase text-muted-foreground font-semibold block">
+                  Description
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Brief intention or purpose of this volume..."
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#3368A0] resize-none"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-mono uppercase text-muted-foreground font-semibold block">
+                  Select Visual Tome Theme *
+                </label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  
+                  {/* Option 1: Old Book */}
+                  <div
+                    onClick={() => setEditTheme("vintage")}
+                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all space-y-2 relative ${
+                      editTheme === "vintage"
+                        ? "border-[#8C3A27] bg-[#8C3A27]/5 dark:bg-[#8C3A27]/10"
+                        : "border-border hover:border-border/80 bg-muted/20"
+                    }`}
+                  >
+                    {editTheme === "vintage" && (
+                      <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#8C3A27] text-white flex items-center justify-center text-[10px]">
+                        <Check className="h-2.5 w-2.5" />
+                      </span>
+                    )}
+
+                    <div className="w-8 h-10 rounded bg-[#8C3A27] border border-[#4A180E] flex items-center justify-center text-[10px] text-amber-200 font-serif font-bold shadow-xs">
+                      📜
+                    </div>
+
+                    <div>
+                      <span className="font-serif text-sm font-bold text-foreground block">
+                        Old Book
+                      </span>
+                      <span className="text-[11px] text-muted-foreground leading-tight block">
+                        Aged deckled parchment, walnut cursive ink & red margins.
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Option 2: Classic Notebook */}
+                  <div
+                    onClick={() => setEditTheme("classic")}
+                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all space-y-2 relative ${
+                      editTheme === "classic"
+                        ? "border-[#1E3A5F] bg-[#1E3A5F]/5 dark:bg-[#1E3A5F]/10"
+                        : "border-border hover:border-border/80 bg-muted/20"
+                    }`}
+                  >
+                    {editTheme === "classic" && (
+                      <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#1E3A5F] text-white flex items-center justify-center text-[10px]">
+                        <Check className="h-2.5 w-2.5" />
+                      </span>
+                    )}
+
+                    <div className="w-8 h-10 rounded bg-[#1E3A5F] border border-[#0B1829] flex items-center justify-center text-[10px] text-amber-300 font-serif font-bold shadow-xs">
+                      ⚜
+                    </div>
+
+                    <div>
+                      <span className="font-serif text-sm font-bold text-foreground block">
+                        Classic Book
+                      </span>
+                      <span className="text-[11px] text-muted-foreground leading-tight block">
+                        Mid-century cloth, cream ivory paper & navy fountain ink.
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Option 3: Modern Book */}
+                  <div
+                    onClick={() => setEditTheme("modern")}
+                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all space-y-2 relative ${
+                      editTheme === "modern"
+                        ? "border-[#38BDF8] bg-[#38BDF8]/5 dark:bg-[#38BDF8]/10"
+                        : "border-border hover:border-border/80 bg-muted/20"
+                    }`}
+                  >
+                    {editTheme === "modern" && (
+                      <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#38BDF8] text-[#0A1420] flex items-center justify-center text-[10px] font-bold">
+                        <Check className="h-2.5 w-2.5" />
+                      </span>
+                    )}
+
+                    <div className="w-8 h-10 rounded bg-[#1E293B] border border-[#334155] flex items-center justify-center text-[10px] text-sky-400 font-sans font-bold shadow-xs">
+                      ⚡
+                    </div>
+
+                    <div>
+                      <span className="font-serif text-sm font-bold text-foreground block">
+                        Modern Book
+                      </span>
+                      <span className="text-[11px] text-muted-foreground leading-tight block">
+                        Matte minimalist studio canvas & sleek modern chips.
+                      </span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-border/70 flex items-center justify-between gap-3">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeleteDiary}
+                  disabled={deleteDiaryMutation.isPending}
+                  className="font-serif text-xs gap-1 cursor-pointer bg-red-600 hover:bg-red-700 text-white"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>Delete Tome</span>
+                </Button>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsEditDiaryOpen(false)}
+                    className="font-serif text-xs"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={updateDiaryMutation.isPending}
+                    className="bg-[#3368A0] hover:bg-[#254F7A] text-white font-serif text-xs font-bold px-4 cursor-pointer disabled:opacity-50"
+                  >
+                    {updateDiaryMutation.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    ) : (
+                      <Check className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    <span>{updateDiaryMutation.isPending ? "Saving..." : "Save Changes"}</span>
+                  </Button>
+                </div>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

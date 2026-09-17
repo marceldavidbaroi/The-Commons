@@ -178,6 +178,12 @@ Returns all user diaries enriched with runtime aggregates (`entries_count`, `hig
 ### 3. `public.reorder_diaries(p_diary_ids uuid[])`
 Batch updates the `sort_order` sequence of the user's diaries based on drag-and-drop or custom sorting.
 
+### 4. `public.create_diary_with_first_page(p_name text, p_description text, p_theme text, p_cover_color text)`
+Atomically creates a new diary tome container and initializes its very first leaf (page 1) in a **single database transaction / 1 single API call**, returning the combined payload and preventing redundant multi-step network calls.
+
+### 5. `public.create_diary_entry(p_diary_id uuid, ...)`
+Atomically computes the next sequential page number (`max(page_number) + 1`) and inserts a new diary entry in **1 single API call**.
+
 ---
 
 ## ⚡ Performance & Indexes

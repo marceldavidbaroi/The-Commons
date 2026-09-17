@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, use } from "react";
+import React, { useState, useMemo, useEffect, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -25,10 +25,19 @@ import {
   X,
   Plus,
   BookOpen,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CommonsSealVector } from "@/components/brand/logo";
 import { useDiaryStore } from "@/stores/diary-store";
+import {
+  useDiariesOverview,
+  useDiaryEntries,
+  useDiaryStats,
+  useUpdateDiaryEntryMutation,
+  useCreateDiaryEntryMutation,
+  useDeleteDiaryEntryMutation,
+} from "@/hooks/queries/use-diaries";
 import { DiaryEntry, DiaryTheme, ENERGY_LEVELS, MOOD_LIST } from "@/types/diary";
 
 const WEATHER_LIST = [
@@ -124,41 +133,55 @@ export default function SingleDiaryEntryPage({
   const router = useRouter();
   const targetId = resolvedParams.id;
 
-  const diaries = useDiaryStore((s) => s.diaries);
-  const entries = useDiaryStore((s) => s.entries);
+  // 1. TanStack Query + Supabase Hooks
+  const { data: diaries = [] } = useDiariesOverview();
+  const { data: allFetchedEntries = [] } = useDiaryEntries();
+  const updateEntryMutation = useUpdateDiaryEntryMutation();
+  const createEntryMutation = useCreateDiaryEntryMutation();
+  const deleteEntryMutation = useDeleteDiaryEntryMutation();
+
+  // 2. Local Zustand Store
+  const storeEntries = useDiaryStore((s) => s.entries);
   const getDiaryById = useDiaryStore((s) => s.getDiaryById);
   const getEntryById = useDiaryStore((s) => s.getEntryById);
   const updateEntryStore = useDiaryStore((s) => s.updateEntry);
-  const createEntryStore = useDiaryStore((s) => s.createEntry);
   const toggleHeartStore = useDiaryStore((s) => s.toggleHeart);
   const searchQuery = useDiaryStore((s) => s.searchQuery);
   const setSearchQuery = useDiaryStore((s) => s.setSearchQuery);
 
+  const [mounted, setMounted] = useState(false);
   const [activeView, setActiveView] = useState<ViewMode>("entry");
   const [isSaved, setIsSaved] = useState(false);
   const [filterMood, setFilterMood] = useState<string>("all");
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const combinedEntries = allFetchedEntries.length > 0 ? allFetchedEntries : storeEntries;
+
   // Locate current entry and its parent diary
   const currentEntry = useMemo(() => {
-    return getEntryById(targetId) || entries[0];
-  }, [targetId, getEntryById, entries]);
+    const found = combinedEntries.find((e) => e.id === targetId || String(e.pageNumber) === targetId);
+    if (found) return found;
+    return getEntryById(targetId) || combinedEntries[0];
+  }, [targetId, getEntryById, combinedEntries]);
 
   const currentDiary = useMemo(() => {
     if (currentEntry) {
-      const found = getDiaryById(currentEntry.diaryId);
+      const found = diaries.find((d) => d.id === currentEntry.diaryId) || getDiaryById(currentEntry.diaryId);
       if (found) return found;
     }
-    // Check if targetId is directly a diaryId
-    const directDiary = getDiaryById(targetId);
+    const directDiary = diaries.find((d) => d.id === targetId) || getDiaryById(targetId);
     if (directDiary) return directDiary;
     return diaries[0];
   }, [currentEntry, targetId, getDiaryById, diaries]);
 
   // Entries filtered to this specific diary
   const diaryEntries = useMemo(() => {
-    if (!currentDiary) return entries;
-    return entries.filter((e) => e.diaryId === currentDiary.id);
-  }, [entries, currentDiary]);
+    if (!currentDiary) return combinedEntries;
+    return combinedEntries.filter((e) => e.diaryId === currentDiary.id);
+  }, [combinedEntries, currentDiary]);
 
   const currentDiaryIndex = useMemo(() => {
     if (!currentEntry) return 0;
@@ -176,15 +199,79 @@ export default function SingleDiaryEntryPage({
     updateEntryStore(currentEntry.id, fields);
   };
 
-  const handleSave = () => {
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 1200);
+  const handleToggleHeart = () => {
+    if (!currentEntry) return;
+    const nextHeart = !currentEntry.isHearted;
+    toggleHeartStore(currentEntry.id);
+    updateEntryMutation.mutate({
+      entryId: currentEntry.id,
+      updates: { isHearted: nextHeart },
+    });
   };
 
-  const handleNewPage = () => {
-    const newEntry = createEntryStore(currentDiary?.id);
-    router.push(`/daily-diary/${newEntry.id}`);
-    setActiveView("entry");
+  const handleSave = async () => {
+    if (!currentEntry) return;
+    try {
+      await updateEntryMutation.mutateAsync({
+        entryId: currentEntry.id,
+        updates: {
+          title: currentEntry.title,
+          description: currentEntry.description,
+          gratitude: currentEntry.gratitude,
+          energyLevel: currentEntry.energyLevel,
+          startTime: currentEntry.startTime,
+          endTime: currentEntry.endTime,
+          mood: currentEntry.mood,
+          weather: currentEntry.weather,
+          isHearted: currentEntry.isHearted,
+        },
+      });
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 1500);
+    } catch (err) {
+      console.error("Failed to save entry:", err);
+    }
+  };
+
+  const handleNewPage = async () => {
+    if (!currentDiary) return;
+    try {
+      const newEntry = await createEntryMutation.mutateAsync({
+        diaryId: currentDiary.id,
+      });
+      router.push(`/daily-diary/${newEntry.id}`);
+      setActiveView("entry");
+    } catch (err) {
+      console.error("Failed to create new page:", err);
+    }
+  };
+
+  const handleDeletePage = async (targetEntryId?: string) => {
+    const idToDelete = targetEntryId || currentEntry?.id;
+    if (!idToDelete || !currentDiary) return;
+
+    const confirmed = window.confirm(
+      "Are you sure you wish to strike out and delete this diary leaf? This action cannot be undone."
+    );
+    if (!confirmed) return;
+
+    try {
+      await deleteEntryMutation.mutateAsync({
+        entryId: idToDelete,
+        diaryId: currentDiary.id,
+      });
+
+      if (idToDelete === currentEntry?.id) {
+        const remaining = diaryEntries.filter((e) => e.id !== idToDelete);
+        if (remaining.length > 0) {
+          router.push(`/daily-diary/${remaining[0].id}`);
+        } else {
+          router.push("/my-diaries");
+        }
+      }
+    } catch (err) {
+      console.error("Failed to delete diary page:", err);
+    }
   };
 
   const calculateDuration = (start: string, end: string) => {
@@ -254,7 +341,7 @@ export default function SingleDiaryEntryPage({
     };
   }, [diaryEntries]);
 
-  if (!currentEntry) {
+  if (!mounted || !currentEntry) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6 text-center font-serif">
         <div className="space-y-4">
@@ -427,12 +514,27 @@ export default function SingleDiaryEntryPage({
               variant="outline"
               size="sm"
               onClick={handleNewPage}
-              className="h-6.5 px-2 text-xs font-serif rounded-full flex items-center gap-1 border-current/20 bg-background/50 shrink-0"
+              className="h-6.5 px-2 text-xs font-serif rounded-full flex items-center gap-1 border-current/20 bg-background/50 shrink-0 cursor-pointer"
               title="Turn to Fresh Blank Page"
             >
               <Plus className="h-3 w-3 text-[#8C3A27] dark:text-[#E59375]" />
               <span className="hidden md:inline">Fresh Page</span>
             </Button>
+
+            {/* Delete Active Page */}
+            {activeView === "entry" && currentEntry && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDeletePage()}
+                disabled={deleteEntryMutation.isPending}
+                className="h-6.5 px-2 text-xs font-serif rounded-full flex items-center gap-1 border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/10 shrink-0 cursor-pointer"
+                title="Delete This Page"
+              >
+                <Trash2 className="h-3 w-3" />
+                <span className="hidden md:inline">Delete Page</span>
+              </Button>
+            )}
 
             {/* Seal / Inked Save */}
             <Button
@@ -496,7 +598,7 @@ export default function SingleDiaryEntryPage({
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => toggleHeartStore(currentEntry.id)}
+                        onClick={handleToggleHeart}
                         className="cursor-pointer p-0.5"
                       >
                         <PencilHeart filled={!!currentEntry.isHearted} theme="vintage" />
@@ -695,7 +797,7 @@ export default function SingleDiaryEntryPage({
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => toggleHeartStore(currentEntry.id)}
+                        onClick={handleToggleHeart}
                         className="cursor-pointer p-0.5"
                       >
                         <PencilHeart filled={!!currentEntry.isHearted} theme="classic" />
@@ -881,7 +983,7 @@ export default function SingleDiaryEntryPage({
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => toggleHeartStore(currentEntry.id)}
+                      onClick={handleToggleHeart}
                       className="cursor-pointer p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                     >
                       <PencilHeart filled={!!currentEntry.isHearted} theme="modern" />
@@ -1086,9 +1188,22 @@ export default function SingleDiaryEntryPage({
                       </p>
                     </div>
 
-                    <span className="text-xs font-serif text-[#3368A0] hover:underline">
-                      Turn to page ▸
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePage(entry.id);
+                        }}
+                        className="p-1 text-muted-foreground hover:text-red-500 rounded hover:bg-muted transition-colors cursor-pointer"
+                        title="Delete page"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                      <span className="text-xs font-serif text-[#3368A0] hover:underline">
+                        Turn to page ▸
+                      </span>
+                    </div>
                   </div>
                 );
               })}

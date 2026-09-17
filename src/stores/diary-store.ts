@@ -58,11 +58,11 @@ export interface DiaryStoreState {
 export const useDiaryStore = create<DiaryStoreState>()(
   persist(
     (set, get) => ({
-      diaries: INITIAL_DIARIES,
-      entries: INITIAL_ENTRIES,
-      activeDiaryId: "diary-vintage-1",
+      diaries: [],
+      entries: [],
+      activeDiaryId: "",
       currentPageIndex: 0,
-      currentEntryId: "142",
+      currentEntryId: null,
       searchQuery: "",
       activeFilter: "all",
       activeMoodFilter: "all",
@@ -91,7 +91,7 @@ export const useDiaryStore = create<DiaryStoreState>()(
         // Also create the first initial blank page for this new diary
         const highestPage = get().entries.reduce(
           (max, e) => Math.max(max, e.pageNumber || 0),
-          142
+          0
         );
         const newPageNum = highestPage + 1;
         const today = new Date();
@@ -201,7 +201,7 @@ export const useDiaryStore = create<DiaryStoreState>()(
         const targetDiaryId = diaryId || state.activeDiaryId || state.diaries[0]?.id || "diary-vintage-1";
         const highestPage = state.entries.reduce(
           (max, e) => Math.max(max, e.pageNumber || 0),
-          142
+          0
         );
         const newPageNum = highestPage + 1;
         const today = new Date();
@@ -299,7 +299,7 @@ export const useDiaryStore = create<DiaryStoreState>()(
         }),
     }),
     {
-      name: "the-commons-diary-store-v3",
+      name: "the-commons-diary-store-v4",
       partialize: (state) => ({
         diaries: state.diaries,
         entries: state.entries,

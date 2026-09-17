@@ -98,6 +98,57 @@ export interface UserItem {
   updated_at: string;
 }
 
+export interface DiaryRow {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  theme: 'vintage' | 'classic' | 'modern';
+  cover_color: string | null;
+  is_favorite: boolean;
+  is_archived: boolean;
+  sort_order: number;
+  metadata: Record<string, Json>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DiaryEntryRow {
+  id: string;
+  diary_id: string;
+  user_id: string;
+  page_number: number;
+  entry_date: string;
+  date_str: string;
+  day_of_week: string;
+  year_str: string;
+  title: string;
+  description: string;
+  gratitude: string[];
+  energy_level: number;
+  start_time: string;
+  end_time: string;
+  mood: string;
+  weather: string;
+  is_hearted: boolean;
+  tags: string[];
+  word_count: number;
+  metadata: Record<string, Json>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DiaryStats {
+  total_entries: number;
+  total_words: number;
+  average_energy: number;
+  hearted_entries: number;
+  current_streak: number;
+  longest_streak: number;
+  mood_breakdown: Record<string, number>;
+  tags: string[];
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -114,6 +165,41 @@ export interface Database {
         Relationships: [
           {
             foreignKeyName: "user_items_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      diaries: {
+        Row: DiaryRow;
+        Insert: Omit<DiaryRow, 'id' | 'created_at' | 'updated_at'> & { id?: string; created_at?: string; updated_at?: string };
+        Update: Partial<Omit<DiaryRow, 'id' | 'user_id' | 'created_at'>>;
+        Relationships: [
+          {
+            foreignKeyName: "diaries_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      diary_entries: {
+        Row: DiaryEntryRow;
+        Insert: Omit<DiaryEntryRow, 'id' | 'created_at' | 'updated_at'> & { id?: string; created_at?: string; updated_at?: string };
+        Update: Partial<Omit<DiaryEntryRow, 'id' | 'diary_id' | 'user_id' | 'created_at'>>;
+        Relationships: [
+          {
+            foreignKeyName: "diary_entries_diary_id_fkey";
+            columns: ["diary_id"];
+            isOneToOne: false;
+            referencedRelation: "diaries";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "diary_entries_user_id_fkey";
             columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
@@ -159,6 +245,47 @@ export interface Database {
           p_sort_by: string;
           p_sort_order?: string;
           p_filter_favorites_first?: boolean;
+        };
+        Returns: Json;
+      };
+      get_diary_stats: {
+        Args: {
+          p_diary_id?: string | null;
+        };
+        Returns: DiaryStats;
+      };
+      get_user_diaries_overview: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      reorder_diaries: {
+        Args: {
+          p_diary_ids: string[];
+        };
+        Returns: void;
+      };
+      create_diary_with_first_page: {
+        Args: {
+          p_name: string;
+          p_description?: string | null;
+          p_theme?: string | null;
+          p_cover_color?: string | null;
+        };
+        Returns: Json;
+      };
+      create_diary_entry: {
+        Args: {
+          p_diary_id: string;
+          p_title?: string;
+          p_description?: string;
+          p_gratitude?: string[];
+          p_energy_level?: number;
+          p_start_time?: string;
+          p_end_time?: string;
+          p_mood?: string;
+          p_weather?: string;
+          p_is_hearted?: boolean;
+          p_tags?: string[];
         };
         Returns: Json;
       };

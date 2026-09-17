@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -8,11 +8,25 @@ import {
   Plus,
   X,
   Check,
+  Flame,
+  BookOpen,
+  Sparkles,
+  Layers,
+  Loader2,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { CommonsSealVector } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { SanctuaryNav } from "@/components/navigation/sanctuary-nav";
 import { useDiaryStore } from "@/stores/diary-store";
+import {
+  useDiariesOverview,
+  useDiaryStats,
+  useCreateDiaryMutation,
+  useUpdateDiaryMutation,
+  useDeleteDiaryMutation,
+} from "@/hooks/queries/use-diaries";
 import { Diary, DiaryTheme } from "@/types/diary";
 
 export const THEME_CONFIGS: Record<
@@ -59,22 +73,34 @@ function DiaryBookCover({
   diary,
   entriesCount,
   onClick,
+  onEdit,
 }: {
   diary: Diary;
   entriesCount: number;
   onClick: () => void;
+  onEdit: (e: React.MouseEvent) => void;
 }) {
   const theme = diary.theme || "vintage";
-  const themeConfig = THEME_CONFIGS[theme];
+  const themeConfig = THEME_CONFIGS[theme] || THEME_CONFIGS.vintage;
 
   return (
     <div
       onClick={onClick}
-      className="group cursor-pointer flex flex-col items-center select-none"
+      className="group cursor-pointer flex flex-col items-center select-none relative"
     >
       {/* 3D Book Container */}
       <div className="relative w-full max-w-[240px] aspect-[3/4] transition-all duration-500 ease-out transform group-hover:-translate-y-3 group-hover:rotate-1">
         
+        {/* Quick Edit Action Button */}
+        <button
+          type="button"
+          onClick={onEdit}
+          title="Edit diary name, description, and theme"
+          className="absolute top-2 right-2 z-20 p-1.5 rounded-full bg-background/80 hover:bg-background text-foreground/80 hover:text-foreground border border-border shadow-md opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-xs"
+        >
+          <Pencil className="h-3.5 w-3.5 text-[#3368A0] dark:text-[#66A3BF]" />
+        </button>
+
         {/* Deep Book Drop Shadow */}
         <div className="absolute inset-x-4 bottom-0 h-6 bg-black/35 dark:bg-black/60 rounded-full blur-md transform translate-y-3 group-hover:translate-y-4 group-hover:blur-lg transition-all" />
 
@@ -262,7 +288,7 @@ function DiaryBookCover({
         </h3>
 
         <p className="font-serif italic text-xs text-muted-foreground line-clamp-1">
-          {diary.description}
+          {diary.description || "A private chronicle for thoughts and daily records."}
         </p>
       </div>
     </div>
@@ -321,20 +347,38 @@ export default function MyDiariesPage() {
   const router = useRouter();
   const [, startTransition] = useTransition();
 
-  const diaries = useDiaryStore((state) => state.diaries);
+  // 1. TanStack Query + Supabase Hooks
+  const { data: diaries = [], isLoading: isDiariesLoading } = useDiariesOverview();
+  const { data: stats } = useDiaryStats();
+  const createDiaryMutation = useCreateDiaryMutation();
+  const updateDiaryMutation = useUpdateDiaryMutation();
+  const deleteDiaryMutation = useDeleteDiaryMutation();
+
+  // 2. Zustand Store Sync
   const entries = useDiaryStore((state) => state.entries);
-  const createDiary = useDiaryStore((state) => state.createDiary);
   const setActiveDiaryId = useDiaryStore((state) => state.setActiveDiaryId);
 
-  // Modal State for Creating a Diary
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // 3. Modal State for Creating a Diary
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedTheme, setSelectedTheme] = useState<DiaryTheme>("vintage");
 
+  // 4. Modal State for Editing a Diary
+  const [editingDiary, setEditingDiary] = useState<Diary | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editTheme, setEditTheme] = useState<DiaryTheme>("vintage");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const handleOpenDiary = (diaryId: string) => {
     setActiveDiaryId(diaryId);
-    // Find the latest entry for this diary
+    // Find the latest entry for this diary from store
     const diaryEntries = entries.filter((e) => e.diaryId === diaryId);
     const targetEntry = diaryEntries[0] || null;
 
@@ -347,31 +391,78 @@ export default function MyDiariesPage() {
     });
   };
 
-  const handleCreateDiarySubmit = (e: React.FormEvent) => {
+  const handleOpenEditModal = (e: React.MouseEvent, diary: Diary) => {
+    e.stopPropagation();
+    setEditingDiary(diary);
+    setEditName(diary.name);
+    setEditDescription(diary.description || "");
+    setEditTheme(diary.theme || "vintage");
+  };
+
+  const handleCreateDiarySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    const newDiary = createDiary({
-      name,
-      description,
-      theme: selectedTheme,
-    });
+    try {
+      const created = await createDiaryMutation.mutateAsync({
+        name,
+        description,
+        theme: selectedTheme,
+      });
 
-    setIsModalOpen(false);
-    setName("");
-    setDescription("");
-    setSelectedTheme("vintage");
+      setIsCreateModalOpen(false);
+      setName("");
+      setDescription("");
+      setSelectedTheme("vintage");
 
-    const newDiaryEntries = useDiaryStore.getState().entries.filter((e) => e.diaryId === newDiary.id);
-    const firstEntry = newDiaryEntries[0];
+      const newDiaryEntries = useDiaryStore.getState().entries.filter((e) => e.diaryId === created.id);
+      const firstEntry = newDiaryEntries[0];
 
-    startTransition(() => {
-      if (firstEntry) {
-        router.push(`/my-diaries/${newDiary.id}/pages/${firstEntry.id}`);
-      } else {
-        router.push(`/my-diaries/${newDiary.id}`);
-      }
-    });
+      startTransition(() => {
+        if (firstEntry) {
+          router.push(`/my-diaries/${created.id}/pages/${firstEntry.id}`);
+        } else {
+          router.push(`/my-diaries/${created.id}`);
+        }
+      });
+    } catch (err) {
+      console.error("Failed to create diary tome:", err);
+    }
+  };
+
+  const handleUpdateDiarySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingDiary || !editName.trim()) return;
+
+    try {
+      await updateDiaryMutation.mutateAsync({
+        diaryId: editingDiary.id,
+        updates: {
+          name: editName,
+          description: editDescription,
+          theme: editTheme,
+        },
+      });
+
+      setEditingDiary(null);
+    } catch (err) {
+      console.error("Failed to update diary tome:", err);
+    }
+  };
+
+  const handleDeleteDiary = async () => {
+    if (!editingDiary) return;
+    const confirmDelete = window.confirm(
+      `Are you sure you wish to archive and delete "${editingDiary.name}" and all its pages?`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      await deleteDiaryMutation.mutateAsync(editingDiary.id);
+      setEditingDiary(null);
+    } catch (err) {
+      console.error("Failed to delete diary tome:", err);
+    }
   };
 
   return (
@@ -391,34 +482,76 @@ export default function MyDiariesPage() {
         </h1>
 
         <p className="font-serif italic text-base text-muted-foreground mt-2 max-w-lg mx-auto">
-          Select a book volume to open your journal, or bind a new volume in your chosen theme.
+          Select a book volume to open your journal, edit volume properties, or bind a new volume.
         </p>
+
+        {/* 3. SANCTUARY QUICK STATS PILL ROW */}
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-xs font-mono">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/40 border border-border">
+            <BookOpen className="h-3.5 w-3.5 text-[#3368A0] dark:text-[#66A3BF]" />
+            <span className="text-muted-foreground">Volumes:</span>
+            <span className="font-bold text-foreground">{diaries.length}</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/40 border border-border">
+            <Layers className="h-3.5 w-3.5 text-[#8C3A27] dark:text-[#E59375]" />
+            <span className="text-muted-foreground">Pages:</span>
+            <span className="font-bold text-foreground">
+              {stats?.total_entries ?? entries.length}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/40 border border-border">
+            <Flame className="h-3.5 w-3.5 text-amber-500" />
+            <span className="text-muted-foreground">Streak:</span>
+            <span className="font-bold text-foreground">
+              {stats?.current_streak ?? 0} {stats?.current_streak === 1 ? "day" : "days"}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/40 border border-border">
+            <Sparkles className="h-3.5 w-3.5 text-emerald-500" />
+            <span className="text-muted-foreground">Avg Vitality:</span>
+            <span className="font-bold text-foreground">
+              {stats?.average_energy ? `${stats.average_energy} / 5` : "3.5 / 5"}
+            </span>
+          </div>
+        </div>
       </section>
 
-      {/* 3. SIMPLE BOOKS GALLERY */}
+      {/* 4. BOOKS GALLERY */}
       <main className="max-w-6xl w-full mx-auto px-4 sm:px-8 py-8 flex-1">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 sm:gap-10 justify-items-center">
-          
-          {/* List of Created Diaries */}
-          {diaries.map((diary) => {
-            const diaryEntries = entries.filter((e) => e.diaryId === diary.id);
-            return (
-              <DiaryBookCover
-                key={diary.id}
-                diary={diary}
-                entriesCount={diaryEntries.length}
-                onClick={() => handleOpenDiary(diary.id)}
-              />
-            );
-          })}
+        {isDiariesLoading && diaries.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-3">
+            <Loader2 className="h-8 w-8 animate-spin text-[#3368A0]" />
+            <span className="font-mono text-xs">Accessing manuscript archive...</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 sm:gap-10 justify-items-center">
+            
+            {/* List of Created Diaries */}
+            {diaries.map((diary) => {
+              const diaryEntries = entries.filter((e) => e.diaryId === diary.id);
+              const count = diary.entriesCount ?? diaryEntries.length;
+              return (
+                <DiaryBookCover
+                  key={diary.id}
+                  diary={diary}
+                  entriesCount={count}
+                  onClick={() => handleOpenDiary(diary.id)}
+                  onEdit={(e) => handleOpenEditModal(e, diary)}
+                />
+              );
+            })}
 
-          {/* New Diary Slot */}
-          <CreateDiarySlot onClick={() => setIsModalOpen(true)} />
+            {/* New Diary Slot */}
+            <CreateDiarySlot onClick={() => setIsCreateModalOpen(true)} />
 
-        </div>
+          </div>
+        )}
       </main>
 
-      {/* 4. SIMPLE FOOTER */}
+      {/* 5. EDITORIAL FOOTER */}
       <footer className="border-t border-border/80 bg-muted/20 py-6 px-4 sm:px-6 mt-auto">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-muted-foreground">
           <div className="flex items-center gap-2">
@@ -426,16 +559,20 @@ export default function MyDiariesPage() {
             <span>The Commons © 2026. All chronicles preserved.</span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span>{diaries.length} Diaries in Library</span>
+          <div className="flex items-center gap-4">
+            <Link href="/home" className="hover:text-foreground">Sanctuary</Link>
+            <span>•</span>
+            <Link href="/daily-diary" className="hover:text-foreground">Today&apos;s Entry</Link>
+            <span>•</span>
+            <Link href="/citizen-passport" className="hover:text-foreground">Passport</Link>
           </div>
         </div>
       </footer>
 
       {/* ========================================================================= */}
-      {/* 5. CREATE DIARY MODAL (NAME, DESCRIPTION, 3 THEMES) */}
+      {/* 6. CREATE DIARY MODAL (NAME, DESCRIPTION, 3 THEMES) */}
       {/* ========================================================================= */}
-      {isModalOpen && (
+      {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in-0 duration-200">
           <div className="relative w-full max-w-lg bg-card border border-border rounded-xl p-6 sm:p-7 shadow-2xl space-y-6">
             
@@ -451,7 +588,7 @@ export default function MyDiariesPage() {
 
               <button
                 type="button"
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => setIsCreateModalOpen(false)}
                 className="p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
               >
                 <X className="h-5 w-5" />
@@ -588,17 +725,22 @@ export default function MyDiariesPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => setIsCreateModalOpen(false)}
                   className="font-serif text-xs"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-[#3368A0] hover:bg-[#254F7A] text-white font-serif text-xs font-bold px-4 cursor-pointer"
+                  disabled={createDiaryMutation.isPending}
+                  className="bg-[#3368A0] hover:bg-[#254F7A] text-white font-serif text-xs font-bold px-4 cursor-pointer disabled:opacity-50"
                 >
-                  <Feather className="h-3.5 w-3.5 mr-1.5" />
-                  <span>Bind & Inscribe Diary</span>
+                  {createDiaryMutation.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  ) : (
+                    <Feather className="h-3.5 w-3.5 mr-1.5" />
+                  )}
+                  <span>{createDiaryMutation.isPending ? "Binding Tome..." : "Bind & Inscribe Diary"}</span>
                 </Button>
               </div>
 
@@ -608,21 +750,200 @@ export default function MyDiariesPage() {
         </div>
       )}
 
-      {/* Editorial Footer */}
-      <footer className="border-t-2 border-border mt-auto bg-muted/30 py-6 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground font-mono">
-          <div>
-            <span className="font-bold text-foreground">THE COMMONS</span> — Chronicles & Private Diaries Ledger.
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/home" className="hover:text-foreground">Overview</Link>
-            <span>•</span>
-            <Link href="/citizen-passport" className="hover:text-foreground">Citizen Passport</Link>
-            <span>•</span>
-            <Link href="/settings" className="hover:text-foreground">Settings</Link>
+      {/* ========================================================================= */}
+      {/* 7. EDIT DIARY MODAL (NAME, DESCRIPTION, THEME, DELETE) */}
+      {/* ========================================================================= */}
+      {editingDiary && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in-0 duration-200">
+          <div className="relative w-full max-w-lg bg-card border border-border rounded-xl p-6 sm:p-7 shadow-2xl space-y-6">
+            
+            <div className="flex items-start justify-between border-b border-border/70 pb-3">
+              <div className="space-y-1">
+                <span className="kicker text-[#3368A0] dark:text-[#66A3BF]">
+                  § EDIT CHRONICLE PROPERTIES
+                </span>
+                <h2 className="font-serif text-2xl font-bold text-foreground">
+                  Edit Diary Tome
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setEditingDiary(null)}
+                className="p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateDiarySubmit} className="space-y-5">
+              
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono uppercase text-muted-foreground font-semibold block">
+                  Diary Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Morning Inquiries, Architectural Codex..."
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#3368A0]"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono uppercase text-muted-foreground font-semibold block">
+                  Description
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Brief intention or purpose of this volume..."
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#3368A0] resize-none"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-mono uppercase text-muted-foreground font-semibold block">
+                  Select Visual Tome Theme *
+                </label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  
+                  {/* Option 1: Old Book */}
+                  <div
+                    onClick={() => setEditTheme("vintage")}
+                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all space-y-2 relative ${
+                      editTheme === "vintage"
+                        ? "border-[#8C3A27] bg-[#8C3A27]/5 dark:bg-[#8C3A27]/10"
+                        : "border-border hover:border-border/80 bg-muted/20"
+                    }`}
+                  >
+                    {editTheme === "vintage" && (
+                      <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#8C3A27] text-white flex items-center justify-center text-[10px]">
+                        <Check className="h-2.5 w-2.5" />
+                      </span>
+                    )}
+
+                    <div className="w-8 h-10 rounded bg-[#8C3A27] border border-[#4A180E] flex items-center justify-center text-[10px] text-amber-200 font-serif font-bold shadow-xs">
+                      📜
+                    </div>
+
+                    <div>
+                      <span className="font-serif text-sm font-bold text-foreground block">
+                        Old Book
+                      </span>
+                      <span className="text-[11px] text-muted-foreground leading-tight block">
+                        Aged deckled parchment, walnut cursive ink & red margins.
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Option 2: Classic Notebook */}
+                  <div
+                    onClick={() => setEditTheme("classic")}
+                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all space-y-2 relative ${
+                      editTheme === "classic"
+                        ? "border-[#1E3A5F] bg-[#1E3A5F]/5 dark:bg-[#1E3A5F]/10"
+                        : "border-border hover:border-border/80 bg-muted/20"
+                    }`}
+                  >
+                    {editTheme === "classic" && (
+                      <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#1E3A5F] text-white flex items-center justify-center text-[10px]">
+                        <Check className="h-2.5 w-2.5" />
+                      </span>
+                    )}
+
+                    <div className="w-8 h-10 rounded bg-[#1E3A5F] border border-[#0B1829] flex items-center justify-center text-[10px] text-amber-300 font-serif font-bold shadow-xs">
+                      ⚜
+                    </div>
+
+                    <div>
+                      <span className="font-serif text-sm font-bold text-foreground block">
+                        Classic Book
+                      </span>
+                      <span className="text-[11px] text-muted-foreground leading-tight block">
+                        Mid-century cloth, cream ivory paper & navy fountain ink.
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Option 3: Modern Book */}
+                  <div
+                    onClick={() => setEditTheme("modern")}
+                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all space-y-2 relative ${
+                      editTheme === "modern"
+                        ? "border-[#38BDF8] bg-[#38BDF8]/5 dark:bg-[#38BDF8]/10"
+                        : "border-border hover:border-border/80 bg-muted/20"
+                    }`}
+                  >
+                    {editTheme === "modern" && (
+                      <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#38BDF8] text-[#0A1420] flex items-center justify-center text-[10px] font-bold">
+                        <Check className="h-2.5 w-2.5" />
+                      </span>
+                    )}
+
+                    <div className="w-8 h-10 rounded bg-[#1E293B] border border-[#334155] flex items-center justify-center text-[10px] text-sky-400 font-sans font-bold shadow-xs">
+                      ⚡
+                    </div>
+
+                    <div>
+                      <span className="font-serif text-sm font-bold text-foreground block">
+                        Modern Book
+                      </span>
+                      <span className="text-[11px] text-muted-foreground leading-tight block">
+                        Matte minimalist studio canvas & sleek modern chips.
+                      </span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-border/70 flex items-center justify-between gap-3">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeleteDiary}
+                  disabled={deleteDiaryMutation.isPending}
+                  className="font-serif text-xs gap-1 cursor-pointer bg-red-600 hover:bg-red-700 text-white"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>Delete Tome</span>
+                </Button>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setEditingDiary(null)}
+                    className="font-serif text-xs"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={updateDiaryMutation.isPending}
+                    className="bg-[#3368A0] hover:bg-[#254F7A] text-white font-serif text-xs font-bold px-4 cursor-pointer disabled:opacity-50"
+                  >
+                    {updateDiaryMutation.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    ) : (
+                      <Check className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    <span>{updateDiaryMutation.isPending ? "Saving Changes..." : "Save Changes"}</span>
+                  </Button>
+                </div>
+              </div>
+
+            </form>
+
           </div>
         </div>
-      </footer>
+      )}
 
     </div>
   );
