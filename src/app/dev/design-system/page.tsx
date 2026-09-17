@@ -260,6 +260,13 @@ export default function DesignSystemPage() {
             </Link>
             <span className="text-border hidden sm:inline">|</span>
             <Link
+              href="/dev/document"
+              className="text-xs font-mono text-[#3368A0] dark:text-[#66A3BF] font-semibold hover:underline hidden sm:inline transition-colors"
+            >
+              Docs Codex
+            </Link>
+            <span className="text-border hidden sm:inline">|</span>
+            <Link
               href="/settings"
               className="text-xs font-mono text-muted-foreground hover:text-foreground hidden sm:inline transition-colors"
             >

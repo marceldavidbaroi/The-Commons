@@ -19,7 +19,15 @@ supabase/
 ---
 
 ## Conventions & Rules
-1. **User Scoping & Isolation**: Every personal user entity MUST link to `public.profiles(id)` or `auth.users(id)` and implement RLS policies checking `auth.uid()`.
+
+> [!IMPORTANT]
+> ### 1. Strict Authenticated User Isolation (Zero Cross-Tenant Leakage)
+> **Every single table query, RPC procedure, and Server Action MUST fetch data strictly for the authenticated user only.**
+> - Every application table storing member data MUST have a `user_id uuid not null references auth.users(id) on delete cascade` (or `public.profiles(id)`).
+> - Every table MUST enable Row Level Security (`alter table public.[table] enable row level security;`).
+> - Every select, insert, update, and delete policy MUST enforce `using (auth.uid() = user_id)`.
+> - Never accept arbitrary `user_id` from client payloads without validating against the server session `auth.uid()`.
+
 2. **Timestamps**: Every table must include `created_at timestamptz not null default now()` and `updated_at timestamptz not null default now()`, using the `handle_updated_at` trigger.
 3. **JSONB Indexing**: Columns storing structured preferences (`email_preferences`, `sort_preferences`) should use `gin` indexes for efficient JSON queries.
 4. **RPC Function Security**:
