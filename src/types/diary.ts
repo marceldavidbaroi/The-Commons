@@ -2,10 +2,17 @@ export type DiaryTheme = "vintage" | "classic" | "modern";
 
 export interface Diary {
   id: string;
+  userId?: string;
   name: string;
   description: string;
   theme: DiaryTheme;
   coverColor?: string;
+  isFavorite?: boolean;
+  isArchived?: boolean;
+  sortOrder?: number;
+  entriesCount?: number;
+  highestPageNumber?: number;
+  latestEntryDate?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -13,7 +20,9 @@ export interface Diary {
 export interface DiaryEntry {
   id: string;
   diaryId: string;
+  userId?: string;
   pageNumber: number;
+  entryDate?: string;
   dateStr: string;
   dayOfWeek: string;
   yearStr: string;
@@ -27,6 +36,7 @@ export interface DiaryEntry {
   weather: string;
   isHearted: boolean;
   tags?: string[];
+  wordCount?: number;
   createdAt: string;
   updatedAt?: string;
 }

@@ -23,6 +23,16 @@ create or replace trigger on_user_items_updated
   for each row
   execute function public.handle_updated_at();
 
+create or replace trigger on_diaries_updated
+  before update on public.diaries
+  for each row
+  execute function public.handle_updated_at();
+
+create or replace trigger on_diary_entries_updated
+  before update on public.diary_entries
+  for each row
+  execute function public.handle_updated_at();
+
 -- 2. New User Signup Hook
 create or replace function public.handle_new_user()
 returns trigger
