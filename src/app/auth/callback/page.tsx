@@ -29,8 +29,17 @@ function AuthCallbackHandler() {
         if (code) {
           setStatusMessage("Exchanging verification token...");
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) throw error;
-          activeSession = data.session;
+          if (error) {
+            // Check if session was already established or auto-exchanged
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (sessionData.session) {
+              activeSession = sessionData.session;
+            } else {
+              throw error;
+            }
+          } else {
+            activeSession = data.session;
+          }
         } else {
           setStatusMessage("Restoring active citizen session...");
           const { data, error } = await supabase.auth.getSession();

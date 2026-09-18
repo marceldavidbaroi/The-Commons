@@ -1,68 +1,92 @@
-# Architecture: State Management & Data Fetching
+# Architecture: Layered SPA & State Management
 
-This document outlines the state management architecture and conventions established in **The Commons**, integrating **TanStack Query (v5)** for server state synchronization and **Zustand (v5)** for reactive client-side store management.
+This document outlines the **Traditional 3-Tier Layered SPA Architecture** established in **The Commons**, ensuring strict separation of concerns, robust multi-device cloud synchronization, and testable domain logic.
 
 ---
 
-## 1. Architectural Philosophy
+## 1. Architectural Philosophy: The 3-Tier Layering
 
-We maintain a strict separation between **Server State** (data originating from PostgreSQL / Supabase) and **Client State** (ephemeral UI interactions, draft states, navigation indices, and device preferences):
+To prevent tight coupling, cache pollution, and dual-source-of-truth desynchronization across devices and browser sessions, the codebase is strictly layered:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      THE COMMONS UI                         │
+│                       1. UI / PAGE LAYER                    │
+│      (React Components, Broadsheet Layouts, Modals)         │
+│  - Declarative consumption via custom React Query hooks     │
+│  - Zero knowledge of Supabase SDK, SQL, RPC, or fetch logic  │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│              2. CACHE & ORCHESTRATION LAYER                 │
+│                 (TanStack Query v5 Hooks)                   │
+│  - Single source of truth for all remote server state       │
+│  - Structured query key factories for predictable sweeps   │
+│  - Background revalidation (`placeholderData`, `staleTime`) │
+│  - Optimistic UI updates & automatic error rollbacks        │
 └──────────────┬───────────────────────────────┬──────────────┘
                │                               │
-      Server State Requests           Client State Mutations
-               │                               │
                ▼                               ▼
-  ┌─────────────────────────┐     ┌─────────────────────────┐
-  │     TanStack Query      │     │      Zustand Stores     │
-  │ • User Profile & Session│     │ • Auth Store            │
-  │ • User Items & Ordering │     │ • Diary Store & Search  │
-  │ • Diary Overview & TOC  │     │ • UI Density & Reader   │
-  │ • Query Keys Factory    │     │ • Local Storage Persist │
-  │ • In-Place Updates      │     │                         │
-  └────────────┬────────────┘     └─────────────────────────┘
-               │
-      Supabase Postgres RPC & Tables
+┌─────────────────────────────┐ ┌─────────────────────────────┐
+│      3A. SERVICE LAYER      │ │      3B. UI CLIENT STORE    │
+│    (Pure TypeScript / SDK)  │ │      (Zustand v5 Stores)    │
+│ • `BaseService` abstraction │ │ • Ephemeral UI states       │
+│ • `DiaryService`            │ │ • Active search queries     │
+│ • `ProfileService`          │ │ • Drawer / Modal toggles    │
+│ • `UserItemsService`        │ │ • Reader mode preferences   │
+│ • RPC & SQL Table fallbacks │ │ (NO server data duplication)│
+│ • Auth & FK assertions      │ └─────────────────────────────┘
+└──────────────┬──────────────┘
                │
                ▼
-     ┌───────────────────┐
-     │  Supabase Client  │
-     └───────────────────┘
+┌─────────────────────────────┐
+│     SUPABASE POSTGRESQL     │
+│  (Tables, RPCs, RLS, Auth)  │
+└─────────────────────────────┘
 ```
 
 ---
 
-## 2. Server State: TanStack Query (v5)
+## 2. Layer 1: The Service Layer (`src/services/`)
 
-### Query Client Initialization
-The application wraps its root in [`src/providers/query-provider.tsx`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/providers/query-provider.tsx), configuring safe singleton behavior across SSR and browser environments:
-- **`staleTime`**: 1 minute (prevents redundant fetches on fast route transitions)
-- **`gcTime`**: 10 minutes
-- **`refetchOnWindowFocus`**: Disabled for consistent editorial reading experience
+The Service Layer consists of pure TypeScript classes containing **zero React dependencies**. It is testable in isolation and reusable across React components, Next.js Server Components, API routes, or CLI scripts.
+
+### `BaseService` ([`src/services/base.service.ts`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/services/base.service.ts))
+Provides base transport primitives:
+- `getSupabase()`: Accesses the initialized Supabase client singleton.
+- `getAuthenticatedUser(required?)`: Verifies active session token.
+- `ensureProfile(userId, email)`: Asserts foreign key validity in `public.profiles`.
+- `handleError(error, fallbackMessage)`: Formats structured `ServiceError` instances.
+
+### Domain Services
+- **`DiaryService`** ([`src/services/diary.service.ts`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/services/diary.service.ts)):
+  - `getDiariesOverview()`: Fetches tomes with entry counts (tries RPC, falls back to direct table queries).
+  - `getDiaryEntries(diaryId?)`: Fetches leaves ordered by page number.
+  - `getDiaryStats(diaryId?)`: Aggregates words, streaks, vitality, and mood chips.
+  - `createDiary(input)`: Atomic creation of tome + first page leaf.
+  - `updateDiary(id, updates)`, `deleteDiary(id)`
+  - `createDiaryEntry(input)`, `updateDiaryEntry(id, updates)`, `deleteDiaryEntry(id)`
+  - `reorderDiaries(ids)`, `toggleHeart(id, isHearted)`
+- **`ProfileService`** ([`src/services/profile.service.ts`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/services/profile.service.ts)):
+  - `getProfile(userId)`
+  - `updateProfile(userId, updates)`
+  - `getCitizenPassportMetrics(userId)`
+  - `updateCitizenPassport(input)`
+- **`UserItemsService`** ([`src/services/user-items.service.ts`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/services/user-items.service.ts)):
+  - `getUserItems(filters)`
+  - `reorderUserItems(itemIds)`
+  - `updateSortPreferences(preferences)`
+
+---
+
+## 3. Layer 2: Cache & Query Layer (`src/hooks/queries/`)
+
+TanStack Query (v5) is the **single source of truth** for remote entity state.
 
 ### Query Key Factories
-All queries define structured key factories to enable predictable invalidation:
+All hooks define centralized query key factories to make cache invalidation predictable:
 
 ```typescript
-// src/hooks/queries/use-auth.ts
-export const authKeys = {
-  all: ["auth"] as const,
-  session: ["auth", "session"] as const,
-  user: ["auth", "user"] as const,
-  profile: (userId?: string) => ["auth", "profile", userId] as const,
-};
-
-// src/hooks/queries/use-user-items.ts
-export const userItemKeys = {
-  all: ["user_items"] as const,
-  lists: () => [...userItemKeys.all, "list"] as const,
-  list: (filters: UserItemFilters) => [...userItemKeys.lists(), filters] as const,
-  detail: (id: string) => [...userItemKeys.all, "detail", id] as const,
-};
-
 // src/hooks/queries/use-diaries.ts
 export const diaryKeys = {
   all: ["diaries"] as const,
@@ -75,66 +99,30 @@ export const diaryKeys = {
 };
 ```
 
-### Key Query & Mutation Hooks
-| Hook | Type | Purpose |
-| :--- | :--- | :--- |
-| `useUserSession()` | Query | Fetches active Supabase user session, listens to `onAuthStateChange`, and syncs to `useAuthStore`. |
-| `useUserProfile(userId)` | Query | Fetches profile row (`public.profiles`) including sort preferences and role. |
-| `useGoogleSignInMutation()` | Mutation | Initiates Google OAuth clearance protocol with error reporting. |
-| `useSignOutMutation()` | Mutation | Signs out from Supabase, purges Query cache, and clears Zustand stores. |
-| `useUserItems(filters)` | Query | Executes database RPC `get_sorted_user_items` with fallback to table query. |
-| `useReorderUserItemsMutation()` | Mutation | Optimistically reorders items before committing to RPC `reorder_user_items`. |
-| `useUpdateSortPreferencesMutation()` | Mutation | Updates default sort order JSONB in profile and invalidates item queries. |
-| `useDiariesOverview()` | Query | Executes RPC `get_user_diaries_overview` returning tomes with joined entry counts. |
-| `useDiaryEntries(diaryId)` | Query | Fetches all pages for a tome sorted by `page_number DESC`. |
-| `useDiaryStats(diaryId)` | Query | Executes RPC `get_diary_stats` for global or tome-specific analytics. |
-| `useCreateDiaryMutation()` | Mutation | Atomically creates new tome + page 1 via RPC `create_diary_with_first_page`. |
-| `useUpdateDiaryMutation()` | Mutation | Surgically updates tome metadata via table update with RLS. |
-| `useDeleteDiaryMutation()` | Mutation | Deletes diary and cascades entries via table delete. |
-| `useReorderDiariesMutation()` | Mutation | Persists custom diary ordering via RPC `reorder_diaries`. |
+### Multi-Device Hydration Pattern
+To ensure immediate rendering without masking cloud updates:
+1. **`placeholderData`** (rather than `initialData`) provides instantaneous UI painting from local storage.
+2. Background fetch executes immediately, revalidating and refreshing the cache with PostgreSQL authority.
+3. Mutations update cache in-place (`queryClient.setQueryData`) and trigger surgical cache sweeps (`queryClient.invalidateQueries`).
 
 ---
 
-## 3. Client State: Zustand Stores (v5)
+## 4. Layer 3: Client State Layer (Zustand v5)
 
 Located in [`src/stores/`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/stores):
 
-### 1. `useAuthStore` ([`src/stores/auth-store.ts`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/stores/auth-store.ts))
-Manages active authentication status, cached profile metadata, clearance loading flags, and error dispatch notices.
+- **`useDiaryStore`**: Manages search query strings, active filter tabs (`all` | `favorites` | `archived`), and selected page index.
+- **`useAuthStore`**: Manages active auth session flags and clearance status.
+- **`useUIStore`**: Manages editorial theme, typography scale, and reader density.
 
-```typescript
-const { user, isAuthenticated, isLoading } = useAuthStore();
-```
-
-### 2. `useDiaryStore` ([`src/stores/diary-store.ts`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/stores/diary-store.ts))
-Manages Daily Diary view state, search query, active tome/page index, and favorite heart overrides with local storage persistence:
-
-```typescript
-const searchQuery = useDiaryStore((s) => s.searchQuery);
-const setSearchQuery = useDiaryStore((s) => s.setSearchQuery);
-const toggleHeart = useDiaryStore((s) => s.toggleHeart);
-```
-
-### 3. `useUIStore` ([`src/stores/ui-store.ts`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/stores/ui-store.ts))
-Handles reading mode toggles, font scaling, and editorial broadsheet density preferences.
+> [!IMPORTANT]
+> **No Duplicate Server Data in Zustand**: Server entities (diaries, entries, profiles) are managed by TanStack Query. Zustand stores only hold ephemeral client-side UI state.
 
 ---
 
-## 4. Cross-Component Integration
+## 5. Development Guidelines & Best Practices
 
-### Citizen Clearance Indicator ([`src/components/brand/citizen-status.tsx`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/components/brand/citizen-status.tsx))
-A reusable micro-masthead component that reactively displays:
-- **Loading State**: Animated clearance verification pulse.
-- **Signed In**: Citizen name, email stamp, PostgreSQL RLS badge, and one-click exit.
-- **Guest / Unauthenticated**: "Enter Sanctuary" broadside portal link.
-
-### Login Flow Integration ([`src/app/login/page.tsx`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/app/login/page.tsx))
-Refactored to trigger `useGoogleSignInMutation()` and display reactive error dispatches managed through `useAuthStore`.
-
----
-
-## 5. Development Guidelines
-
-1. **Never duplicate server data in Zustand**: Fetch server entities using TanStack Query hooks; use Zustand only for transient client state or optimistic overrides.
-2. **Always use atomic selectors**: Extract specific properties `useDiaryStore((s) => s.searchQuery)` to avoid unnecessary component re-renders.
-3. **Always invalidate or surgically update related queries upon mutation**: Use query key factories (`queryClient.invalidateQueries({ queryKey: diaryKeys.overview() })` or `queryClient.setQueryData`) inside `onSuccess` or `onSettled` handlers.
+1. **Always Call Services in Query/Mutation Functions**: Never write raw `supabase.from()` or `supabase.rpc()` calls directly inside React components or hooks. Route them through the domain `Service`.
+2. **Never Swallow Errors in Mutations**: Allow errors to bubble up so that TanStack Query and UI error boundaries can notify the user and roll back optimistic updates.
+3. **Use Atomic Selectors in Zustand**: Extract specific state slices (e.g. `useDiaryStore((s) => s.searchQuery)`) to prevent unnecessary component re-renders.
+4. **Invalidate Related Query Keys on Mutation Success**: Always pair mutations with targeted invalidations (e.g. `queryClient.invalidateQueries({ queryKey: diaryKeys.overview() })`).

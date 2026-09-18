@@ -33,8 +33,8 @@ import {
   useCitizenPassportMetrics,
   useUpdateCitizenPassportMutation,
 } from "@/hooks/queries/use-profile";
+import { useDiariesOverview, useDiaryEntries } from "@/hooks/queries/use-diaries";
 import { useAuthStore } from "@/stores/auth-store";
-import { useDiaryStore } from "@/stores/diary-store";
 
 export default function CitizenPassportPage() {
   const { data: user } = useUserSession();
@@ -52,9 +52,9 @@ export default function CitizenPassportPage() {
   // RPC Mutation for Sealing Credentials
   const { mutate: updatePassport, isPending: isUpdating } = useUpdateCitizenPassportMutation();
 
-  // Local Zustand Diary Store (Used as complementary realtime source)
-  const diaries = useDiaryStore((state) => state.diaries);
-  const entries = useDiaryStore((state) => state.entries);
+  // Diary and Entries data via React Query
+  const { data: diaries = [] } = useDiariesOverview();
+  const { data: entries = [] } = useDiaryEntries();
 
   // Profile Edit State
   const [isEditing, setIsEditing] = useState(false);
@@ -605,7 +605,7 @@ export default function CitizenPassportPage() {
 
       {/* 5. EDIT PASSPORT MODAL */}
       {isEditing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 animate-in fade-in duration-200">
           <div className="bg-background border-2 border-[#3368A0] max-w-lg w-full p-6 space-y-6 shadow-2xl relative animate-in zoom-in-95 duration-200">
             
             {/* Modal Header */}

@@ -216,3 +216,26 @@ To ensure seamless data flow between PostgreSQL (`snake_case`) and the TypeScrip
   }
   ```
 - **PostgreSQL RPC Response**: `void`
+
+---
+
+## 4. TypeScript Service Layer Interface (`DiaryService`)
+
+Programmatic access to all daily diary operations is encapsulated in [`src/services/diary.service.ts`](file:///Users/daviditc/Documents/personal_projects/The-Commons/src/services/diary.service.ts):
+
+```typescript
+export class DiaryService extends BaseService {
+  static async getDiariesOverview(): Promise<Diary[]>;
+  static async getDiaryEntries(diaryId?: string): Promise<DiaryEntry[]>;
+  static async getDiaryStats(diaryId?: string): Promise<DiaryStats>;
+  static async createDiary(input: CreateDiaryInput): Promise<Diary>;
+  static async updateDiary(diaryId: string, updates: UpdateDiaryInput): Promise<Diary>;
+  static async deleteDiary(diaryId: string): Promise<string>;
+  static async createDiaryEntry(input: CreateDiaryEntryInput): Promise<DiaryEntry>;
+  static async updateDiaryEntry(entryId: string, updates: Partial<DiaryEntry>): Promise<{ entryId: string; updates: Partial<DiaryEntry> }>;
+  static async deleteDiaryEntry(entryId: string, diaryId: string): Promise<{ entryId: string; diaryId: string }>;
+  static async reorderDiaries(diaryIds: string[]): Promise<string[]>;
+  static async toggleHeart(entryId: string, isHearted: boolean, diaryId?: string): Promise<{ entryId: string; isHearted: boolean; diaryId?: string }>;
+}
+```
+

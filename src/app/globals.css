@@ -394,15 +394,9 @@
 }
 
 .torn-sheet-shadow {
-  filter: 
-    drop-shadow(0px 18px 26px rgba(50, 32, 16, 0.28))
-    drop-shadow(0px 6px 12px rgba(50, 32, 16, 0.18))
-    drop-shadow(0px 2px 4px rgba(50, 32, 16, 0.12));
+  box-shadow: 0 12px 24px -6px rgba(50, 32, 16, 0.25);
 }
 
 .dark .torn-sheet-shadow {
-  filter: 
-    drop-shadow(0px 18px 30px rgba(0, 0, 0, 0.8)) 
-    drop-shadow(0px 6px 14px rgba(0, 0, 0, 0.5))
-    drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.4));
+  box-shadow: 0 14px 28px -6px rgba(0, 0, 0, 0.65);
 }

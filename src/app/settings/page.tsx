@@ -21,7 +21,6 @@ import { AuthGuard } from "@/components/auth/auth-guard";
 
 import { useUIStore } from "@/stores/ui-store";
 import { useAuthStore } from "@/stores/auth-store";
-import { useDiaryStore } from "@/stores/diary-store";
 import {
   useUserSession,
   useSignOutMutation,
@@ -30,7 +29,9 @@ import {
   useUserProfile,
   useUpdateProfileMutation,
 } from "@/hooks/queries/use-profile";
+import { useDiariesOverview } from "@/hooks/queries/use-diaries";
 import { useUpdateSortPreferencesMutation } from "@/hooks/queries/use-user-items";
+import { notify } from "@/lib/notify";
 import type { UserSortPreferences, UserEmailPreferences } from "@/types/database";
 
 export default function SettingsPage() {
@@ -54,8 +55,8 @@ export default function SettingsPage() {
   const readingMode = useUIStore((state) => state.readingMode);
   const setReadingMode = useUIStore((state) => state.setReadingMode);
 
-  // Zustand Diary state
-  const diaries = useDiaryStore((state) => state.diaries);
+  // React Query Diary state
+  const { data: diaries = [] } = useDiariesOverview();
 
   // Local Form States
   const [sortBy, setSortBy] = useState<UserSortPreferences["default_sort_by"]>(
@@ -78,33 +79,19 @@ export default function SettingsPage() {
     currentProfile?.email_preferences?.digest_frequency || "weekly"
   );
 
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
-  };
-
   // Save Curation & Sort Preferences
   const handleSaveSortPreferences = () => {
-    updateSortPref(
-      {
-        sortBy,
-        sortOrder,
-        filterFavoritesFirst,
-      },
-      {
-        onSuccess: () => {
-          showToast("Curation & sorting engine calibrated.");
-        },
-      }
-    );
+    updateSortPref({
+      default_sort_by: sortBy as any,
+      default_sort_order: sortOrder,
+      filter_favorites_first: filterFavoritesFirst,
+    });
   };
 
   // Save Email & Dispatch Preferences
   const handleSaveDispatchPreferences = () => {
     if (!currentUser?.id) {
-      showToast("Sanctuary dispatch preferences updated locally.");
+      notify.info("Local Preference Updated", "Sanctuary dispatch preferences updated locally.");
       return;
     }
 
@@ -116,17 +103,10 @@ export default function SettingsPage() {
       digest_frequency: digestFrequency,
     };
 
-    updateProfile(
-      {
-        id: currentUser.id,
-        email_preferences: updatedEmailPref,
-      },
-      {
-        onSuccess: () => {
-          showToast("Dispatch preferences sealed and updated.");
-        },
-      }
-    );
+    updateProfile({
+      id: currentUser.id,
+      email_preferences: updatedEmailPref,
+    });
   };
 
   // Export Personal Archive JSON
@@ -159,7 +139,7 @@ export default function SettingsPage() {
     downloadAnchor.click();
     downloadAnchor.remove();
 
-    showToast("Sanctuary ledger archive exported successfully.");
+    notify.success("Sanctuary Archive Exported", "Your complete ledger and profile data has been downloaded.");
   };
 
   // Reset Cache / Local Store
@@ -168,7 +148,7 @@ export default function SettingsPage() {
       setBroadsheetDensity("editorial");
       setFontSizeScale("md");
       setReadingMode(false);
-      showToast("Preferences reset to default broadside configuration.");
+      notify.info("Configuration Reset", "Preferences restored to default broadside configuration.");
     }
   };
 
@@ -233,23 +213,7 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* Toast Notification Banner */}
-      {toastMessage && (
-        <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 mb-4">
-          <div className="p-3 bg-[#3368A0]/15 border border-[#3368A0] text-[#3368A0] dark:text-[#66A3BF] flex items-center justify-between font-mono text-xs animate-in slide-in-from-top-2">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4" />
-              <span>{toastMessage}</span>
-            </div>
-            <button
-              onClick={() => setToastMessage(null)}
-              className="text-xs hover:underline cursor-pointer"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      )}
+
 
       {/* 3. MAIN SETTINGS GRID */}
       <main className="max-w-6xl w-full mx-auto px-4 sm:px-6 pb-16 flex-1 space-y-12">
@@ -287,7 +251,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={() => {
                         setBroadsheetDensity(d.id);
-                        showToast(`Density adjusted to ${d.label}.`);
+                        notify.info("Density Calibrated", `Broadsheet density adjusted to ${d.label}.`);
                       }}
                       className={`p-3 border text-left transition-all cursor-pointer ${
                         broadsheetDensity === d.id
@@ -321,7 +285,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={() => {
                         setFontSizeScale(f.id);
-                        showToast(`Typography scale set to ${f.scale}.`);
+                        notify.info("Typography Scaled", `Reading typography scale set to ${f.scale}.`);
                       }}
                       className={`p-3 border text-center transition-all cursor-pointer ${
                         fontSizeScale === f.id
@@ -350,7 +314,7 @@ export default function SettingsPage() {
                     type="button"
                     onClick={() => {
                       setReadingMode(!readingMode);
-                      showToast(`Pure reading mode ${!readingMode ? "engaged" : "disengaged"}.`);
+                      notify.info("Reading Canvas Toggled", `Pure reading mode ${!readingMode ? "engaged" : "disengaged"}.`);
                     }}
                     className={`px-3 py-1.5 border font-mono text-xs transition-colors cursor-pointer ${
                       readingMode

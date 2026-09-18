@@ -229,7 +229,7 @@ export default function DesignSystemPage() {
     <div className={`min-h-screen ${isDarkMode ? "dark bg-[#0F1722]" : "bg-[#FAF8F5]"} text-foreground transition-colors duration-300 font-sans`}>
       
       {/* Top Application Bar */}
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-background/80 border-b border-border px-6 py-3">
+      <header className="sticky top-0 z-50 bg-background border-b border-border px-6 py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <CommonsLogo variant="horizontal" size="sm" href="/" subtitle="DESIGN SYSTEM CODEX" showFolio />
@@ -446,12 +446,12 @@ export default function DesignSystemPage() {
                 <Card key={token.hex} className="overflow-hidden hover:shadow-md transition-all duration-200">
                   <div className={`h-36 ${token.bgClass} p-5 flex flex-col justify-between relative`}>
                     <div className="flex justify-between items-start">
-                      <span className={`text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-md backdrop-blur-md bg-black/20 ${token.textClass}`}>
+                      <span className={`text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-md bg-black/40 ${token.textClass}`}>
                         {token.role}
                       </span>
                       <button
                         onClick={() => copyToClipboard(token.hex)}
-                        className={`p-1.5 rounded-md backdrop-blur-md bg-black/20 hover:bg-black/30 transition-colors ${token.textClass}`}
+                        className={`p-1.5 rounded-md bg-black/40 hover:bg-black/60 transition-colors ${token.textClass}`}
                         title="Copy hex code"
                       >
                         {copiedHex === token.hex ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -719,12 +719,12 @@ export default function DesignSystemPage() {
                     >
                       <div className={`h-20 rounded-lg ${token.bgClass} p-3 flex flex-col justify-between`}>
                         <div className="flex justify-between items-start">
-                          <span className={`text-[9px] uppercase font-mono px-1.5 py-0.5 rounded backdrop-blur-md bg-black/20 ${token.textClass}`}>
+                          <span className={`text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-black/40 ${token.textClass}`}>
                             {token.role}
                           </span>
                           <button
                             onClick={() => copyToClipboard(token.hex)}
-                            className={`p-1 rounded backdrop-blur-md bg-black/20 hover:bg-black/30 transition-colors ${token.textClass}`}
+                            className={`p-1 rounded bg-black/40 hover:bg-black/60 transition-colors ${token.textClass}`}
                           >
                             {copiedHex === token.hex ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                           </button>

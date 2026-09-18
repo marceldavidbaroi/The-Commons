@@ -2,10 +2,11 @@
 
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
+import { ProfileService, UpdateCitizenPassportInput } from "@/services/profile.service";
+import { notify } from "@/lib/notify";
 import { authKeys } from "./use-auth";
-import type { Profile, CitizenPassportMetrics, Json } from "@/types/database";
+import type { Profile, CitizenPassportMetrics } from "@/types/database";
 
 export const profileKeys = {
   all: ["profile"] as const,
@@ -14,7 +15,7 @@ export const profileKeys = {
 };
 
 /**
- * Hook to retrieve User Profile and preferences from Supabase.
+ * Hook to retrieve User Profile from Supabase via ProfileService.
  */
 export function useUserProfile(userId?: string) {
   const setProfile = useAuthStore((state) => state.setProfile);
@@ -23,18 +24,7 @@ export function useUserProfile(userId?: string) {
     queryKey: authKeys.profile(userId),
     queryFn: async (): Promise<Profile | null> => {
       if (!userId) return null;
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
-
-      if (error) {
-        console.warn("Could not fetch user profile:", error.message);
-        return null;
-      }
-      return data as Profile;
+      return ProfileService.getProfile(userId);
     },
     enabled: Boolean(userId),
     staleTime: 5 * 60 * 1000,
@@ -50,23 +40,13 @@ export function useUserProfile(userId?: string) {
 }
 
 /**
- * Hook to retrieve calculated Citizen Passport Metrics via PostgreSQL RPC.
+ * Hook to retrieve calculated Citizen Passport Metrics via ProfileService.
  */
 export function useCitizenPassportMetrics(userId?: string) {
   return useQuery({
     queryKey: profileKeys.passportMetrics(userId),
     queryFn: async (): Promise<CitizenPassportMetrics | null> => {
-      if (!userId) return null;
-      const supabase = createClient();
-      
-      const { data, error } = await supabase.rpc("get_citizen_passport_metrics");
-
-      if (error) {
-        console.warn("RPC get_citizen_passport_metrics failed, falling back gracefully:", error.message);
-        return null;
-      }
-
-      return data as unknown as CitizenPassportMetrics;
+      return ProfileService.getCitizenPassportMetrics(userId);
     },
     enabled: Boolean(userId),
     staleTime: 60 * 1000,
@@ -84,91 +64,48 @@ export function useUpdateProfileMutation() {
 
   return useMutation({
     mutationFn: async (updates: Partial<Profile>) => {
-      const supabase = createClient();
       const userId = updates.id || authUser?.id || currentProfile?.id;
       if (!userId) {
         throw new Error("No active user session found to update profile.");
       }
-
-      const { id: _, created_at: __, ...updatePayload } = updates;
-
-      const { data, error } = await (supabase.from("profiles") as any)
-        .update({
-          ...updatePayload,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", userId)
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      return data as Profile;
+      return ProfileService.updateProfile(userId, updates);
     },
-    onSuccess: (updatedProfile) => {
-      setProfile(updatedProfile);
-      queryClient.setQueryData(authKeys.profile(updatedProfile.id), updatedProfile);
-      queryClient.invalidateQueries({ queryKey: authKeys.all });
+    onSuccess: (data) => {
+      setProfile(data);
+      queryClient.setQueryData(authKeys.profile(data.id), data);
       queryClient.invalidateQueries({ queryKey: profileKeys.all });
+      notify.success("Profile Synchronized", "Your citizen preferences have been saved.");
+    },
+    onError: (error) => {
+      notify.error(error, "Failed to update citizen profile.");
     },
   });
 }
 
 /**
- * Mutation hook to seal / update Citizen Passport credentials via the update_citizen_passport RPC.
+ * Mutation hook for sealing and updating Citizen Passport credentials via RPC.
  */
 export function useUpdateCitizenPassportMutation() {
   const setProfile = useAuthStore((state) => state.setProfile);
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (params: {
-      fullName?: string;
-      username?: string;
-      bio?: string;
-      avatarUrl?: string;
-      metadata?: Record<string, Json>;
-    }) => {
-      const supabase = createClient();
-
-      const { data, error } = await (supabase.rpc as any)("update_citizen_passport", {
-        p_full_name: params.fullName ?? null,
-        p_username: params.username ?? null,
-        p_bio: params.bio ?? null,
-        p_avatar_url: params.avatarUrl ?? null,
-        p_metadata: (params.metadata as any) ?? null,
-      });
-
-      if (error) {
-        // Fallback to table update if RPC is missing in local environment
-        console.warn("RPC update_citizen_passport error, falling back to direct table update:", error.message);
-        const { data: fallbackData, error: fallbackError } = await (supabase.from("profiles") as any)
-          .update({
-            ...(params.fullName !== undefined ? { full_name: params.fullName } : {}),
-            ...(params.username !== undefined ? { username: params.username } : {}),
-            ...(params.bio !== undefined ? { bio: params.bio } : {}),
-            ...(params.avatarUrl !== undefined ? { avatar_url: params.avatarUrl } : {}),
-            ...(params.metadata !== undefined ? { metadata: params.metadata } : {}),
-            updated_at: new Date().toISOString(),
-          })
-          .select()
-          .single();
-
-        if (fallbackError) throw fallbackError;
-        return fallbackData as Profile;
-      }
-
-      return data as unknown as Profile;
+    mutationFn: async (input: UpdateCitizenPassportInput) => {
+      return ProfileService.updateCitizenPassport(input);
     },
     onSuccess: (updatedProfile) => {
-      if (updatedProfile?.id) {
-        setProfile(updatedProfile);
-        queryClient.setQueryData(authKeys.profile(updatedProfile.id), updatedProfile);
-      }
-      queryClient.invalidateQueries({ queryKey: authKeys.all });
+      setProfile(updatedProfile);
+      queryClient.setQueryData(authKeys.profile(updatedProfile.id), updatedProfile);
       queryClient.invalidateQueries({ queryKey: profileKeys.all });
+      queryClient.invalidateQueries({ queryKey: profileKeys.passportMetrics(updatedProfile.id) });
+
+      notify.success(
+        "Credentials Sealed",
+        "Your official citizen passport credentials and seals were updated."
+      );
+    },
+    onError: (error) => {
+      notify.error(error, "Failed to seal citizen credentials.");
     },
   });
 }

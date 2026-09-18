@@ -18,6 +18,7 @@ export const metadata: Metadata = {
 };
 
 import { QueryProvider } from "@/providers/query-provider";
+import { CentralNotifier } from "@/components/ui/notifier";
 
 export default function RootLayout({
   children,
@@ -42,7 +43,10 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col">
-        <QueryProvider>{children}</QueryProvider>
+        <QueryProvider>
+          {children}
+          <CentralNotifier />
+        </QueryProvider>
       </body>
     </html>
   );

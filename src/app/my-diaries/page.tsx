@@ -33,13 +33,15 @@ import { AuthGuard } from "@/components/auth/auth-guard";
 import { useDiaryStore } from "@/stores/diary-store";
 import {
   useDiariesOverview,
+  useDiaryEntries,
   useDiaryStats,
   useCreateDiaryMutation,
   useUpdateDiaryMutation,
   useDeleteDiaryMutation,
   useReorderDiariesMutation,
 } from "@/hooks/queries/use-diaries";
-import { Diary, DiaryEntry, DiaryTheme, INITIAL_DIARIES, INITIAL_ENTRIES } from "@/types/diary";
+import { Diary, DiaryEntry, DiaryTheme } from "@/types/diary";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 
 export const THEME_CONFIGS: Record<
   DiaryTheme,
@@ -78,17 +80,41 @@ export const THEME_CONFIGS: Record<
   },
 };
 
-const COLOR_PRESETS = [
+export const COLOR_PRESETS = [
   { label: "Crimson Codex", hex: "#8C3A27" },
   { label: "Navy Cloth", hex: "#1E3A5F" },
   { label: "Midnight Studio", hex: "#172330" },
   { label: "Forest Scribe", hex: "#1E4D38" },
   { label: "Royal Amber", hex: "#7A4E1D" },
   { label: "Obsidian Slate", hex: "#2A2E39" },
+  { label: "Plum Velvet", hex: "#4A1E3E" },
+  { label: "Terracotta Earth", hex: "#A34728" },
+  { label: "Deep Emerald", hex: "#123E2A" },
+  { label: "Cobalt Ledger", hex: "#164E8A" },
 ];
 
+export function adjustColorBrightness(hex: string, percent: number): string {
+  if (!hex || typeof hex !== "string") return "#8C3A27";
+  let cleanHex = hex.replace("#", "").trim();
+  if (cleanHex.length === 3) {
+    cleanHex = cleanHex.split("").map((c) => c + c).join("");
+  }
+  const num = parseInt(cleanHex, 16);
+  if (isNaN(num)) return hex;
+
+  let r = (num >> 16) + Math.round(255 * (percent / 100));
+  let g = ((num >> 8) & 0x00ff) + Math.round(255 * (percent / 100));
+  let b = (num & 0x0000ff) + Math.round(255 * (percent / 100));
+
+  r = Math.min(255, Math.max(0, r));
+  g = Math.min(255, Math.max(0, g));
+  b = Math.min(255, Math.max(0, b));
+
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
 /* ==========================================================================
-   TACTILE BOOK COVER COMPONENT (STYLED BY THEME)
+   TACTILE BOOK COVER COMPONENT (STYLED BY THEME & COVER COLOR)
    ========================================================================== */
 function DiaryBookCover({
   diary,
@@ -115,6 +141,10 @@ function DiaryBookCover({
   const themeConfig = THEME_CONFIGS[theme] || THEME_CONFIGS.vintage;
   const coverColor = diary.coverColor || themeConfig.coverColor;
 
+  const highlightColor = adjustColorBrightness(coverColor, 20);
+  const midDarkColor = adjustColorBrightness(coverColor, -25);
+  const deepDarkColor = adjustColorBrightness(coverColor, -50);
+
   return (
     <div
       onClick={onClick}
@@ -128,10 +158,10 @@ function DiaryBookCover({
           type="button"
           onClick={onToggleFavorite}
           title={diary.isFavorite ? "Remove from favorites" : "Mark as favorite volume"}
-          className={`absolute top-2 left-2 z-20 p-1.5 rounded-full transition-all duration-200 cursor-pointer backdrop-blur-xs border ${
+          className={`absolute top-2 left-2 z-20 p-1.5 rounded-full transition-all duration-200 cursor-pointer border ${
             diary.isFavorite
-              ? "bg-amber-500/90 text-amber-950 border-amber-400 shadow-md opacity-100 scale-105"
-              : "bg-background/80 hover:bg-background text-muted-foreground hover:text-amber-500 border-border opacity-0 group-hover:opacity-100"
+              ? "bg-amber-500 text-amber-950 border-amber-400 shadow-md opacity-100 scale-105"
+              : "bg-background hover:bg-muted text-muted-foreground hover:text-amber-500 border-border opacity-0 group-hover:opacity-100 shadow-xs"
           }`}
         >
           <Star className={`h-3.5 w-3.5 ${diary.isFavorite ? "fill-current" : ""}`} />
@@ -145,7 +175,7 @@ function DiaryBookCover({
               type="button"
               onClick={onMoveLeft}
               title="Move tome left"
-              className="p-1.5 rounded-full bg-background/80 hover:bg-background text-foreground/80 hover:text-foreground border border-border shadow-xs transition-colors cursor-pointer backdrop-blur-xs"
+              className="p-1.5 rounded-full bg-background hover:bg-muted text-foreground/80 hover:text-foreground border border-border shadow-xs transition-colors cursor-pointer"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
             </button>
@@ -157,7 +187,7 @@ function DiaryBookCover({
               type="button"
               onClick={onMoveRight}
               title="Move tome right"
-              className="p-1.5 rounded-full bg-background/80 hover:bg-background text-foreground/80 hover:text-foreground border border-border shadow-xs transition-colors cursor-pointer backdrop-blur-xs"
+              className="p-1.5 rounded-full bg-background hover:bg-muted text-foreground/80 hover:text-foreground border border-border shadow-xs transition-colors cursor-pointer"
             >
               <ChevronRight className="h-3.5 w-3.5" />
             </button>
@@ -168,14 +198,14 @@ function DiaryBookCover({
             type="button"
             onClick={onEdit}
             title="Edit diary name, description, and theme"
-            className="p-1.5 rounded-full bg-background/80 hover:bg-background text-foreground/80 hover:text-foreground border border-border shadow-md transition-colors cursor-pointer backdrop-blur-xs"
+            className="p-1.5 rounded-full bg-background hover:bg-muted text-foreground/80 hover:text-foreground border border-border shadow-md transition-colors cursor-pointer"
           >
             <Pencil className="h-3.5 w-3.5 text-[#3368A0] dark:text-[#66A3BF]" />
           </button>
         </div>
 
         {/* Deep Book Drop Shadow */}
-        <div className="absolute inset-x-4 bottom-0 h-6 bg-black/35 dark:bg-black/60 rounded-full blur-md transform translate-y-3 group-hover:translate-y-4 group-hover:blur-lg transition-all" />
+        <div className="absolute inset-x-4 bottom-0 h-6 bg-black/25 dark:bg-black/50 rounded-full shadow-lg transform translate-y-3 group-hover:translate-y-4 transition-all" />
 
         {/* 1. OLD BOOK (VINTAGE THEME) */}
         {theme === "vintage" && (
@@ -187,19 +217,21 @@ function DiaryBookCover({
           >
             <defs>
               <linearGradient id={`grad_v_${diary.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={coverColor} />
-                <stop offset="50%" stopColor="#6E2B1D" />
-                <stop offset="100%" stopColor="#4A180E" />
+                <stop offset="0%" stopColor={highlightColor} />
+                <stop offset="35%" stopColor={coverColor} />
+                <stop offset="70%" stopColor={midDarkColor} />
+                <stop offset="100%" stopColor={deepDarkColor} />
               </linearGradient>
               <linearGradient id={`spine_v_${diary.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#4A180E" />
-                <stop offset="100%" stopColor={coverColor} />
+                <stop offset="0%" stopColor={deepDarkColor} />
+                <stop offset="50%" stopColor={coverColor} />
+                <stop offset="100%" stopColor={midDarkColor} />
               </linearGradient>
             </defs>
 
-            <rect x="12" y="12" width="216" height="296" rx="8" fill={`url(#grad_v_${diary.id})`} stroke="#3A120B" strokeWidth="2" />
+            <rect x="12" y="12" width="216" height="296" rx="8" fill={`url(#grad_v_${diary.id})`} stroke={deepDarkColor} strokeWidth="2" />
             <rect x="12" y="12" width="24" height="296" rx="3" fill={`url(#spine_v_${diary.id})`} />
-            <line x1="36" y1="12" x2="36" y2="308" stroke="#2A0B05" strokeWidth="1.5" opacity="0.6" />
+            <line x1="36" y1="12" x2="36" y2="308" stroke={deepDarkColor} strokeWidth="1.5" opacity="0.8" />
             <line x1="16" y1="50" x2="32" y2="50" stroke="#D4AF37" strokeWidth="1.5" opacity="0.8" />
             <line x1="16" y1="100" x2="32" y2="100" stroke="#D4AF37" strokeWidth="1.5" opacity="0.8" />
             <line x1="16" y1="220" x2="32" y2="220" stroke="#D4AF37" strokeWidth="1.5" opacity="0.8" />
@@ -207,24 +239,24 @@ function DiaryBookCover({
 
             <rect x="46" y="24" width="170" height="272" rx="5" fill="none" stroke="#D4AF37" strokeWidth="1.25" strokeDasharray="5 2.5" opacity="0.85" />
 
-            <rect x="58" y="54" width="146" height="150" rx="4" fill="#F5EEE0" stroke="#8C3A27" strokeWidth="1.25" />
-            <rect x="62" y="58" width="138" height="142" rx="2" fill="none" stroke="#8C3A27" strokeWidth="0.75" strokeDasharray="2 2" opacity="0.5" />
+            <rect x="58" y="54" width="146" height="150" rx="4" fill="#F5EEE0" stroke={coverColor} strokeWidth="1.25" />
+            <rect x="62" y="58" width="138" height="142" rx="2" fill="none" stroke={coverColor} strokeWidth="0.75" strokeDasharray="2 2" opacity="0.5" />
 
-            <text x="131" y="80" textAnchor="middle" fill="#8C3A27" fontFamily="monospace" fontSize="8" letterSpacing="0.18em" fontWeight="bold">
+            <text x="131" y="80" textAnchor="middle" fill={coverColor} fontFamily="monospace" fontSize="8" letterSpacing="0.18em" fontWeight="bold">
               OLD BOOK
             </text>
             <text x="131" y="98" textAnchor="middle" fill="#2C1F16" fontFamily="serif" fontSize="12" fontWeight="bold">
               {diary.name.length > 18 ? `${diary.name.substring(0, 16)}...` : diary.name}
             </text>
-            <line x1="80" y1="108" x2="182" y2="108" stroke="#8C3A27" strokeWidth="0.8" opacity="0.4" />
+            <line x1="80" y1="108" x2="182" y2="108" stroke={coverColor} strokeWidth="0.8" opacity="0.4" />
             <text x="131" y="126" textAnchor="middle" fill="#2C1F16" fontFamily="serif" fontSize="10" fontStyle="italic">
               {entriesCount} Inscribed {entriesCount === 1 ? "Page" : "Pages"}
             </text>
-            <text x="131" y="150" textAnchor="middle" fill="#8C3A27" fontFamily="monospace" fontSize="8.5">
+            <text x="131" y="150" textAnchor="middle" fill={coverColor} fontFamily="monospace" fontSize="8.5">
               Walnut Ink & Tome
             </text>
 
-            <circle cx="131" cy="245" r="20" fill="#8C3A27" />
+            <circle cx="131" cy="245" r="20" fill={coverColor} />
             <circle cx="131" cy="245" r="17" fill="none" stroke="#FAF4EB" strokeWidth="1" strokeDasharray="2 2" />
             <text x="131" y="250" textAnchor="middle" fill="#FAF4EB" fontFamily="serif" fontSize="13" fontWeight="bold">
               C
@@ -246,9 +278,15 @@ function DiaryBookCover({
           >
             <defs>
               <linearGradient id={`grad_c_${diary.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={coverColor} />
-                <stop offset="50%" stopColor="#152B47" />
-                <stop offset="100%" stopColor="#0B1829" />
+                <stop offset="0%" stopColor={highlightColor} />
+                <stop offset="35%" stopColor={coverColor} />
+                <stop offset="70%" stopColor={midDarkColor} />
+                <stop offset="100%" stopColor={deepDarkColor} />
+              </linearGradient>
+              <linearGradient id={`spine_c_${diary.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor={deepDarkColor} />
+                <stop offset="50%" stopColor={coverColor} />
+                <stop offset="100%" stopColor={midDarkColor} />
               </linearGradient>
               <linearGradient id={`ribbon_c_${diary.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#D4AF37" />
@@ -256,10 +294,11 @@ function DiaryBookCover({
               </linearGradient>
             </defs>
 
-            <rect x="12" y="12" width="216" height="296" rx="6" fill={`url(#grad_c_${diary.id})`} stroke="#0B1829" strokeWidth="2" />
+            <rect x="12" y="12" width="216" height="296" rx="6" fill={`url(#grad_c_${diary.id})`} stroke={deepDarkColor} strokeWidth="2" />
             
-            <rect x="12" y="12" width="18" height="296" rx="2" fill="#112236" />
-            <line x1="30" y1="12" x2="30" y2="308" stroke="#000000" strokeWidth="1" opacity="0.5" />
+            <rect x="12" y="12" width="20" height="296" rx="2" fill={`url(#spine_c_${diary.id})`} />
+            <line x1="32" y1="12" x2="32" y2="308" stroke="#000000" strokeWidth="1.2" opacity="0.5" />
+            <line x1="32" y1="12" x2="32" y2="308" stroke="#D4AF37" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.8" />
 
             <path d="M42 22 L62 22 M42 22 L42 42" stroke="#D4AF37" strokeWidth="2" strokeLinecap="round" />
             <path d="M220 22 L200 22 M220 22 L220 42" stroke="#D4AF37" strokeWidth="2" strokeLinecap="round" />
@@ -267,12 +306,12 @@ function DiaryBookCover({
             <path d="M220 298 L200 298 M220 298 L220 278" stroke="#D4AF37" strokeWidth="2" strokeLinecap="round" />
 
             <rect x="46" y="58" width="168" height="142" rx="3" fill="#FAF7EE" stroke="#D4AF37" strokeWidth="1.2" />
-            <rect x="50" y="62" width="160" height="134" rx="2" fill="none" stroke="#1E3A5F" strokeWidth="0.8" opacity="0.6" />
+            <rect x="50" y="62" width="160" height="134" rx="2" fill="none" stroke={coverColor} strokeWidth="0.8" opacity="0.6" />
 
             <text x="130" y="84" textAnchor="middle" fill="#D4AF37" fontFamily="monospace" fontSize="8" letterSpacing="0.2em" fontWeight="bold">
               CLASSIC NOTEBOOK
             </text>
-            <text x="130" y="104" textAnchor="middle" fill="#152B47" fontFamily="serif" fontSize="13" fontWeight="bold">
+            <text x="130" y="104" textAnchor="middle" fill={deepDarkColor} fontFamily="serif" fontSize="13" fontWeight="bold">
               {diary.name.length > 18 ? `${diary.name.substring(0, 16)}...` : diary.name}
             </text>
             <line x1="75" y1="114" x2="185" y2="114" stroke="#D4AF37" strokeWidth="1" opacity="0.5" />
@@ -280,7 +319,7 @@ function DiaryBookCover({
             <text x="130" y="132" textAnchor="middle" fill="#152B47" fontFamily="serif" fontSize="10.5" fontStyle="italic">
               {entriesCount} Inscribed {entriesCount === 1 ? "Page" : "Pages"}
             </text>
-            <text x="130" y="152" textAnchor="middle" fill="#1E3A5F" fontFamily="monospace" fontSize="8.5">
+            <text x="130" y="152" textAnchor="middle" fill={coverColor} fontFamily="monospace" fontSize="8.5">
               Ivory Linen & Fountain Ink
             </text>
 
@@ -303,44 +342,46 @@ function DiaryBookCover({
           >
             <defs>
               <linearGradient id={`grad_m_${diary.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={coverColor} />
-                <stop offset="50%" stopColor="#0F172A" />
-                <stop offset="100%" stopColor="#020617" />
+                <stop offset="0%" stopColor={highlightColor} />
+                <stop offset="35%" stopColor={coverColor} />
+                <stop offset="70%" stopColor={midDarkColor} />
+                <stop offset="100%" stopColor={deepDarkColor} />
               </linearGradient>
-              <linearGradient id={`glow_m_${diary.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#38BDF8" />
-                <stop offset="100%" stopColor="#818CF8" />
+              <linearGradient id={`glow_m_${diary.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor={highlightColor} />
+                <stop offset="50%" stopColor={coverColor} />
+                <stop offset="100%" stopColor={deepDarkColor} />
               </linearGradient>
             </defs>
 
-            <rect x="12" y="12" width="216" height="296" rx="12" fill={`url(#grad_m_${diary.id})`} stroke="#334155" strokeWidth="1.5" />
-            <rect x="24" y="24" width="4" height="272" rx="2" fill={`url(#glow_m_${diary.id})`} />
+            <rect x="12" y="12" width="216" height="296" rx="12" fill={`url(#grad_m_${diary.id})`} stroke={midDarkColor} strokeWidth="1.5" />
+            <rect x="20" y="20" width="6" height="280" rx="3" fill={`url(#glow_m_${diary.id})`} />
 
-            <rect x="42" y="48" width="170" height="156" rx="8" fill="#FFFFFF" fillOpacity="0.06" stroke="#475569" strokeWidth="1" />
+            <rect x="38" y="48" width="174" height="156" rx="8" fill="#FFFFFF" fillOpacity="0.08" stroke={highlightColor} strokeWidth="1" strokeOpacity="0.4" />
 
-            <text x="56" y="76" fill="#38BDF8" fontFamily="monospace" fontSize="8.5" letterSpacing="0.16em" fontWeight="bold">
+            <text x="52" y="76" fill={highlightColor} fontFamily="monospace" fontSize="8.5" letterSpacing="0.16em" fontWeight="bold">
               MODERN STUDIO
             </text>
-            <text x="56" y="98" fill="#F8FAFC" fontFamily="sans-serif" fontSize="13" fontWeight="bold">
+            <text x="52" y="98" fill="#F8FAFC" fontFamily="sans-serif" fontSize="13" fontWeight="bold">
               {diary.name.length > 16 ? `${diary.name.substring(0, 14)}...` : diary.name}
             </text>
             
-            <line x1="56" y1="112" x2="196" y2="112" stroke="#334155" strokeWidth="1" />
+            <line x1="52" y1="112" x2="196" y2="112" stroke={midDarkColor} strokeWidth="1" />
             
-            <text x="56" y="132" fill="#94A3B8" fontFamily="sans-serif" fontSize="10">
+            <text x="52" y="132" fill="#94A3B8" fontFamily="sans-serif" fontSize="10">
               {entriesCount} {entriesCount === 1 ? "Record" : "Records"} Logged
             </text>
-            <text x="56" y="152" fill="#CBD5E1" fontFamily="monospace" fontSize="9">
+            <text x="52" y="152" fill="#CBD5E1" fontFamily="monospace" fontSize="9">
               Matte Minimalist Studio
             </text>
 
-            <rect x="56" y="235" width="48" height="22" rx="11" fill="#38BDF8" fillOpacity="0.15" stroke="#38BDF8" strokeWidth="1" />
-            <text x="80" y="249" textAnchor="middle" fill="#38BDF8" fontFamily="monospace" fontSize="8.5" fontWeight="bold">
+            <rect x="52" y="235" width="54" height="22" rx="11" fill={coverColor} fillOpacity="0.3" stroke={highlightColor} strokeWidth="1" />
+            <text x="79" y="249" textAnchor="middle" fill="#FFFFFF" fontFamily="monospace" fontSize="8.5" fontWeight="bold">
               ACTIVE
             </text>
 
-            <circle cx="188" cy="246" r="10" fill="none" stroke="#64748B" strokeWidth="1.5" />
-            <circle cx="188" cy="246" r="4" fill="#38BDF8" />
+            <circle cx="188" cy="246" r="10" fill="none" stroke={highlightColor} strokeWidth="1.5" opacity="0.6" />
+            <circle cx="188" cy="246" r="4" fill={highlightColor} />
           </svg>
         )}
 
@@ -385,7 +426,7 @@ function CreateDiarySlot({ onClick }: { onClick: () => void }) {
     >
       <div className="relative w-full aspect-[3/4] transition-all duration-500 ease-out transform group-hover:-translate-y-3 group-hover:rotate-1">
         
-        <div className="absolute inset-x-4 bottom-0 h-6 bg-black/15 dark:bg-black/40 rounded-full blur-md transform translate-y-3 group-hover:translate-y-4 transition-all" />
+        <div className="absolute inset-x-4 bottom-0 h-6 bg-black/15 dark:bg-black/30 rounded-full shadow-md transform translate-y-3 group-hover:translate-y-4 transition-all" />
 
         <div className="w-full h-full border-2 border-dashed border-[#8C3A27]/40 dark:border-[#E59375]/40 group-hover:border-[#8C3A27] dark:group-hover:border-[#E59375] bg-muted/25 dark:bg-muted/10 rounded-xl p-5 flex flex-col items-center justify-center text-center space-y-3 transition-colors">
           <div className="w-14 h-14 rounded-full bg-[#8C3A27]/10 dark:bg-[#8C3A27]/20 border border-[#8C3A27]/30 flex items-center justify-center text-[#8C3A27] dark:text-[#E59375] group-hover:scale-110 transition-transform">
@@ -428,19 +469,18 @@ export default function MyDiariesPage() {
 
   // 1. TanStack Query + Supabase Hooks
   const { data: rawDiaries = [], isLoading: isDiariesLoading } = useDiariesOverview();
+  const { data: serverEntries = [], isLoading: isEntriesLoading } = useDiaryEntries();
   const { data: stats } = useDiaryStats();
   const createDiaryMutation = useCreateDiaryMutation();
   const updateDiaryMutation = useUpdateDiaryMutation();
   const deleteDiaryMutation = useDeleteDiaryMutation();
   const reorderDiariesMutation = useReorderDiariesMutation();
 
-  // 2. Zustand Store Sync
-  const storeDiaries = useDiaryStore((state) => state.diaries);
-  const storeEntries = useDiaryStore((state) => state.entries);
+  // 2. Zustand Store UI Actions
   const setActiveDiaryId = useDiaryStore((state) => state.setActiveDiaryId);
 
-  const diaries = rawDiaries.length > 0 ? rawDiaries : (storeDiaries.length > 0 ? storeDiaries : INITIAL_DIARIES);
-  const entries = storeEntries.length > 0 ? storeEntries : INITIAL_ENTRIES;
+  const diaries = rawDiaries;
+  const entries = serverEntries;
 
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -461,6 +501,10 @@ export default function MyDiariesPage() {
   const [editCoverColor, setEditCoverColor] = useState<string>("#8C3A27");
   const [editIsFavorite, setEditIsFavorite] = useState(false);
   const [editIsArchived, setEditIsArchived] = useState(false);
+
+  // Delete Confirmation State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [diaryToDelete, setDiaryToDelete] = useState<Diary | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -573,12 +617,11 @@ export default function MyDiariesPage() {
       setSelectedTheme("vintage");
       setSelectedCoverColor("#8C3A27");
 
-      const newDiaryEntries = useDiaryStore.getState().entries.filter((e) => e.diaryId === created.id);
-      const firstEntry = newDiaryEntries[0];
+      const targetEntryId = created.firstEntryId;
 
       startTransition(() => {
-        if (firstEntry) {
-          router.push(`/my-diaries/${created.id}/pages/${firstEntry.id}`);
+        if (targetEntryId) {
+          router.push(`/my-diaries/${created.id}/pages/${targetEntryId}`);
         } else {
           router.push(`/my-diaries/${created.id}`);
         }
@@ -611,16 +654,21 @@ export default function MyDiariesPage() {
     }
   };
 
-  const handleDeleteDiary = async () => {
+  const handleDeleteDiary = () => {
     if (!editingDiary) return;
-    const confirmDelete = window.confirm(
-      `Are you sure you wish to delete "${editingDiary.name}" and all its pages permanently?`
-    );
-    if (!confirmDelete) return;
+    setDiaryToDelete(editingDiary);
+    setIsDeleteModalOpen(true);
+  };
 
+  const confirmDeleteDiary = async () => {
+    if (!diaryToDelete) return;
     try {
-      await deleteDiaryMutation.mutateAsync(editingDiary.id);
-      setEditingDiary(null);
+      await deleteDiaryMutation.mutateAsync(diaryToDelete.id);
+      if (editingDiary?.id === diaryToDelete.id) {
+        setEditingDiary(null);
+      }
+      setIsDeleteModalOpen(false);
+      setDiaryToDelete(null);
     } catch (err) {
       console.error("Failed to delete diary tome:", err);
     }
@@ -648,7 +696,7 @@ export default function MyDiariesPage() {
           </p>
 
           {/* 3. SANCTUARY SUMMARY STATS BANNER (PRD / Matrix Analytics) */}
-          <div className="w-full mt-8 p-4 sm:p-5 rounded-2xl bg-card/60 backdrop-blur-md border border-border/80 shadow-xs space-y-4 text-left">
+          <div className="w-full mt-8 p-4 sm:p-5 rounded-2xl bg-card border border-border/80 shadow-xs space-y-4 text-left">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/60">
               <div className="flex items-center gap-2">
                 <CommonsSealVector size={16} markOnly />
@@ -950,7 +998,7 @@ export default function MyDiariesPage() {
         {/* 8. CREATE DIARY MODAL (NAME, DESCRIPTION, THEMES, COVER COLOR) */}
         {/* ========================================================================= */}
         {isCreateModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in-0 duration-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 animate-in fade-in-0 duration-200">
             <div className="relative w-full max-w-lg bg-card border border-border rounded-2xl p-6 sm:p-7 shadow-2xl space-y-6">
               
               <div className="flex items-start justify-between border-b border-border/70 pb-3">
@@ -1167,7 +1215,7 @@ export default function MyDiariesPage() {
         {/* 9. EDIT DIARY MODAL (NAME, DESCRIPTION, THEME, COLOR, FAVORITE, ARCHIVE, DELETE) */}
         {/* ========================================================================= */}
         {editingDiary && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in-0 duration-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 animate-in fade-in-0 duration-200">
             <div className="relative w-full max-w-lg bg-card border border-border rounded-2xl p-6 sm:p-7 shadow-2xl space-y-6">
               
               <div className="flex items-start justify-between border-b border-border/70 pb-3">
@@ -1413,6 +1461,20 @@ export default function MyDiariesPage() {
             </div>
           </div>
         )}
+
+        {/* Themed Delete Tome Confirmation Dialog */}
+        <DeleteConfirmationDialog
+          open={isDeleteModalOpen}
+          onOpenChange={(open) => {
+            setIsDeleteModalOpen(open);
+            if (!open) setDiaryToDelete(null);
+          }}
+          onConfirm={confirmDeleteDiary}
+          isPending={deleteDiaryMutation.isPending}
+          theme={diaryToDelete?.theme || "vintage"}
+          itemType="tome"
+          itemName={diaryToDelete?.name}
+        />
 
       </div>
     </AuthGuard>

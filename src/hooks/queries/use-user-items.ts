@@ -1,15 +1,11 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@/lib/supabase/client";
-import { authKeys } from "./use-auth";
+import { UserItemsService, UserItemFilters } from "@/services/user-items.service";
+import { notify } from "@/lib/notify";
 import type { UserItem, UserSortPreferences } from "@/types/database";
 
-export interface UserItemFilters {
-  status?: string | null;
-  sortBy?: "created_at" | "updated_at" | "title" | "sort_order";
-  ascending?: boolean;
-}
+export type { UserItemFilters };
 
 export const userItemKeys = {
   all: ["user_items"] as const,
@@ -19,38 +15,13 @@ export const userItemKeys = {
 };
 
 /**
- * Hook to retrieve user-scoped items utilizing the database RPC sorting engine.
+ * Hook to retrieve user-scoped items utilizing UserItemsService.
  */
 export function useUserItems(filters: UserItemFilters = {}) {
   return useQuery({
     queryKey: userItemKeys.list(filters),
     queryFn: async (): Promise<UserItem[]> => {
-      const supabase = createClient();
-
-      // Call database RPC `get_sorted_user_items`
-      const { data, error } = await (supabase.rpc as any)("get_sorted_user_items", {
-        p_status: filters.status ?? null,
-        p_sort_by: filters.sortBy ?? null,
-        p_ascending: filters.ascending ?? null,
-      });
-
-      if (error) {
-        // Fallback to table query if RPC is not available
-        console.warn("RPC get_sorted_user_items error, falling back to table select:", error.message);
-        let query = supabase.from("user_items").select("*");
-        if (filters.status) {
-          query = query.eq("status", filters.status);
-        }
-        const sortCol = filters.sortBy || "sort_order";
-        const { data: fallbackData, error: fallbackError } = await query.order(sortCol, {
-          ascending: filters.ascending ?? true,
-        });
-
-        if (fallbackError) throw fallbackError;
-        return (fallbackData as UserItem[]) ?? [];
-      }
-
-      return (data as UserItem[]) ?? [];
+      return UserItemsService.getUserItems(filters);
     },
     staleTime: 60 * 1000,
   });
@@ -64,21 +35,12 @@ export function useReorderUserItemsMutation() {
 
   return useMutation({
     mutationFn: async (itemIds: string[]) => {
-      const supabase = createClient();
-      const { error } = await (supabase.rpc as any)("reorder_user_items", {
-        p_item_ids: itemIds,
-      });
-      if (error) throw error;
-      return itemIds;
+      return UserItemsService.reorderUserItems(itemIds);
     },
     onMutate: async (newItemIds) => {
-      // Cancel outgoing queries
       await queryClient.cancelQueries({ queryKey: userItemKeys.all });
-
-      // Snapshot previous lists
       const previousItems = queryClient.getQueriesData<UserItem[]>({ queryKey: userItemKeys.lists() });
 
-      // Optimistically update lists
       queryClient.setQueriesData<UserItem[]>({ queryKey: userItemKeys.lists() }, (old) => {
         if (!old) return [];
         const itemMap = new Map(old.map((item) => [item.id, item]));
@@ -92,13 +54,13 @@ export function useReorderUserItemsMutation() {
 
       return { previousItems };
     },
-    onError: (_err, _newItemIds, context) => {
-      // Rollback on error
+    onError: (err, _newItemIds, context) => {
       if (context?.previousItems) {
         context.previousItems.forEach(([queryKey, data]) => {
           queryClient.setQueryData(queryKey, data);
         });
       }
+      notify.error(err, "Failed to reorder curation items.");
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: userItemKeys.all });
@@ -107,30 +69,22 @@ export function useReorderUserItemsMutation() {
 }
 
 /**
- * Mutation to update user default sort preferences.
+ * Mutation hook to persist user's custom sort preferences in Supabase profile metadata.
  */
 export function useUpdateSortPreferencesMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (params: {
-      sortBy: UserSortPreferences["default_sort_by"];
-      sortOrder?: UserSortPreferences["default_sort_order"];
-      filterFavoritesFirst?: boolean;
-    }) => {
-      const supabase = createClient();
-      const { data, error } = await (supabase.rpc as any)("update_sort_preferences", {
-        p_sort_by: params.sortBy,
-        p_sort_order: params.sortOrder ?? "asc",
-        p_filter_favorites_first: params.filterFavoritesFirst ?? true,
-      });
-
-      if (error) throw error;
-      return data;
+    mutationFn: async (preferences: UserSortPreferences) => {
+      return UserItemsService.updateSortPreferences(preferences);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: authKeys.all });
       queryClient.invalidateQueries({ queryKey: userItemKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      notify.success("Curation Calibrated", "Your sorting and display preferences have been updated.");
+    },
+    onError: (error) => {
+      notify.error(error, "Failed to update sorting preferences.");
     },
   });
 }
