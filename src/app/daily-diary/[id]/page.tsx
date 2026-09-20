@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { SingleDiaryEntryClient } from "@/components/diary/single-diary-entry-client";
 
 export default async function SingleDiaryEntryPage({
@@ -7,5 +7,9 @@ export default async function SingleDiaryEntryPage({
   params: Promise<{ id: string }>;
 }) {
   const resolvedParams = await params;
-  return <SingleDiaryEntryClient targetId={resolvedParams.id} />;
+  return (
+    <Suspense fallback={null}>
+      <SingleDiaryEntryClient targetId={resolvedParams.id} />
+    </Suspense>
+  );
 }

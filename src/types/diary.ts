@@ -31,8 +31,8 @@ export interface DiaryEntry {
   description: string;
   gratitude: [string, string, string];
   energyLevel: number; // 1 - 5
-  startTime: string;
-  endTime: string;
+  startTime?: string | null;
+  endTime?: string | null;
   mood: string;
   weather: string;
   isHearted: boolean;
@@ -74,6 +74,18 @@ export interface DiaryIndexEntry {
   mood: string;
   isHearted: boolean;
   wordCount: number;
+}
+
+export interface DiaryDaySummary {
+  dateKey: string;
+  displayDate: string;
+  entries: DiaryEntry[];
+  totalPages: number;
+  totalWords: number;
+  avgEnergy: string;
+  moods: string[];
+  weatherList: string[];
+  gratitudeCount: number;
 }
 
 export interface DiarySummary {

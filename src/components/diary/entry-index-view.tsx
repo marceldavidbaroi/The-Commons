@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { List, Heart, Plus, BookOpen } from "lucide-react";
+import React, { useMemo } from "react";
+import { List, Heart, Plus, BookOpen, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PencilDelete } from "./diary-icons";
 import type { DiaryEntry, Diary, DiaryTheme } from "@/types/diary";
@@ -17,6 +17,12 @@ interface EntryIndexViewProps {
   onClose: () => void;
 }
 
+interface DateGroup {
+  dateKey: string;
+  displayDate: string;
+  entries: DiaryEntry[];
+}
+
 export function EntryIndexView({
   currentDiary,
   diaryEntries,
@@ -27,6 +33,32 @@ export function EntryIndexView({
   onNewPage,
   onClose,
 }: EntryIndexViewProps) {
+  // Group entries by Date (using entryDate / dateStr)
+  const groupedEntries = useMemo(() => {
+    const groups: DateGroup[] = [];
+    const map = new Map<string, DateGroup>();
+
+    diaryEntries.forEach((entry) => {
+      const key = entry.entryDate || entry.dateStr || "Undated";
+      const display = entry.entryDate
+        ? `${entry.dayOfWeek ? `${entry.dayOfWeek}, ` : ""}${entry.dateStr || entry.entryDate}`
+        : entry.dateStr || "Undated Entries";
+
+      if (!map.has(key)) {
+        const group: DateGroup = {
+          dateKey: key,
+          displayDate: display,
+          entries: [],
+        };
+        map.set(key, group);
+        groups.push(group);
+      }
+      map.get(key)!.entries.push(entry);
+    });
+
+    return groups;
+  }, [diaryEntries]);
+
   if (theme === "vintage") {
     return (
       <div className="w-full relative torn-sheet-shadow">
@@ -43,58 +75,80 @@ export function EntryIndexView({
             </span>
           </div>
 
-          <div className="divide-y divide-[#D8CCB0]/60 dark:divide-[#223348]/60 max-h-[60vh] overflow-y-auto pr-1">
-            {diaryEntries.map((entry: DiaryEntry) => {
-              const isCurrent = entry.id === currentEntry.id;
-              return (
-                <div
-                  key={entry.id}
-                  onClick={() => onSelectEntry(entry.id)}
-                  className={`py-3 px-2 rounded-sm cursor-pointer flex items-center justify-between transition-colors ${
-                    isCurrent ? "bg-[#EDE5D2]/80 dark:bg-[#1A2838]/80" : "hover:bg-[#EDE5D2]/40 dark:hover:bg-[#1A2838]/40"
-                  }`}
-                >
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2 text-xs font-handwriting">
-                      <span className="font-bold text-[#8C3A27] dark:text-[#E59375] text-sm">
-                        Leaf #{entry.pageNumber}
-                      </span>
-                      <span className="text-[#544332] dark:text-[#B4C5D6] font-semibold text-sm">
-                        {entry.dayOfWeek}, {entry.dateStr}
-                      </span>
-                      {entry.isHearted && (
-                        <span className="text-[#8C3A27] dark:text-[#E59375] text-xs">♥ Marked</span>
-                      )}
-                      {isCurrent && (
-                        <span className="text-[11px] text-[#8C3A27] dark:text-amber-300 font-bold uppercase">
-                          (Open Page)
-                        </span>
-                      )}
-                    </div>
-                    <p className="font-handwriting text-lg font-bold text-[#1E2536] dark:text-[#F3EDE2] line-clamp-1">
-                      {entry.title || "Untitled Inscription"}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteEntry(entry.id);
-                      }}
-                      className="p-1 hover:scale-110 transition-transform cursor-pointer"
-                      title="Strike out leaf"
-                    >
-                      <PencilDelete theme="vintage" />
-                    </button>
-                    <span className="font-handwriting text-sm font-bold text-[#8C3A27] dark:text-[#E59375] hover:underline">
-                      Turn leaf ▸
-                    </span>
-                  </div>
+          <div className="divide-y divide-[#D8CCB0]/60 dark:divide-[#223348]/60 max-h-[60vh] overflow-y-auto pr-1 space-y-4">
+            {groupedEntries.map((group) => (
+              <div key={group.dateKey} className="pt-2 first:pt-0 space-y-1">
+                {/* Date Group Header */}
+                <div className="sticky top-0 z-10 flex items-center gap-1.5 py-1 px-2 bg-[#EDE5D2]/95 dark:bg-[#1A2838]/95 border-b border-[#D8CCB0]/80 dark:border-[#223348]/80 rounded-xs">
+                  <Calendar className="h-3.5 w-3.5 text-[#8C3A27] dark:text-amber-300 shrink-0 opacity-80" />
+                  <span className="font-handwriting text-sm sm:text-base font-bold text-[#4A3525] dark:text-amber-200">
+                    {group.displayDate}
+                  </span>
+                  <span className="text-xs font-handwriting text-[#7A6855] dark:text-[#8E9FA8] ml-auto font-bold">
+                    {group.entries.length} {group.entries.length === 1 ? "leaf" : "leaves"}
+                  </span>
                 </div>
-              );
-            })}
+
+                {/* Group Leaves */}
+                <div className="divide-y divide-[#D8CCB0]/40 dark:divide-[#223348]/40 pl-2">
+                  {group.entries.map((entry: DiaryEntry) => {
+                    const isCurrent = entry.id === currentEntry.id;
+                    return (
+                      <div
+                        key={entry.id}
+                        onClick={() => onSelectEntry(entry.id)}
+                        className={`py-2.5 px-2 rounded-sm cursor-pointer flex items-center justify-between transition-colors ${
+                          isCurrent
+                            ? "bg-[#E2D8C3]/80 dark:bg-[#223348]/80 font-bold"
+                            : "hover:bg-[#EDE5D2]/40 dark:hover:bg-[#1A2838]/40"
+                        }`}
+                      >
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2 text-xs font-handwriting">
+                            <span className="font-bold text-[#8C3A27] dark:text-[#E59375] text-sm">
+                              Leaf #{entry.pageNumber}
+                            </span>
+                            {entry.startTime && (
+                              <span className="text-[#544332] dark:text-[#B4C5D6] text-xs font-semibold">
+                                • {entry.startTime}
+                              </span>
+                            )}
+                            {entry.isHearted && (
+                              <span className="text-[#8C3A27] dark:text-[#E59375] text-xs">♥ Marked</span>
+                            )}
+                            {isCurrent && (
+                              <span className="text-[11px] text-[#8C3A27] dark:text-amber-300 font-bold uppercase">
+                                (Open Page)
+                              </span>
+                            )}
+                          </div>
+                          <p className="font-handwriting text-base sm:text-lg font-bold text-[#1E2536] dark:text-[#F3EDE2] line-clamp-1">
+                            {entry.title || "Untitled Inscription"}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteEntry(entry.id);
+                            }}
+                            className="p-1 hover:scale-110 transition-transform cursor-pointer"
+                            title="Strike out leaf"
+                          >
+                            <PencilDelete theme="vintage" />
+                          </button>
+                          <span className="font-handwriting text-sm font-bold text-[#8C3A27] dark:text-[#E59375] hover:underline">
+                            Turn leaf ▸
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="pt-3 border-t border-[#D8CCB0] dark:border-[#223348] flex items-center justify-between">
@@ -135,52 +189,72 @@ export function EntryIndexView({
             </span>
           </div>
 
-          <div className="divide-y divide-[#D0C5B0]/50 dark:divide-[#1E3048]/50 max-h-[60vh] overflow-y-auto pr-1">
-            {diaryEntries.map((entry: DiaryEntry) => {
-              const isCurrent = entry.id === currentEntry.id;
-              return (
-                <div
-                  key={entry.id}
-                  onClick={() => onSelectEntry(entry.id)}
-                  className={`py-3 px-2 rounded cursor-pointer flex items-center justify-between transition-colors ${
-                    isCurrent ? "bg-[#EDE7D6]/70 dark:bg-[#1A2636]/70" : "hover:bg-[#EDE7D6]/30 dark:hover:bg-[#1A2636]/30"
-                  }`}
-                >
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2 text-xs font-mono">
-                      <span className="font-bold text-[#AA8520]">p. {entry.pageNumber}</span>
-                      <span className="text-[#152B47] dark:text-[#CBD5E1] font-semibold font-serif">
-                        {entry.dayOfWeek}, {entry.dateStr}
-                      </span>
-                      {entry.isHearted && <Heart className="h-3 w-3 text-[#D4AF37] fill-current" />}
-                      {isCurrent && (
-                        <span className="text-[10px] text-amber-500 font-bold uppercase">(Active)</span>
-                      )}
-                    </div>
-                    <p className="font-serif text-base font-bold text-[#152B47] dark:text-[#E2ECF7] line-clamp-1">
-                      {entry.title || "Untitled Reflection"}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteEntry(entry.id);
-                      }}
-                      className="p-1 hover:scale-110 transition-transform cursor-pointer"
-                      title="Delete page"
-                    >
-                      <PencilDelete theme="classic" />
-                    </button>
-                    <span className="text-xs font-serif text-[#1E3A5F] dark:text-[#D4AF37] hover:underline">
-                      Turn to page ▸
-                    </span>
-                  </div>
+          <div className="divide-y divide-[#D0C5B0]/50 dark:divide-[#1E3048]/50 max-h-[60vh] overflow-y-auto pr-1 space-y-3">
+            {groupedEntries.map((group) => (
+              <div key={group.dateKey} className="pt-2 first:pt-0 space-y-1">
+                {/* Date Group Header */}
+                <div className="sticky top-0 z-10 flex items-center gap-1.5 py-1 px-2 bg-[#EDE7D6]/95 dark:bg-[#1A2636]/95 border-b border-[#D4AF37]/30 rounded-sm">
+                  <Calendar className="h-3.5 w-3.5 text-[#D4AF37] shrink-0 opacity-80" />
+                  <span className="font-serif text-sm font-bold text-[#1E3A5F] dark:text-[#E2ECF7]">
+                    {group.displayDate}
+                  </span>
+                  <span className="text-xs font-mono text-[#AA8520] ml-auto">
+                    {group.entries.length} {group.entries.length === 1 ? "page" : "pages"}
+                  </span>
                 </div>
-              );
-            })}
+
+                {/* Group Pages */}
+                <div className="divide-y divide-[#D0C5B0]/30 dark:divide-[#1E3048]/30 pl-2">
+                  {group.entries.map((entry: DiaryEntry) => {
+                    const isCurrent = entry.id === currentEntry.id;
+                    return (
+                      <div
+                        key={entry.id}
+                        onClick={() => onSelectEntry(entry.id)}
+                        className={`py-2.5 px-2 rounded cursor-pointer flex items-center justify-between transition-colors ${
+                          isCurrent ? "bg-[#EDE7D6]/70 dark:bg-[#1A2636]/70" : "hover:bg-[#EDE7D6]/30 dark:hover:bg-[#1A2636]/30"
+                        }`}
+                      >
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2 text-xs font-mono">
+                            <span className="font-bold text-[#AA8520]">p. {entry.pageNumber}</span>
+                            {entry.startTime && (
+                              <span className="text-[#152B47] dark:text-[#CBD5E1] font-semibold font-serif">
+                                • {entry.startTime}
+                              </span>
+                            )}
+                            {entry.isHearted && <Heart className="h-3 w-3 text-[#D4AF37] fill-current" />}
+                            {isCurrent && (
+                              <span className="text-[10px] text-amber-500 font-bold uppercase">(Active)</span>
+                            )}
+                          </div>
+                          <p className="font-serif text-base font-bold text-[#152B47] dark:text-[#E2ECF7] line-clamp-1">
+                            {entry.title || "Untitled Reflection"}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteEntry(entry.id);
+                            }}
+                            className="p-1 hover:scale-110 transition-transform cursor-pointer"
+                            title="Delete page"
+                          >
+                            <PencilDelete theme="classic" />
+                          </button>
+                          <span className="text-xs font-serif text-[#1E3A5F] dark:text-[#D4AF37] hover:underline">
+                            Turn to page ▸
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="pt-3 border-t border-[#D4AF37]/40 flex items-center justify-between">
@@ -219,52 +293,72 @@ export function EntryIndexView({
         </span>
       </div>
 
-      <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[60vh] overflow-y-auto pr-1">
-        {diaryEntries.map((entry: DiaryEntry) => {
-          const isCurrent = entry.id === currentEntry.id;
-          return (
-            <div
-              key={entry.id}
-              onClick={() => onSelectEntry(entry.id)}
-              className={`py-3 px-2 rounded-xl cursor-pointer flex items-center justify-between transition-colors ${
-                isCurrent ? "bg-slate-100 dark:bg-slate-800" : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
-              }`}
-            >
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2 text-xs font-mono">
-                  <span className="font-bold text-sky-500">p. {entry.pageNumber}</span>
-                  <span className="text-slate-700 dark:text-slate-300 font-sans font-medium">
-                    {entry.dayOfWeek}, {entry.dateStr}
-                  </span>
-                  {entry.isHearted && <Heart className="h-3 w-3 text-rose-500 fill-current" />}
-                  {isCurrent && (
-                    <span className="text-[10px] text-sky-500 font-bold uppercase">(Active)</span>
-                  )}
-                </div>
-                <p className="font-sans text-sm font-semibold text-slate-900 dark:text-white line-clamp-1">
-                  {entry.title || "Untitled Entry"}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteEntry(entry.id);
-                  }}
-                  className="p-1 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                  title="Delete page"
-                >
-                  <PencilDelete theme="modern" />
-                </button>
-                <span className="text-xs font-sans text-sky-500 hover:underline font-medium">
-                  Go to page ▸
-                </span>
-              </div>
+      <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[60vh] overflow-y-auto pr-1 space-y-3">
+        {groupedEntries.map((group) => (
+          <div key={group.dateKey} className="pt-2 first:pt-0 space-y-1">
+            {/* Date Group Header */}
+            <div className="sticky top-0 z-10 flex items-center gap-1.5 py-1 px-2.5 bg-slate-100/90 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-700 rounded-lg">
+              <Calendar className="h-3.5 w-3.5 text-sky-500 shrink-0 opacity-80" />
+              <span className="font-sans text-xs font-semibold text-slate-800 dark:text-slate-200">
+                {group.displayDate}
+              </span>
+              <span className="text-[11px] font-mono text-slate-500 ml-auto">
+                {group.entries.length} {group.entries.length === 1 ? "page" : "pages"}
+              </span>
             </div>
-          );
-        })}
+
+            {/* Group Pages */}
+            <div className="divide-y divide-slate-100 dark:divide-slate-800/60 pl-2">
+              {group.entries.map((entry: DiaryEntry) => {
+                const isCurrent = entry.id === currentEntry.id;
+                return (
+                  <div
+                    key={entry.id}
+                    onClick={() => onSelectEntry(entry.id)}
+                    className={`py-2.5 px-2 rounded-xl cursor-pointer flex items-center justify-between transition-colors ${
+                      isCurrent ? "bg-slate-100 dark:bg-slate-800" : "hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    }`}
+                  >
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2 text-xs font-mono">
+                        <span className="font-bold text-sky-500">p. {entry.pageNumber}</span>
+                        {entry.startTime && (
+                          <span className="text-slate-500 dark:text-slate-400 font-sans">
+                            • {entry.startTime}
+                          </span>
+                        )}
+                        {entry.isHearted && <Heart className="h-3 w-3 text-rose-500 fill-current" />}
+                        {isCurrent && (
+                          <span className="text-[10px] text-sky-500 font-bold uppercase">(Active)</span>
+                        )}
+                      </div>
+                      <p className="font-sans text-sm font-semibold text-slate-900 dark:text-white line-clamp-1">
+                        {entry.title || "Untitled Entry"}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteEntry(entry.id);
+                        }}
+                        className="p-1 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                        title="Delete page"
+                      >
+                        <PencilDelete theme="modern" />
+                      </button>
+                      <span className="text-xs font-sans text-sky-500 hover:underline font-medium">
+                        Go to page ▸
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DiaryService, isUuid } from "@/services/diary.service";
 import { notify } from "@/lib/notify";
 import type { CreateDiaryInput, UpdateDiaryInput, CreateDiaryEntryInput } from "@/services/diary.service";
-import type { Diary, DiaryEntry } from "@/types/diary";
+import type { Diary, DiaryEntry, DiaryDaySummary } from "@/types/diary";
 import type { DiaryStats } from "@/types/database";
 
 export const diaryKeys = {
@@ -15,6 +15,7 @@ export const diaryKeys = {
   detail: (diaryId: string) => [...diaryKeys.all, "detail", diaryId] as const,
   entries: (diaryId?: string) => [...diaryKeys.all, "entries", diaryId || "all"] as const,
   entry: (diaryId: string, entryId: string) => [...diaryKeys.all, "entry", diaryId, entryId] as const,
+  daySummary: (diaryId?: string, dateKey?: string) => [...diaryKeys.all, "day-summary", diaryId || "all", dateKey || "none"] as const,
 };
 
 export { isUuid };
@@ -42,6 +43,20 @@ export function useDiaryEntries(diaryId?: string) {
       return DiaryService.getDiaryEntries(diaryId);
     },
     staleTime: 30 * 1000,
+  });
+}
+
+/**
+ * Hook to retrieve entries and aggregated summary metrics for a specific date via API.
+ */
+export function useDiaryDaySummary(diaryId?: string, dateKey?: string) {
+  return useQuery({
+    queryKey: diaryKeys.daySummary(diaryId, dateKey),
+    queryFn: async (): Promise<DiaryDaySummary> => {
+      return DiaryService.getDiaryDaySummary(diaryId, dateKey);
+    },
+    enabled: Boolean(dateKey),
+    staleTime: 15 * 1000,
   });
 }
 
@@ -92,8 +107,8 @@ export function useCreateDiaryMutation() {
           description: "",
           gratitude: ["", "", ""],
           energyLevel: 3,
-          startTime: "09:00",
-          endTime: "17:00",
+          startTime: null,
+          endTime: null,
           mood: "🌿 Calm",
           weather: "sunny",
           isHearted: false,

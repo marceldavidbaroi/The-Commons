@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useRef } from "react";
-import { ChevronLeft, ChevronRight, Check, Save, Loader2, Calendar } from "lucide-react";
+import React from "react";
+import { ChevronLeft, ChevronRight, Check, Save, Loader2 } from "lucide-react";
 import { PencilHeart, PencilDelete, WEATHER_LIST } from "./diary-icons";
 import { ENERGY_LEVELS, MOOD_LIST } from "@/types/diary";
 import type { DiaryEntry } from "@/types/diary";
+import { DiaryDatePicker } from "./diary-date-picker";
+import { DiaryTimePicker } from "./diary-time-picker";
 
 interface ThemeEditorProps {
   currentEntry: DiaryEntry;
@@ -19,6 +21,7 @@ interface ThemeEditorProps {
   onSave: () => void;
   isSaving: boolean;
   hasUnsavedChanges: boolean;
+  hasDescriptionChanges?: boolean;
   isDeleting?: boolean;
 }
 
@@ -35,10 +38,9 @@ export function ThemeModernEditor({
   onSave,
   isSaving,
   hasUnsavedChanges,
+  hasDescriptionChanges,
   isDeleting,
 }: ThemeEditorProps) {
-  const dateInputRef = useRef<HTMLInputElement>(null);
-
   const calculateDuration = (start: string, end: string) => {
     try {
       const [sH, sM] = start.split(":").map(Number);
@@ -62,28 +64,6 @@ export function ThemeModernEditor({
     }
   };
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    if (!raw) return;
-    const [year, month, day] = raw.split("-").map(Number);
-    const selectedDate = new Date(year, month - 1, day);
-    const dateStr = selectedDate.toLocaleDateString("en-US", { month: "long", day: "numeric" });
-    const dayOfWeek = selectedDate.toLocaleDateString("en-US", { weekday: "long" });
-    const yearStr = `Anno ${selectedDate.getFullYear()}`;
-
-    applyInstantChange({
-      entryDate: raw,
-      dateStr,
-      dayOfWeek,
-      yearStr,
-    });
-  };
-
-  const formattedEntryDate = currentEntry.entryDate || (() => {
-    const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  })();
-
   return (
     <div className="w-full relative bg-white dark:bg-[#0F172A] rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5 sm:p-8 md:p-10 select-text">
       <div className="space-y-5">
@@ -100,38 +80,19 @@ export function ThemeModernEditor({
             <span>Prev</span>
           </button>
 
-          <div className="relative flex items-center justify-center flex-1 truncate px-1">
-            <button
-              type="button"
-              onClick={() => {
-                if (dateInputRef.current) {
-                  if ("showPicker" in HTMLInputElement.prototype) {
-                    try {
-                      dateInputRef.current.showPicker();
-                    } catch {
-                      dateInputRef.current.focus();
-                    }
-                  } else {
-                    dateInputRef.current.focus();
-                  }
-                }
-              }}
-              className="group inline-flex items-center gap-1.5 font-sans text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 tracking-tight hover:text-sky-500 transition-colors cursor-pointer"
-              title="Click to select entry date"
-            >
-              <span>
-                {currentEntry.dayOfWeek}, {currentEntry.dateStr} • {currentEntry.startTime} (
-                {calculateDuration(currentEntry.startTime, currentEntry.endTime)})
-              </span>
-              <Calendar className="h-3.5 w-3.5 opacity-40 group-hover:opacity-100 transition-opacity text-sky-500 shrink-0" />
-            </button>
-            <input
-              ref={dateInputRef}
-              type="date"
-              value={formattedEntryDate}
-              onChange={handleDateChange}
-              className="absolute opacity-0 pointer-events-none w-0 h-0"
-              tabIndex={-1}
+          <div className="flex items-center justify-center flex-wrap gap-1 sm:gap-2 flex-1 min-w-0 px-1">
+            <DiaryDatePicker
+              currentEntry={currentEntry}
+              theme="modern"
+              onDateSelect={applyInstantChange}
+            />
+            <span className="text-slate-300 dark:text-slate-700 text-xs select-none">•</span>
+            <DiaryTimePicker
+              startTime={currentEntry.startTime}
+              endTime={currentEntry.endTime}
+              theme="modern"
+              onTimeChange={applyInstantChange}
+              calculateDuration={calculateDuration}
             />
           </div>
 
@@ -192,7 +153,7 @@ export function ThemeModernEditor({
             placeholder="Type your notes, sprint logs, and mindful reflections..."
             className="w-full bg-transparent font-sans text-base sm:text-lg text-slate-700 dark:text-slate-200 leading-relaxed focus:outline-none resize-none placeholder:text-slate-400"
           />
-          {hasUnsavedChanges && (
+          {hasDescriptionChanges && (
             <div className="flex justify-end">
               <button
                 type="button"

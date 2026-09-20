@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { MyDiaryEntryDetailsClient } from "@/components/diary/my-diary-entry-details-client";
 
 export default async function MyDiaryEntryDetailsPage({
@@ -8,9 +8,11 @@ export default async function MyDiaryEntryDetailsPage({
 }) {
   const resolvedParams = await params;
   return (
-    <MyDiaryEntryDetailsClient
-      diaryId={resolvedParams.diaryId}
-      entryId={resolvedParams.entryId}
-    />
+    <Suspense fallback={null}>
+      <MyDiaryEntryDetailsClient
+        diaryId={resolvedParams.diaryId}
+        entryId={resolvedParams.entryId}
+      />
+    </Suspense>
   );
 }

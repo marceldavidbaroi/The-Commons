@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { useAuthStore } from "@/stores/auth-store";
 import type { User } from "@supabase/supabase-js";
 
 export class ServiceError extends Error {
@@ -23,18 +24,24 @@ export abstract class BaseService {
   }
 
   /**
-   * Retrieves current authenticated Supabase user or throws if required.
+   * Retrieves current authenticated Supabase user from Zustand store or local session,
+   * avoiding redundant network calls to /auth/v1/user.
    */
   protected static async getAuthenticatedUser(required = true): Promise<User | null> {
-    const supabase = this.getSupabase();
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
+    // 1. Check in-memory Zustand store (instant, 0 network requests)
+    const storeUser = useAuthStore.getState().user;
+    if (storeUser) {
+      return storeUser;
+    }
 
-    if (error || !user) {
+    // 2. Check local session storage (0 network requests)
+    const supabase = this.getSupabase();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user ?? null;
+
+    if (!user) {
       if (required) {
-        throw new ServiceError("User is not authenticated", "UNAUTHENTICATED", error);
+        throw new ServiceError("User is not authenticated", "UNAUTHENTICATED");
       }
       return null;
     }

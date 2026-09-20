@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
@@ -15,7 +15,9 @@ import {
   Plus,
   BookOpen,
   Loader2,
-  Save,
+  Cloud,
+  CloudUpload,
+  CloudCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CommonsSealVector } from "@/components/brand/logo";
@@ -41,6 +43,7 @@ type ViewMode = "entry" | "index" | "summary";
 
 export function SingleDiaryEntryClient({ targetId }: { targetId: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // 1. TanStack Query
   const { data: diaries = [] } = useDiariesOverview();
@@ -50,7 +53,9 @@ export function SingleDiaryEntryClient({ targetId }: { targetId: string }) {
   const deleteEntryMutation = useDeleteDiaryEntryMutation();
   const toggleHeartMutation = useToggleHeartEntryMutation();
 
-  const [activeView, setActiveView] = useState<ViewMode>("entry");
+  // URL-driven tab state so page reload preserves the active tab (e.g. ?tab=summary or ?tab=index)
+  const tabParam = searchParams?.get("tab") || searchParams?.get("view");
+  const activeView: ViewMode = tabParam === "index" ? "index" : tabParam === "summary" ? "summary" : "entry";
   const [activeEntryId, setActiveEntryId] = useState<string>(targetId);
   const [isDeletePageOpen, setIsDeletePageOpen] = useState(false);
   const [targetEntryToDeleteId, setTargetEntryToDeleteId] = useState<string | null>(null);
@@ -62,9 +67,17 @@ export function SingleDiaryEntryClient({ targetId }: { targetId: string }) {
     setActiveEntryId(targetId);
   }
 
-  const navigateToEntry = (targetPageId: string) => {
+  const setActiveView = (view: ViewMode) => {
+    const base = `/daily-diary/${activeEntryId}`;
+    const url = view === "entry" ? base : `${base}?tab=${view}`;
+    router.replace(url, { scroll: false });
+  };
+
+  const navigateToEntry = (targetPageId: string, view: ViewMode = "entry") => {
     setActiveEntryId(targetPageId);
-    router.replace(`/daily-diary/${targetPageId}`, { scroll: false });
+    const base = `/daily-diary/${targetPageId}`;
+    const url = view === "entry" ? base : `${base}?tab=${view}`;
+    router.replace(url, { scroll: false });
   };
 
   // Base entry from query cache (UUID-first)
@@ -80,6 +93,7 @@ export function SingleDiaryEntryClient({ targetId }: { targetId: string }) {
     updateDraft,
     saveAndApply,
     hasUnsavedChanges,
+    hasDescriptionChanges,
     isSaving,
     saveNow,
   } = useDiaryAutosave({
@@ -356,35 +370,34 @@ export function SingleDiaryEntryClient({ targetId }: { targetId: string }) {
                 <span className="hidden md:inline">Fresh Page</span>
               </Button>
 
-              {/* Top Save Button */}
-              <Button
-                size="sm"
-                onClick={saveNow}
-                disabled={isSaving || !hasUnsavedChanges}
-                className={`h-6.5 px-3 rounded-full font-serif font-semibold text-xs shadow-xs gap-1.5 shrink-0 transition-all ${
-                  hasUnsavedChanges
-                    ? `${themeSaveBtn} cursor-pointer`
-                    : "bg-black/5 dark:bg-white/5 text-muted-foreground border border-black/10 dark:border-white/10 opacity-80 cursor-default"
-                }`}
-                title={hasUnsavedChanges ? "Save changes" : "All changes saved"}
+              {/* Cloud Sync Status Indicator (Google Docs style) */}
+              <div
+                className="flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors select-none"
+                title={
+                  isSaving
+                    ? "Saving changes to cloud..."
+                    : hasUnsavedChanges
+                    ? "Unsaved changes"
+                    : "All changes saved to cloud"
+                }
               >
                 {isSaving ? (
                   <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    <span>Saving...</span>
+                    <CloudUpload className="h-3.5 w-3.5 text-sky-500 animate-pulse" />
+                    <span className="text-[11px] text-sky-500 hidden sm:inline font-sans">Saving...</span>
                   </>
                 ) : hasUnsavedChanges ? (
                   <>
-                    <Save className="h-3.5 w-3.5" />
-                    <span>Save</span>
+                    <Cloud className="h-3.5 w-3.5 text-amber-500" />
+                    <span className="text-[11px] text-amber-600 dark:text-amber-400 hidden sm:inline font-sans">Unsaved</span>
                   </>
                 ) : (
                   <>
-                    <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                    <span className="text-emerald-700 dark:text-emerald-400 font-medium">Saved</span>
+                    <CloudCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 hidden sm:inline font-sans">Saved</span>
                   </>
                 )}
-              </Button>
+              </div>
             </div>
           </div>
         </header>
@@ -406,6 +419,7 @@ export function SingleDiaryEntryClient({ targetId }: { targetId: string }) {
                 onSave={saveNow}
                 isSaving={isSaving}
                 hasUnsavedChanges={hasUnsavedChanges}
+                hasDescriptionChanges={hasDescriptionChanges}
                 isDeleting={deleteEntryMutation.isPending}
               />
             ) : theme === "classic" ? (
@@ -422,6 +436,7 @@ export function SingleDiaryEntryClient({ targetId }: { targetId: string }) {
                 onSave={saveNow}
                 isSaving={isSaving}
                 hasUnsavedChanges={hasUnsavedChanges}
+                hasDescriptionChanges={hasDescriptionChanges}
                 isDeleting={deleteEntryMutation.isPending}
               />
             ) : (
@@ -438,6 +453,7 @@ export function SingleDiaryEntryClient({ targetId }: { targetId: string }) {
                 onSave={saveNow}
                 isSaving={isSaving}
                 hasUnsavedChanges={hasUnsavedChanges}
+                hasDescriptionChanges={hasDescriptionChanges}
                 isDeleting={deleteEntryMutation.isPending}
               />
             )
@@ -463,8 +479,13 @@ export function SingleDiaryEntryClient({ targetId }: { targetId: string }) {
             <EntrySummaryView
               currentDiary={currentDiary}
               diaryEntries={diaryEntries}
+              currentEntry={currentEntry}
               theme={theme}
               onClose={() => setActiveView("entry")}
+              onSelectEntry={(entryId) => {
+                navigateToEntry(entryId);
+                setActiveView("entry");
+              }}
             />
           )}
         </main>

@@ -1,5 +1,5 @@
 import { BaseService, ServiceError } from "./base.service";
-import type { Diary, DiaryEntry, DiaryTheme } from "@/types/diary";
+import type { Diary, DiaryEntry, DiaryTheme, DiaryDaySummary } from "@/types/diary";
 import type { DiaryStats } from "@/types/database";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -31,8 +31,8 @@ export interface CreateDiaryEntryInput {
   description?: string;
   gratitude?: [string, string, string];
   energyLevel?: number;
-  startTime?: string;
-  endTime?: string;
+  startTime?: string | null;
+  endTime?: string | null;
   mood?: string;
   weather?: string;
   isHearted?: boolean;
@@ -127,8 +127,8 @@ export class DiaryService extends BaseService {
         description: row.description || "",
         gratitude: (row.gratitude as [string, string, string]) || ["", "", ""],
         energyLevel: row.energy_level || 3,
-        startTime: row.start_time || "09:00",
-        endTime: row.end_time || "17:00",
+        startTime: row.start_time || null,
+        endTime: row.end_time || null,
         mood: row.mood || "🌿 Calm",
         weather: row.weather || "sunny",
         isHearted: Boolean(row.is_hearted),
@@ -139,6 +139,136 @@ export class DiaryService extends BaseService {
       }));
     } catch (error) {
       return this.handleError(error, "Failed to retrieve diary entries.");
+    }
+  }
+
+  /**
+   * Fetches entries and aggregated summary metrics for a specific date.
+   */
+  static async getDiaryDaySummary(diaryId?: string, dateKey?: string): Promise<DiaryDaySummary> {
+    try {
+      if (!dateKey) {
+        return {
+          dateKey: "",
+          displayDate: "No Date Selected",
+          entries: [],
+          totalPages: 0,
+          totalWords: 0,
+          avgEnergy: "0",
+          moods: [],
+          weatherList: [],
+          gratitudeCount: 0,
+        };
+      }
+
+      const user = await this.getAuthenticatedUser(false);
+      if (!user) {
+        return {
+          dateKey,
+          displayDate: dateKey,
+          entries: [],
+          totalPages: 0,
+          totalWords: 0,
+          avgEnergy: "0",
+          moods: [],
+          weatherList: [],
+          gratitudeCount: 0,
+        };
+      }
+
+      const supabase = this.getSupabase();
+      let q = supabase
+        .from("diary_entries")
+        .select("*")
+        .eq("user_id", user.id)
+        .or(`entry_date.eq.${dateKey},date_str.eq.${dateKey}`)
+        .order("page_number", { ascending: true });
+
+      if (diaryId && isUuid(diaryId)) {
+        q = q.eq("diary_id", diaryId);
+      }
+
+      const { data, error } = await q;
+      if (error) throw error;
+
+      const entries: DiaryEntry[] = (data || []).map((row: any) => ({
+        id: row.id,
+        diaryId: row.diary_id,
+        userId: row.user_id,
+        pageNumber: row.page_number,
+        entryDate: row.entry_date,
+        dateStr: row.date_str || "",
+        dayOfWeek: row.day_of_week || "",
+        yearStr: row.year_str || "",
+        title: row.title || "",
+        description: row.description || "",
+        gratitude: (row.gratitude as [string, string, string]) || ["", "", ""],
+        energyLevel: row.energy_level || 3,
+        startTime: row.start_time || null,
+        endTime: row.end_time || null,
+        mood: row.mood || "🌿 Calm",
+        weather: row.weather || "sunny",
+        isHearted: Boolean(row.is_hearted),
+        tags: row.tags || [],
+        wordCount: row.word_count || 0,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }));
+
+      const sample = entries[0];
+      let displayDate = sample?.entryDate
+        ? `${sample.dayOfWeek ? `${sample.dayOfWeek}, ` : ""}${sample.dateStr || sample.entryDate}`
+        : sample?.dateStr;
+
+      if (!displayDate) {
+        try {
+          const parts = dateKey.split("-").map(Number);
+          const d = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2]) : new Date(dateKey);
+          if (!isNaN(d.getTime())) {
+            const dayOfWeek = d.toLocaleDateString("en-US", { weekday: "long" });
+            const dateStr = d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+            displayDate = `${dayOfWeek}, ${dateStr}`;
+          } else {
+            displayDate = dateKey;
+          }
+        } catch {
+          displayDate = dateKey;
+        }
+      }
+
+      const totalPages = entries.length;
+      const totalWords = entries.reduce(
+        (acc, e) =>
+          acc +
+          (e.wordCount ||
+            (e.description ? e.description.trim().split(/\s+/).filter(Boolean).length : 0)),
+        0
+      );
+
+      const totalEnergy = entries.reduce((acc, e) => acc + (e.energyLevel || 3), 0);
+      const avgEnergy = totalPages > 0 ? (totalEnergy / totalPages).toFixed(1) : "0";
+
+      const moods = Array.from(new Set(entries.map((e) => e.mood).filter(Boolean)));
+      const weatherList = Array.from(new Set(entries.map((e) => e.weather).filter(Boolean)));
+
+      const gratitudeCount = entries.reduce(
+        (acc, e) => acc + (e.gratitude?.filter((g) => g && g.trim()).length || 0),
+        0
+      );
+
+      return {
+        dateKey,
+        displayDate,
+        entries,
+        totalPages,
+        totalWords,
+        avgEnergy,
+        moods,
+        weatherList,
+        gratitudeCount,
+      };
+    } catch (error) {
+      return this.handleError(error, "Failed to retrieve day summary.");
     }
   }
 
@@ -334,8 +464,8 @@ export class DiaryService extends BaseService {
           description: input.description || "",
           gratitude: input.gratitude || ["", "", ""],
           energy_level: input.energyLevel || 3,
-          start_time: input.startTime || "09:00",
-          end_time: input.endTime || "17:00",
+          start_time: input.startTime || null,
+          end_time: input.endTime || null,
           mood: input.mood || "🌿 Calm",
           weather: input.weather || "sunny",
           is_hearted: Boolean(input.isHearted),
@@ -362,8 +492,8 @@ export class DiaryService extends BaseService {
         description: row.description || "",
         gratitude: (row.gratitude as [string, string, string]) || ["", "", ""],
         energyLevel: row.energy_level || 3,
-        startTime: row.start_time || "09:00",
-        endTime: row.end_time || "17:00",
+        startTime: row.start_time || null,
+        endTime: row.end_time || null,
         mood: row.mood || "🌿 Calm",
         weather: row.weather || "sunny",
         isHearted: Boolean(row.is_hearted),

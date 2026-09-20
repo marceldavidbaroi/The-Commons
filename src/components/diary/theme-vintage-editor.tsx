@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useRef } from "react";
-import { ChevronLeft, ChevronRight, Check, Save, Loader2, Calendar } from "lucide-react";
+import React from "react";
+import { ChevronLeft, ChevronRight, Check, Save, Loader2 } from "lucide-react";
 import { PencilHeart, PencilDelete, WEATHER_LIST } from "./diary-icons";
 import { ENERGY_LEVELS, MOOD_LIST } from "@/types/diary";
 import type { DiaryEntry } from "@/types/diary";
+import { DiaryDatePicker } from "./diary-date-picker";
+import { DiaryTimePicker } from "./diary-time-picker";
 
 interface ThemeEditorProps {
   currentEntry: DiaryEntry;
@@ -19,6 +21,7 @@ interface ThemeEditorProps {
   onSave: () => void;
   isSaving: boolean;
   hasUnsavedChanges: boolean;
+  hasDescriptionChanges?: boolean;
   isDeleting?: boolean;
 }
 
@@ -35,10 +38,9 @@ export function ThemeVintageEditor({
   onSave,
   isSaving,
   hasUnsavedChanges,
+  hasDescriptionChanges,
   isDeleting,
 }: ThemeEditorProps) {
-  const dateInputRef = useRef<HTMLInputElement>(null);
-
   const calculateDuration = (start: string, end: string) => {
     try {
       const [sH, sM] = start.split(":").map(Number);
@@ -62,28 +64,6 @@ export function ThemeVintageEditor({
     }
   };
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    if (!raw) return;
-    const [year, month, day] = raw.split("-").map(Number);
-    const selectedDate = new Date(year, month - 1, day);
-    const dateStr = selectedDate.toLocaleDateString("en-US", { month: "long", day: "numeric" });
-    const dayOfWeek = selectedDate.toLocaleDateString("en-US", { weekday: "long" });
-    const yearStr = `Anno ${selectedDate.getFullYear()}`;
-
-    applyInstantChange({
-      entryDate: raw,
-      dateStr,
-      dayOfWeek,
-      yearStr,
-    });
-  };
-
-  const formattedEntryDate = currentEntry.entryDate || (() => {
-    const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  })();
-
   return (
     <div className="w-full relative torn-sheet-shadow">
       <div className="w-full relative old-paper-bg torn-parchment-sheet p-4 sm:p-7 md:p-9 lg:p-11 border border-[#D5CAA8]/70 dark:border-[#2A3B4E]/70 select-text">
@@ -102,38 +82,19 @@ export function ThemeVintageEditor({
               <span>Prev</span>
             </button>
 
-            <div className="relative flex items-center justify-center flex-1 truncate px-1">
-              <button
-                type="button"
-                onClick={() => {
-                  if (dateInputRef.current) {
-                    if ("showPicker" in HTMLInputElement.prototype) {
-                      try {
-                        dateInputRef.current.showPicker();
-                      } catch {
-                        dateInputRef.current.focus();
-                      }
-                    } else {
-                      dateInputRef.current.focus();
-                    }
-                  }
-                }}
-                className="group inline-flex items-center gap-1.5 font-handwriting text-sm sm:text-base md:text-lg font-bold text-[#2A1D13] dark:text-[#FAF4EB] tracking-wide hover:text-[#8C3A27] dark:hover:text-amber-300 transition-colors cursor-pointer"
-                title="Click to select inscription date"
-              >
-                <span>
-                  {currentEntry.dayOfWeek}, {currentEntry.dateStr} • {currentEntry.startTime} (
-                  {calculateDuration(currentEntry.startTime, currentEntry.endTime)})
-                </span>
-                <Calendar className="h-3.5 w-3.5 opacity-40 group-hover:opacity-100 transition-opacity text-[#8C3A27] dark:text-amber-300 shrink-0" />
-              </button>
-              <input
-                ref={dateInputRef}
-                type="date"
-                value={formattedEntryDate}
-                onChange={handleDateChange}
-                className="absolute opacity-0 pointer-events-none w-0 h-0"
-                tabIndex={-1}
+            <div className="flex items-center justify-center flex-wrap gap-1 sm:gap-2 flex-1 min-w-0 px-1">
+              <DiaryDatePicker
+                currentEntry={currentEntry}
+                theme="vintage"
+                onDateSelect={applyInstantChange}
+              />
+              <span className="text-[#8C3A27]/40 dark:text-amber-300/40 text-xs select-none">•</span>
+              <DiaryTimePicker
+                startTime={currentEntry.startTime}
+                endTime={currentEntry.endTime}
+                theme="vintage"
+                onTimeChange={applyInstantChange}
+                calculateDuration={calculateDuration}
               />
             </div>
 
@@ -167,7 +128,7 @@ export function ThemeVintageEditor({
                   if (nextEntry) onNavigate(nextEntry.id);
                   else onNewPage();
                 }}
-                className="torn-paper px-2 py-0.5 bg-[#EBE3D0] dark:bg-[#1C2C3E] text-[#6B5542] dark:text-[#CBD5E1] font-handwriting text-sm flex items-center gap-1 cursor-pointer"
+                className="torn-paper px-2 py-0.5 bg-[#EBE3D0] dark:bg-[#1C2C3E] text-[#6B5542] dark:text-[#CBD5E1] font-handwriting text-xs sm:text-sm flex items-center gap-0.5 cursor-pointer"
               >
                 <span>{nextEntry ? "Next" : "New +"}</span>
                 <ChevronRight className="h-3 w-3" />
@@ -179,10 +140,10 @@ export function ThemeVintageEditor({
             <input
               type="text"
               value={currentEntry.title}
-              placeholder="Title of this page..."
               onChange={(e) => onUpdate({ title: e.target.value })}
               onBlur={onSave}
-              className="w-full bg-transparent border-b border-[#D5C9AC] dark:border-[#2C4158] font-handwriting text-xl sm:text-2xl font-bold text-[#1E2536] dark:text-[#F3EDE2] focus:outline-none focus:border-[#8C3A27] pb-1 placeholder:text-[#8C7A68]/50"
+              placeholder="Chronicle Header..."
+              className="w-full bg-transparent font-handwriting text-2xl sm:text-3xl font-bold text-[#1E2536] dark:text-[#FAF6EE] border-b border-[#D5CAA8]/80 dark:border-[#2A3B4E] focus:outline-none focus:border-[#8C3A27] py-0.5 placeholder:text-[#8C7A68]/40"
             />
           </div>
 
@@ -194,7 +155,7 @@ export function ThemeVintageEditor({
               onChange={(e) => onUpdate({ description: e.target.value })}
               className="w-full bg-transparent ruled-lines-bg font-handwriting text-lg sm:text-xl text-[#1E2536] dark:text-[#F3EDE2] focus:outline-none resize-none selection:bg-[#E8C89A] placeholder:text-[#8C7A68]/40"
             />
-            {hasUnsavedChanges && (
+            {hasDescriptionChanges && (
               <div className="flex justify-end">
                 <button
                   type="button"
