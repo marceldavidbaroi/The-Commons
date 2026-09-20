@@ -37,6 +37,7 @@ import { EntrySummaryView } from "./entry-summary-view";
 import { ThemeVintageEditor } from "./theme-vintage-editor";
 import { ThemeClassicEditor } from "./theme-classic-editor";
 import { ThemeModernEditor } from "./theme-modern-editor";
+import { TagPicker } from "@/components/tags/tag-picker";
 import type { Diary, DiaryEntry, DiaryTheme } from "@/types/diary";
 
 type ViewMode = "entry" | "index" | "summary";
@@ -404,6 +405,21 @@ export function SingleDiaryEntryClient({ targetId }: { targetId: string }) {
 
         {/* MAIN CANVAS */}
         <main className="flex-1 max-w-2xl w-full mx-auto p-3 sm:p-6 lg:p-8 flex flex-col justify-center items-center">
+          {activeView === "entry" && currentEntry && (
+            <div className="w-full flex items-center justify-between pb-3 pt-1 px-1 text-xs font-mono">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-muted-foreground uppercase text-[10px] tracking-wider shrink-0 font-semibold">
+                  Page Tags:
+                </span>
+                <TagPicker
+                  entityType="diary_entry"
+                  entityId={currentEntry.id}
+                  feature="diary"
+                />
+              </div>
+            </div>
+          )}
+
           {activeView === "entry" && (
             theme === "vintage" ? (
               <ThemeVintageEditor

@@ -11,6 +11,7 @@ import {
   FolderArchive, 
   MessageSquare, 
   FileText,
+  Tag,
 } from "lucide-react";
 import { CommonsSealVector } from "@/components/brand/logo";
 import { SanctuaryNav } from "@/components/navigation/sanctuary-nav";
@@ -125,8 +126,19 @@ const featureDepartments: FeatureDepartment[] = [
     themeColorClass: "border-[#66A3BF] text-[#66A3BF] dark:text-[#C8DFDB]",
   },
   {
-    id: "monographs",
+    id: "tag-management",
     deptNumber: "05",
+    title: "Tag Management",
+    subtitle: "Categorized taxonomy, color accents & entity filters.",
+    href: "/tag-management",
+    buttonText: "Manage Tags",
+    icon: <Tag className="h-4 w-4" />,
+    themeTag: "Taxonomy",
+    themeColorClass: "border-[#8B5CF6] text-[#8B5CF6] dark:text-[#A78BFA]",
+  },
+  {
+    id: "monographs",
+    deptNumber: "06",
     title: "Essays & Articles",
     subtitle: "Longform editorial reading & broadside dispatches.",
     href: "/home",
@@ -137,7 +149,7 @@ const featureDepartments: FeatureDepartment[] = [
   },
   {
     id: "agora",
-    deptNumber: "06",
+    deptNumber: "07",
     title: "The Agora",
     subtitle: "Citizen proposals & community dialogues.",
     href: "/home",
@@ -148,7 +160,7 @@ const featureDepartments: FeatureDepartment[] = [
   },
   {
     id: "rhythms",
-    deptNumber: "07",
+    deptNumber: "08",
     title: "Rhythms & Streaks",
     subtitle: "Consistency logs & mindful habit tracking.",
     href: "/my-diaries",
@@ -159,7 +171,7 @@ const featureDepartments: FeatureDepartment[] = [
   },
   {
     id: "vault",
-    deptNumber: "08",
+    deptNumber: "09",
     title: "Personal Vault",
     subtitle: "Encrypted items, documents & asset catalog.",
     href: "/home",
@@ -339,11 +351,18 @@ export default function HomePage() {
             </div>
 
             {/* Profile Quick Action Buttons */}
-            <div className="pt-2 border-t border-border/60 grid grid-cols-2 gap-2">
+            <div className="pt-2 border-t border-border/60 grid grid-cols-1 sm:grid-cols-3 gap-2">
               <Link href="/citizen-passport" className="block">
                 <button className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-background hover:bg-[#3368A0] hover:text-white border border-border text-foreground text-xs font-serif transition-colors cursor-pointer">
                   <CitizenProfileSvg className="h-3.5 w-3.5" />
-                  <span>Citizen Passport</span>
+                  <span>Passport</span>
+                </button>
+              </Link>
+
+              <Link href="/tag-management" className="block">
+                <button className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-background hover:bg-[#8B5CF6] hover:text-white border border-border text-foreground text-xs font-serif transition-colors cursor-pointer">
+                  <Tag className="h-3.5 w-3.5" />
+                  <span>Taxonomy</span>
                 </button>
               </Link>
 
@@ -367,7 +386,7 @@ export default function HomePage() {
               ALL DEPARTMENTS & FEATURES
             </span>
             <span className="font-mono text-xs text-muted-foreground">
-              8 Spaces
+              9 Spaces
             </span>
           </div>
 

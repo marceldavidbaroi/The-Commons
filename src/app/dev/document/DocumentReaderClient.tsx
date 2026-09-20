@@ -661,13 +661,28 @@ function CleanMarkdownRenderer({ content }: { content: string }) {
     let alertBuffer: string[] = [];
 
     const flushCodeBlock = (key: number) => {
+      // Strip common leading indentation if code was indented inside a list or block
+      const nonEmptyLines = codeBuffer.filter((l) => l.trim().length > 0);
+      let minIndent = Infinity;
+      for (const l of nonEmptyLines) {
+        const match = l.match(/^(\s*)/);
+        if (match) {
+          minIndent = Math.min(minIndent, match[1].length);
+        }
+      }
+      const cleanedLines =
+        minIndent > 0 && minIndent !== Infinity
+          ? codeBuffer.map((l) => (l.length >= minIndent ? l.slice(minIndent) : l.trimStart()))
+          : codeBuffer;
+
+      const codeString = cleanedLines.join("\n");
       if (codeLanguage.toLowerCase() === "mermaid") {
         elements.push(
-          <MermaidViewer key={`mermaid-${key}`} code={codeBuffer.join("\n")} />
+          <MermaidViewer key={`mermaid-${key}`} code={codeString} />
         );
       } else {
         elements.push(
-          <CodeBlockViewer key={`code-${key}`} code={codeBuffer.join("\n")} language={codeLanguage} />
+          <CodeBlockViewer key={`code-${key}`} code={codeString} language={codeLanguage} />
         );
       }
       codeBuffer = [];
@@ -692,8 +707,8 @@ function CleanMarkdownRenderer({ content }: { content: string }) {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
-      // Code Block Fence
-      if (line.startsWith("```")) {
+      // Code Block Fence (supports top-level and indented fences)
+      if (line.trim().startsWith("```")) {
         if (inAlert) flushAlert(i);
         if (inTable) flushTable(i);
 
@@ -701,7 +716,7 @@ function CleanMarkdownRenderer({ content }: { content: string }) {
           flushCodeBlock(i);
         } else {
           inCodeBlock = true;
-          codeLanguage = line.replace(/^```/, "").trim();
+          codeLanguage = line.trim().replace(/^```/, "").trim();
         }
         continue;
       }

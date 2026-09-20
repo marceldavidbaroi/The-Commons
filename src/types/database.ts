@@ -207,6 +207,168 @@ export interface Database {
           }
         ];
       };
+      tag_categories: {
+        Row: {
+          id: number;
+          user_id: string;
+          feature: string;
+          name: string;
+          color: string;
+          display_order: number;
+          is_system: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          user_id?: string;
+          feature?: string;
+          name: string;
+          color?: string;
+          display_order?: number;
+          is_system?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<{
+          feature: string;
+          name: string;
+          color: string;
+          display_order: number;
+          is_system: boolean;
+          updated_at: string;
+        }>;
+        Relationships: [
+          {
+            foreignKeyName: "tag_categories_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      tags: {
+        Row: {
+          id: number;
+          category_id: number;
+          user_id: string;
+          name: string;
+          color: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          category_id: number;
+          user_id?: string;
+          name: string;
+          color?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<{
+          category_id: number;
+          name: string;
+          color: string | null;
+          updated_at: string;
+        }>;
+        Relationships: [
+          {
+            foreignKeyName: "tags_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "tag_categories";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tags_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      diary_entry_tags: {
+        Row: {
+          entry_id: string;
+          tag_id: number;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          entry_id: string;
+          tag_id: number;
+          user_id?: string;
+          created_at?: string;
+        };
+        Update: Partial<{
+          entry_id: string;
+          tag_id: number;
+          user_id: string;
+          created_at: string;
+        }>;
+        Relationships: [
+          {
+            foreignKeyName: "diary_entry_tags_entry_id_fkey";
+            columns: ["entry_id"];
+            isOneToOne: false;
+            referencedRelation: "diary_entries";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "diary_entry_tags_tag_id_fkey";
+            columns: ["tag_id"];
+            isOneToOne: false;
+            referencedRelation: "tags";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "diary_entry_tags_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      document_tags: {
+        Row: {
+          document_id: string;
+          tag_id: number;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          document_id: string;
+          tag_id: number;
+          user_id?: string;
+          created_at?: string;
+        };
+        Update: Partial<{
+          document_id: string;
+          tag_id: number;
+          user_id: string;
+          created_at: string;
+        }>;
+        Relationships: [
+          {
+            foreignKeyName: "document_tags_tag_id_fkey";
+            columns: ["tag_id"];
+            isOneToOne: false;
+            referencedRelation: "tags";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "document_tags_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -286,6 +448,12 @@ export interface Database {
           p_weather?: string;
           p_is_hearted?: boolean;
           p_tags?: string[];
+        };
+        Returns: Json;
+      };
+      provision_feature_tag_categories: {
+        Args: {
+          p_feature: string;
         };
         Returns: Json;
       };
