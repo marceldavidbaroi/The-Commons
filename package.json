@@ -9,7 +9,8 @@
     "lint": "eslint",
     "env:local": "cp .env.local.docker .env.local && echo 'Switched to local docker environment (.env.local.docker -> .env.local)'",
     "env:prod": "cp .env.local.prod .env.local && echo 'Switched to production environment (.env.local.prod -> .env.local)'",
-    "backend:prod": "pnpm env:prod && node scripts/deploy-migrations.mjs"
+    "backend:prod": "pnpm env:prod && node scripts/deploy-migrations.mjs",
+    "db:seed": "pnpm env:prod && npx supabase db execute --file supabase/seed.sql"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

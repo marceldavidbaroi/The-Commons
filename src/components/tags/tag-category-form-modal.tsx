@@ -25,6 +25,7 @@ const PRESET_COLORS = [
 
 const FEATURE_OPTIONS = [
   { value: "general", label: "General (Universal)" },
+  { value: "goals", label: "Horizons & Goals" },
   { value: "diary", label: "Daily Diary / Chronicles" },
   { value: "document", label: "Documents / Broadsides" },
 ];

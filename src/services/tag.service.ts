@@ -13,7 +13,9 @@ import type {
 export class TagService extends BaseService {
   /**
    * Retrieves all tag categories and their child tags for the authenticated user,
-   * optionally filtered by a specific feature scope (e.g. 'diary', 'document').
+   * optionally filtered by a specific feature scope (e.g. 'diary', 'document', 'goals').
+   * If the user does not have categories provisioned yet, automatically initializes
+   * default system tag taxonomies on demand.
    */
   public static async fetchUserTagCategoriesWithTags(
     feature?: string
@@ -33,8 +35,23 @@ export class TagService extends BaseService {
         query = query.eq("feature", feature);
       }
 
-      const { data, error } = await query;
+      let { data, error } = await query;
       if (error) throw error;
+
+      // Auto-provision default system tags if user has no categories for this scope
+      if (!data || data.length === 0) {
+        const featuresToProvision = feature ? [feature] : ["goals", "diary", "document"];
+        await Promise.allSettled(
+          featuresToProvision.map((f) =>
+            (supabase as any).rpc("provision_feature_tag_categories", { p_feature: f })
+          )
+        );
+
+        const retryResult = await query;
+        if (!retryResult.error && retryResult.data) {
+          data = retryResult.data;
+        }
+      }
 
       return (data || []).map((cat: any) => ({
         ...cat,
@@ -218,8 +235,18 @@ export class TagService extends BaseService {
       if (!user) throw new ServiceError("User not authenticated", "UNAUTHENTICATED");
 
       const supabase = this.getSupabase();
-      const tableName = entityType === "diary_entry" ? "diary_entry_tags" : "document_tags";
-      const idColumn = entityType === "diary_entry" ? "entry_id" : "document_id";
+      const tableName =
+        entityType === "diary_entry"
+          ? "diary_entry_tags"
+          : entityType === "goal"
+          ? "goal_tags"
+          : "document_tags";
+      const idColumn =
+        entityType === "diary_entry"
+          ? "entry_id"
+          : entityType === "goal"
+          ? "goal_id"
+          : "document_id";
 
       const { data, error } = await (supabase.from(tableName) as any)
         .select("tag_id, tags(*)")
@@ -248,8 +275,18 @@ export class TagService extends BaseService {
       if (!user) throw new ServiceError("User not authenticated", "UNAUTHENTICATED");
 
       const supabase = this.getSupabase();
-      const tableName = entityType === "diary_entry" ? "diary_entry_tags" : "document_tags";
-      const idColumn = entityType === "diary_entry" ? "entry_id" : "document_id";
+      const tableName =
+        entityType === "diary_entry"
+          ? "diary_entry_tags"
+          : entityType === "goal"
+          ? "goal_tags"
+          : "document_tags";
+      const idColumn =
+        entityType === "diary_entry"
+          ? "entry_id"
+          : entityType === "goal"
+          ? "goal_id"
+          : "document_id";
 
       const { error } = await (supabase.from(tableName) as any)
         .insert({
@@ -280,8 +317,18 @@ export class TagService extends BaseService {
       if (!user) throw new ServiceError("User not authenticated", "UNAUTHENTICATED");
 
       const supabase = this.getSupabase();
-      const tableName = entityType === "diary_entry" ? "diary_entry_tags" : "document_tags";
-      const idColumn = entityType === "diary_entry" ? "entry_id" : "document_id";
+      const tableName =
+        entityType === "diary_entry"
+          ? "diary_entry_tags"
+          : entityType === "goal"
+          ? "goal_tags"
+          : "document_tags";
+      const idColumn =
+        entityType === "diary_entry"
+          ? "entry_id"
+          : entityType === "goal"
+          ? "goal_id"
+          : "document_id";
 
       const { error } = await (supabase.from(tableName) as any)
         .delete()
@@ -308,8 +355,18 @@ export class TagService extends BaseService {
       if (!user) throw new ServiceError("User not authenticated", "UNAUTHENTICATED");
 
       const supabase = this.getSupabase();
-      const tableName = entityType === "diary_entry" ? "diary_entry_tags" : "document_tags";
-      const idColumn = entityType === "diary_entry" ? "entry_id" : "document_id";
+      const tableName =
+        entityType === "diary_entry"
+          ? "diary_entry_tags"
+          : entityType === "goal"
+          ? "goal_tags"
+          : "document_tags";
+      const idColumn =
+        entityType === "diary_entry"
+          ? "entry_id"
+          : entityType === "goal"
+          ? "goal_id"
+          : "document_id";
 
       // 1. Fetch current tag IDs
       const { data: existing, error: fetchErr } = await (supabase.from(tableName) as any)

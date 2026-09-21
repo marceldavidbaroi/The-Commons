@@ -366,12 +366,10 @@ export function useProvisionFeatureTagsMutation() {
     mutationFn: async (feature: string): Promise<{ success: boolean; feature: string; provisioned: boolean }> => {
       return TagService.provisionFeatureTagCategories(feature);
     },
-    onSuccess: (result, feature) => {
-      if (result.provisioned) {
-        queryClient.invalidateQueries({
-          queryKey: tagKeys.categories(feature),
-        });
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: tagKeys.all,
+      });
     },
     onError: (error) => {
       notify.error(error instanceof Error ? error.message : "Failed to provision feature tags");

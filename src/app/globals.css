@@ -400,3 +400,108 @@
 .dark .torn-sheet-shadow {
   box-shadow: 0 14px 28px -6px rgba(0, 0, 0, 0.65);
 }
+
+/* ==========================================================================
+   3. FEATURE-SCOPED DESIGN SYSTEM: GOALS & HORIZON (SANCTUARY COMPASS)
+   Ergonomic, low-fatigue design with soothing sage, calm teal, tactile cards,
+   smooth progress bars, and serene status badges for comfortable daily focus.
+   ========================================================================== */
+
+.goal-card-surface {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.goal-card-surface:hover {
+  border-color: rgba(51, 104, 160, 0.45);
+  box-shadow: 0 4px 14px -2px rgba(25, 45, 60, 0.08);
+  transform: translateY(-1px);
+}
+
+.dark .goal-card-surface:hover {
+  border-color: rgba(102, 163, 191, 0.45);
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.45);
+}
+
+.goal-progress-track {
+  background-color: rgba(0, 0, 0, 0.06);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.dark .goal-progress-track {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.goal-progress-fill {
+  background: linear-gradient(90deg, #3368A0 0%, #4A7C59 100%);
+  border-radius: 9999px;
+  transition: width 0.4s ease-out;
+}
+
+.dark .goal-progress-fill {
+  background: linear-gradient(90deg, #66A3BF 0%, #84A98C 100%);
+}
+
+.goal-pill-daily {
+  background-color: #EBF3ED;
+  color: #2C5E3B;
+  border: 1px solid #C8E1CE;
+}
+
+.dark .goal-pill-daily {
+  background-color: rgba(22, 46, 31, 0.6);
+  color: #88D49E;
+  border-color: rgba(35, 78, 49, 0.8);
+}
+
+.goal-pill-weekly {
+  background-color: #EDF4F9;
+  color: #24587E;
+  border: 1px solid #CFE2EF;
+}
+
+.dark .goal-pill-weekly {
+  background-color: rgba(19, 42, 62, 0.6);
+  color: #7EBBE6;
+  border-color: rgba(30, 67, 98, 0.8);
+}
+
+.goal-pill-monthly {
+  background-color: #F0EEF8;
+  color: #4F4687;
+  border: 1px solid #D8D2EE;
+}
+
+.dark .goal-pill-monthly {
+  background-color: rgba(30, 27, 56, 0.6);
+  color: #B1A6E6;
+  border-color: rgba(51, 46, 90, 0.8);
+}
+
+.goal-pill-milestone {
+  background-color: #FAF3E8;
+  color: #8C5E14;
+  border: 1px solid #EEDDBF;
+}
+
+.dark .goal-pill-milestone {
+  background-color: rgba(47, 34, 11, 0.6);
+  color: #F3C97E;
+  border-color: rgba(78, 57, 20, 0.8);
+}
+
+.goal-pill-habit {
+  background-color: #E8F4F2;
+  color: #1E5D57;
+  border: 1px solid #C2E4E0;
+}
+
+.dark .goal-pill-habit {
+  background-color: rgba(17, 45, 42, 0.6);
+  color: #6ED2C8;
+  border-color: rgba(31, 78, 73, 0.8);
+}

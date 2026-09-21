@@ -73,30 +73,48 @@ function runCommand(cmd, args) {
 
 async function main() {
   try {
+    const accessToken = process.env.SUPABASE_ACCESS_TOKEN;
+
+    if (accessToken) {
+      console.log(`🔑 Using SUPABASE_ACCESS_TOKEN from environment for non-interactive deployment.`);
+    }
+
     if (dbUrl) {
       console.log(`📦 Applying migrations using database URL connection...`);
       await runCommand("npx", ["supabase", "db", "push", "--db-url", dbUrl, "--include-all"]);
+    } else if (accessToken && projectRef) {
+      console.log(`📦 Linking project (${projectRef}) with SUPABASE_ACCESS_TOKEN...`);
+      const linkArgs = ["supabase", "link", "--project-ref", projectRef];
+      if (dbPassword) {
+        linkArgs.push("--password", dbPassword);
+      }
+      await runCommand("npx", linkArgs);
+
+      console.log(`📦 Pushing migrations to remote database (${projectRef})...`);
+      const pushArgs = ["supabase", "db", "push", "--linked", "--include-all"];
+      if (dbPassword) {
+        pushArgs.push("--password", dbPassword);
+      }
+      await runCommand("npx", pushArgs);
     } else if (dbPassword && projectRef) {
       console.log(`📦 Linking Supabase project (${projectRef}) and pushing migrations...`);
       await runCommand("npx", ["supabase", "link", "--project-ref", projectRef, "--password", dbPassword]);
-      await runCommand("npx", ["supabase", "db", "push", "--linked", "--include-all"]);
-    } else if (process.env.SUPABASE_ACCESS_TOKEN && projectRef) {
-      console.log(`📦 Linking with SUPABASE_ACCESS_TOKEN and pushing migrations (${projectRef})...`);
-      await runCommand("npx", ["supabase", "link", "--project-ref", projectRef]);
-      await runCommand("npx", ["supabase", "db", "push", "--linked", "--include-all"]);
+      await runCommand("npx", ["supabase", "db", "push", "--linked", "--include-all", "--password", dbPassword]);
     } else {
       console.warn(`
-ℹ️  No DATABASE_URL or SUPABASE_DB_PASSWORD found in .env.local or .env.local.prod.
+ℹ️  No SUPABASE_ACCESS_TOKEN, DATABASE_URL, or SUPABASE_DB_PASSWORD found in .env.local or .env.local.prod.
 
-To deploy migrations automatically without interactive prompts, add one of the following to your .env.local.prod:
+To deploy migrations automatically without local interactive login ('supabase login'):
+Add your Supabase Personal Access Token to .env.local.prod:
 
-  Option A (Direct Connection URL):
+  SUPABASE_ACCESS_TOKEN="sbp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+(You can generate one at: https://supabase.com/dashboard/account/tokens)
+
+Alternatively, add your direct connection URL:
   DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@db.${projectRef}.supabase.co:5432/postgres"
 
-  Option B (Database Password):
-  SUPABASE_DB_PASSWORD="[YOUR-PASSWORD]"
-
-Proceeding with Supabase CLI link to project "${projectRef}" (you may be prompted for your database password)...
+Attempting Supabase CLI link with project "${projectRef}"...
 `);
 
       // Attempt to link first if projectRef is known

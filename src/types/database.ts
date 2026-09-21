@@ -369,6 +369,115 @@ export interface Database {
           }
         ];
       };
+      goals: {
+        Row: {
+          id: string;
+          user_id: string;
+          parent_id: string | null;
+          title: string;
+          description: string | null;
+          type: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'milestone' | 'habit';
+          status: 'draft' | 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'deferred';
+          priority: 'low' | 'normal' | 'high' | 'critical';
+          start_date: string | null;
+          due_date: string | null;
+          achieved_at: string | null;
+          cancelled_at: string | null;
+          cancel_reason: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          parent_id?: string | null;
+          title: string;
+          description?: string | null;
+          type?: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'milestone' | 'habit';
+          status?: 'draft' | 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'deferred';
+          priority?: 'low' | 'normal' | 'high' | 'critical';
+          start_date?: string | null;
+          due_date?: string | null;
+          achieved_at?: string | null;
+          cancelled_at?: string | null;
+          cancel_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<{
+          parent_id: string | null;
+          title: string;
+          description: string | null;
+          type: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'milestone' | 'habit';
+          status: 'draft' | 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'deferred';
+          priority: 'low' | 'normal' | 'high' | 'critical';
+          start_date: string | null;
+          due_date: string | null;
+          achieved_at: string | null;
+          cancelled_at: string | null;
+          cancel_reason: string | null;
+          updated_at: string;
+        }>;
+        Relationships: [
+          {
+            foreignKeyName: "goals_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "goals_parent_id_fkey";
+            columns: ["parent_id"];
+            isOneToOne: false;
+            referencedRelation: "goals";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      goal_tags: {
+        Row: {
+          goal_id: string;
+          tag_id: number;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          goal_id: string;
+          tag_id: number;
+          user_id?: string;
+          created_at?: string;
+        };
+        Update: Partial<{
+          goal_id: string;
+          tag_id: number;
+          user_id: string;
+          created_at: string;
+        }>;
+        Relationships: [
+          {
+            foreignKeyName: "goal_tags_goal_id_fkey";
+            columns: ["goal_id"];
+            isOneToOne: false;
+            referencedRelation: "goals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "goal_tags_tag_id_fkey";
+            columns: ["tag_id"];
+            isOneToOne: false;
+            referencedRelation: "tags";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "goal_tags_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -460,6 +569,9 @@ export interface Database {
     };
     Enums: {
       user_role: UserRole;
+      goal_type: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'milestone' | 'habit';
+      goal_status: 'draft' | 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'deferred';
+      goal_priority: 'low' | 'normal' | 'high' | 'critical';
     };
     CompositeTypes: {
       [_ in never]: never;

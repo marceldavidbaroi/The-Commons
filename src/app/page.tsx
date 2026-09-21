@@ -4,16 +4,23 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { 
   ArrowRight, 
-  Feather, 
   Calendar, 
-  Clock, 
   ShieldCheck,
-  BookOpen
+  BookOpen,
+  Sparkles,
+  Layers,
+  Feather
 } from "lucide-react";
 import { CommonsSealVector, CommonsLogo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { CitizenStatus } from "@/components/brand/citizen-status";
 import { AuthGuard } from "@/components/auth/auth-guard";
+import { 
+  DailyDiaryBookSvg, 
+  GoalsCompassSvg, 
+  CitizenPassportSvg, 
+  TagsIndexPlateSvg 
+} from "@/components/brand/magazine-illustrations";
 
 function GoogleIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
@@ -39,7 +46,7 @@ function GoogleIcon({ className = "w-4 h-4" }: { className?: string }) {
 }
 
 export default function LandingPage() {
-  const [todayDate, setTodayDate] = useState("Sanctuary Edition");
+  const [todayDate, setTodayDate] = useState("Daily Edition");
 
   useEffect(() => {
     setTodayDate(
@@ -56,296 +63,292 @@ export default function LandingPage() {
     <AuthGuard requireGuest={true}>
       <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-[#C8DFDB] selection:text-[#193836]">
         
-        {/* 1. TOP COLOPHON & MICRO MASTHEAD */}
+        {/* 1. TOP BROADSHEET COLOPHON HEADER */}
         <header className="border-b border-border/80 bg-muted/30 px-6 py-3">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] font-mono tracking-wider text-muted-foreground uppercase">
-          <div className="flex items-center gap-3">
-            <CommonsLogo variant="horizontal" size="sm" href="/" subtitle="DIGITAL SANCTUARY" showFolio />
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3 w-3 text-[#3368A0]" />
-              {todayDate}
-            </span>
-            <span className="text-border">|</span>
-            <Link href="/my-diaries" className="hover:text-foreground text-[#3368A0] dark:text-[#66A3BF] font-semibold transition-colors flex items-center gap-1">
-              <BookOpen className="h-3 w-3" />
-              <span>My Diaries</span>
-            </Link>
-            <span className="text-border">|</span>
-            <Link href="/citizen-passport" className="hover:text-foreground text-muted-foreground transition-colors hidden md:inline">
-              Citizen Passport
-            </Link>
-            <span className="text-border hidden md:inline">|</span>
-            <Link href="/settings" className="hover:text-foreground text-muted-foreground transition-colors hidden md:inline">
-              Settings
-            </Link>
-            <span className="text-border hidden md:inline">|</span>
-            <CitizenStatus />
-          </div>
-        </div>
-      </header>
-
-      {/* 2. HERO PUBLICATION MASTHEAD */}
-      <section className="max-w-6xl w-full mx-auto px-6 pt-10 pb-6 text-center flex flex-col items-center">
-        <Link href="/" className="inline-block group focus:outline-none mb-3">
-          <CommonsSealVector 
-            size={92} 
-            className="transition-transform duration-700 group-hover:scale-105 group-hover:rotate-6 drop-shadow-md" 
-          />
-        </Link>
-        
-        <span className="kicker block text-[#3368A0] dark:text-[#66A3BF] mb-1">
-          AN EDITORIAL BROADSIDE & DIGITAL SANCTUARY § EST. 2026
-        </span>
-        
-        <h1 className="masthead-title text-5xl sm:text-7xl md:text-8xl tracking-tight text-foreground">
-          THE COMMONS
-        </h1>
-        
-        <p className="font-serif italic text-base sm:text-xl text-muted-foreground mt-2 max-w-2xl mx-auto leading-relaxed">
-          A timeless haven for reflection, private journaling, and cryptographic record-keeping.
-        </p>
-
-        {/* Folio Line */}
-        <div className="folio-bar w-full py-2.5 my-6 flex items-center justify-between text-muted-foreground text-xs font-mono">
-          <span>VOL. I — NO. 01</span>
-          <span className="font-serif italic text-[#3368A0] dark:text-[#66A3BF]">Littera Scripta Manet</span>
-          <span>AUTUMN / 2026 EDITION</span>
-        </div>
-      </section>
-
-      {/* 3. HERO PROCLAMATION & CALL TO ACTION */}
-      <section className="max-w-6xl w-full mx-auto px-6 pb-16">
-        <div className="border-t-2 border-b-2 border-[#3368A0] py-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-          
-          <div className="lg:col-span-7 space-y-6">
-            <span className="kicker text-[#3368A0] dark:text-[#66A3BF]">
-              § 01 • THE EDITORIAL DOCTRINE
-            </span>
-            
-            <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.08]">
-              Reclaiming the Dignity of the Written Word.
-            </h2>
-            
-            <p className="drop-cap text-base text-foreground/90 leading-relaxed font-serif">
-              In an age of frenzied feeds, intrusive telemetry, and disposable notifications, The Commons offers an enduring digital retreat. Here, your daily journal entries, philosophical monographs, and archived records are shaped with high-craft editorial broadsheet typography and secured by strict PostgreSQL Row-Level Security.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
-              <Link href="/my-diaries" className="w-full sm:w-auto">
-                <Button 
-                  size="lg" 
-                  className="w-full sm:w-auto h-12 bg-[#3368A0] hover:bg-[#285380] text-white font-serif text-sm tracking-wide gap-2 rounded-none px-6 shadow-md cursor-pointer transition-all"
-                >
-                  <BookOpen className="h-4 w-4" />
-                  <span>Open My Diaries Library</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              </Link>
-
-              <Link href="/login" className="w-full sm:w-auto">
-                <Button 
-                  variant="outline"
-                  size="lg" 
-                  className="w-full sm:w-auto h-12 border-border hover:bg-muted font-mono text-xs rounded-none px-5 cursor-pointer gap-2"
-                >
-                  <GoogleIcon className="h-4 w-4" />
-                  <span>Citizen Sign In</span>
-                </Button>
-              </Link>
+          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] font-mono tracking-wider text-muted-foreground uppercase">
+            <div className="flex items-center gap-3">
+              <CommonsLogo variant="horizontal" size="sm" href="/" subtitle="DIGITAL SANCTUARY" showFolio />
             </div>
-          </div>
-
-          {/* Tactile Book Preview Illustration */}
-          <div className="lg:col-span-5 flex flex-col items-center justify-center p-6 bg-muted/20 border border-border/80">
-            <div className="text-center space-y-3">
-              <span className="font-mono text-[10px] uppercase text-[#8C3A27] dark:text-[#E59375] font-semibold tracking-widest block">
-                PRIMARY SANCTUARY TOME
+            
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-1.5">
+                <Calendar className="h-3 w-3 text-[#3368A0]" />
+                {todayDate}
               </span>
-
-              <Link href="/my-diaries" className="group block focus:outline-none" title="Open My Diaries">
-                <svg
-                  viewBox="0 0 320 240"
-                  className="w-full max-w-[210px] mx-auto drop-shadow-xl transition-transform duration-500 group-hover:scale-105 group-hover:-rotate-1 cursor-pointer"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <defs>
-                    <linearGradient id="bookCoverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#8C3A27" />
-                      <stop offset="50%" stopColor="#732E1E" />
-                      <stop offset="100%" stopColor="#4A1C12" />
-                    </linearGradient>
-                    <linearGradient id="spineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#5E2214" />
-                      <stop offset="100%" stopColor="#8C3A27" />
-                    </linearGradient>
-                  </defs>
-
-                  <rect x="25" y="15" width="270" height="210" rx="10" fill="url(#bookCoverGrad)" stroke="#4A1C12" strokeWidth="2" />
-                  <rect x="25" y="15" width="26" height="210" rx="3" fill="url(#spineGrad)" />
-                  <line x1="51" y1="15" x2="51" y2="225" stroke="#3A140B" strokeWidth="2" />
-                  <line x1="30" y1="40" x2="46" y2="40" stroke="#D4AF37" strokeWidth="1.5" opacity="0.6" />
-                  <line x1="30" y1="200" x2="46" y2="200" stroke="#D4AF37" strokeWidth="1.5" opacity="0.6" />
-                  <rect x="62" y="26" width="222" height="188" rx="6" fill="none" stroke="#C48C28" strokeWidth="1.5" strokeDasharray="6 3" opacity="0.8" />
-                  <rect x="85" y="55" width="176" height="130" rx="4" fill="#F4EAD4" stroke="#8C3A27" strokeWidth="1.5" />
-                  <text x="173" y="95" textAnchor="middle" fill="#2C241E" fontFamily="serif" fontSize="18" fontWeight="bold" letterSpacing="0.05em">
-                    DAILY DIARY
-                  </text>
-                  <text x="173" y="115" textAnchor="middle" fill="#8C3A27" fontFamily="monospace" fontSize="9" letterSpacing="0.15em">
-                    VOL. I — NO. 142
-                  </text>
-                  <circle cx="173" cy="148" r="18" fill="#8C3A27" />
-                  <circle cx="173" cy="148" r="15" fill="none" stroke="#FAF4EB" strokeWidth="1" strokeDasharray="2 2" />
-                  <text x="173" y="152" textAnchor="middle" fill="#FAF4EB" fontFamily="serif" fontSize="11" fontWeight="bold">
-                    C
-                  </text>
-                </svg>
+              <span className="text-border">|</span>
+              <Link href="/my-diaries" className="hover:text-foreground text-[#3368A0] dark:text-[#66A3BF] font-semibold transition-colors flex items-center gap-1">
+                <BookOpen className="h-3 w-3" />
+                <span>My Diaries</span>
               </Link>
-
-              <p className="font-serif italic text-xs text-muted-foreground pt-1">
-                The Daily Diaries: aged tea-stained parchment, walnut ink, and mindful reflection.
-              </p>
+              <span className="text-border hidden sm:inline">|</span>
+              <Link href="/goals" className="hover:text-foreground text-muted-foreground transition-colors hidden sm:inline">
+                Goals
+              </Link>
+              <span className="text-border hidden md:inline">|</span>
+              <CitizenStatus />
             </div>
           </div>
+        </header>
 
-        </div>
-      </section>
+        {/* 2. HERO PUBLICATION MASTHEAD */}
+        <section className="max-w-6xl w-full mx-auto px-6 pt-10 pb-4 text-center flex flex-col items-center">
+          <Link href="/" className="inline-block group focus:outline-none mb-3">
+            <CommonsSealVector 
+              size={84} 
+              className="transition-transform duration-700 group-hover:scale-105 group-hover:rotate-6 drop-shadow-md" 
+            />
+          </Link>
+          
+          <span className="kicker block text-[#3368A0] dark:text-[#66A3BF] mb-2 font-mono text-xs uppercase tracking-widest">
+            A Distraction-Free Digital Sanctuary
+          </span>
+          
+          <h1 className="masthead-title text-4xl sm:text-6xl md:text-7xl tracking-tight text-foreground font-serif font-bold">
+            THE COMMONS
+          </h1>
+          
+          <p className="font-serif italic text-base sm:text-xl text-muted-foreground mt-3 max-w-xl mx-auto leading-relaxed">
+            Quiet personal journaling and mindful records, shaped with broadsheet typography and sovereign security.
+          </p>
 
-      {/* 4. THREE PILLARS OF CRAFT & SECURITY */}
-      <section className="max-w-6xl w-full mx-auto px-6 pb-16">
-        <div className="space-y-6">
-          <div className="flex items-center justify-between border-b border-border pb-2">
-            <span className="kicker text-[#3368A0] dark:text-[#66A3BF]">
-              § 02 • THE THREE FOUNDATIONAL PILLARS
+          {/* Folio Line */}
+          <div className="folio-bar w-full py-2.5 my-5 flex items-center justify-between text-muted-foreground text-xs font-mono border-t-2 border-b border-border">
+            <span>VOL. I — NO. 01</span>
+            <span className="font-serif italic text-[#3368A0] dark:text-[#66A3BF]">Littera Scripta Manet</span>
+            <span>AUTUMN 2026 EDITION</span>
+          </div>
+        </section>
+
+        {/* 3. HERO BROADSIDE SPREAD (LEAD FEATURE) */}
+        <section className="max-w-6xl w-full mx-auto px-6 pb-12">
+          <div className="border-t-2 border-b-2 border-border py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 divide-y lg:divide-y-0 lg:divide-x divide-border">
+            
+            {/* Left 7 Cols: Lead Feature Story */}
+            <div className="lg:col-span-7 lg:pr-6 space-y-5">
+              <div className="space-y-2">
+                <span className="kicker text-[#8C3A27] dark:text-[#E59375] font-mono text-xs uppercase font-bold tracking-wider block">
+                  § 01 • THE DAILY PRACTICE
+                </span>
+                <h2 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-foreground leading-[1.12]">
+                  Reclaiming the Dignity of the Written Word.
+                </h2>
+                <p className="text-sm text-foreground/90 leading-relaxed font-serif">
+                  A sanctuary free from algorithms, notification bells, and telemetry. Write your daily thoughts on aged parchment textures with rich typography and private cryptographic storage.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                <Link href="/my-diaries" className="w-full sm:w-auto">
+                  <Button 
+                    size="lg" 
+                    className="w-full sm:w-auto h-11 bg-[#8C3A27] hover:bg-[#732E1E] text-white font-serif text-sm tracking-wide gap-2 rounded-none px-6 shadow-xs cursor-pointer transition-all"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    <span>Open My Diaries</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
+                </Link>
+
+                <Link href="/login" className="w-full sm:w-auto">
+                  <Button 
+                    variant="outline"
+                    size="lg" 
+                    className="w-full sm:w-auto h-11 border-border hover:bg-muted font-mono text-xs rounded-none px-5 cursor-pointer gap-2"
+                  >
+                    <GoogleIcon className="h-4 w-4" />
+                    <span>Citizen Sign In</span>
+                  </Button>
+                </Link>
+              </div>
+
+              {/* Broadsheet Footnote Highlights */}
+              <div className="pt-3 grid grid-cols-3 gap-2 text-[11px] font-mono text-muted-foreground border-t border-border/80">
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck className="h-3.5 w-3.5 text-[#3368A0] shrink-0" />
+                  <span>Postgres RLS</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-[#C48C28] shrink-0" />
+                  <span>Autosaved</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Layers className="h-3.5 w-3.5 text-[#6B8E23] shrink-0" />
+                  <span>Zero Ads</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right 5 Cols: Tactile Book Illustration Vignette */}
+            <div className="lg:col-span-5 lg:pl-6 pt-6 lg:pt-0 flex flex-col items-center justify-center">
+              <div className="text-center space-y-3">
+                <span className="font-mono text-[10px] uppercase text-[#8C3A27] dark:text-[#E59375] font-semibold tracking-widest block">
+                  PRIMARY SANCTUARY TOME
+                </span>
+
+                <Link href="/my-diaries" className="block focus:outline-none" title="Open My Diaries">
+                  <DailyDiaryBookSvg className="w-full max-w-[210px] mx-auto" />
+                </Link>
+
+                <p className="font-serif italic text-xs text-muted-foreground pt-1">
+                  Aged parchment texture, walnut ink & mindful daily prompts.
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        {/* 4. THREE MAGAZINE BROADSIDE COLUMNS */}
+        <section className="max-w-6xl w-full mx-auto px-6 pb-12">
+          <div className="flex items-center justify-between border-b-2 border-border pb-2 mb-6">
+            <span className="kicker text-[#3368A0] dark:text-[#66A3BF] font-mono text-xs uppercase font-bold tracking-wider">
+              § 02 • THE THREE FOUNDATIONAL SPACES
             </span>
             <span className="font-mono text-xs text-muted-foreground">
-              CORE TENETS
+              OVERVIEW
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-border">
             
-            {/* Pillar 1 */}
-            <div className="border-t-2 border-[#3368A0] pt-4 space-y-3">
-              <div className="flex items-center gap-2 text-[#3368A0] dark:text-[#66A3BF]">
-                <ShieldCheck className="h-5 w-5" />
-                <span className="font-mono text-xs font-bold uppercase tracking-wider">[01] SOVEREIGNTY</span>
+            {/* Column 1: Citizen Passport */}
+            <div className="space-y-4 md:pr-6 pt-4 md:pt-0">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono text-[#3368A0] dark:text-[#66A3BF] font-bold uppercase tracking-wider">
+                  [01] IDENTITY
+                </span>
+                <span className="text-[10px] font-mono text-muted-foreground">SOVEREIGN</span>
               </div>
-              <h3 className="font-serif text-xl font-bold text-foreground">
-                Cryptographic User Isolation
-              </h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Every diary reflection and vault item is bound exclusively to your user identity with Postgres Row-Level Security. We enforce zero telemetry and zero corporate data harvesting.
-              </p>
+
+              <div className="flex justify-center py-1">
+                <Link href="/citizen-passport" className="block focus:outline-none" title="Citizen Passport">
+                  <CitizenPassportSvg className="w-full max-w-[170px]" />
+                </Link>
+              </div>
+
+              <div className="space-y-1.5">
+                <h3 className="font-serif text-lg font-bold text-foreground">
+                  Citizen Passport
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Cryptographic user isolation with Postgres Row-Level Security. Complete ownership of your data with zero tracking.
+                </p>
+              </div>
+
+              <Link href="/citizen-passport" className="block pt-1">
+                <button className="w-full py-2 px-3 bg-muted/40 hover:bg-[#3368A0] hover:text-white border border-border text-foreground text-xs font-serif tracking-wide flex items-center justify-between transition-colors cursor-pointer">
+                  <span>Explore Passport</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </Link>
             </div>
 
-            {/* Pillar 2 */}
-            <div className="border-t-2 border-[#8C3A27] pt-4 space-y-3">
-              <div className="flex items-center gap-2 text-[#8C3A27] dark:text-[#E59375]">
-                <Feather className="h-5 w-5" />
-                <span className="font-mono text-xs font-bold uppercase tracking-wider">[02] TACTILITY</span>
+            {/* Column 2: Goals & Roadmap */}
+            <div className="space-y-4 md:px-6 pt-6 md:pt-0">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono text-[#3368A0] dark:text-[#66A3BF] font-bold uppercase tracking-wider">
+                  [02] PURPOSE
+                </span>
+                <span className="text-[10px] font-mono text-muted-foreground">ROADMAP</span>
               </div>
-              <h3 className="font-serif text-xl font-bold text-foreground">
-                Broadside & Ink Aesthetics
-              </h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Refusing generic floating SaaS cards. Structured with hairline rules, mastheads, drop-caps, and warm Scandinavian linen tones designed for deep reading and calm thought.
-              </p>
+
+              <div className="flex justify-center py-1">
+                <Link href="/goals" className="block focus:outline-none" title="Goals & Roadmap">
+                  <GoalsCompassSvg className="w-full max-w-[170px]" />
+                </Link>
+              </div>
+
+              <div className="space-y-1.5">
+                <h3 className="font-serif text-lg font-bold text-foreground">
+                  Goals & Roadmap
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Set meaningful milestones, cultivate daily habits, and review your personal journey through structured roadmaps.
+                </p>
+              </div>
+
+              <Link href="/goals" className="block pt-1">
+                <button className="w-full py-2 px-3 bg-muted/40 hover:bg-[#3368A0] hover:text-white border border-border text-foreground text-xs font-serif tracking-wide flex items-center justify-between transition-colors cursor-pointer">
+                  <span>Explore Goals</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </Link>
             </div>
 
-            {/* Pillar 3 */}
-            <div className="border-t-2 border-[#6B8E23] pt-4 space-y-3">
-              <div className="flex items-center gap-2 text-[#6B8E23] dark:text-[#A3C95A]">
-                <Clock className="h-5 w-5" />
-                <span className="font-mono text-xs font-bold uppercase tracking-wider">[03] FOCUS</span>
+            {/* Column 3: Tag Taxonomy & Archive */}
+            <div className="space-y-4 md:pl-6 pt-6 md:pt-0">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono text-[#8B5CF6] dark:text-[#A78BFA] font-bold uppercase tracking-wider">
+                  [03] STRUCTURE
+                </span>
+                <span className="text-[10px] font-mono text-muted-foreground">INDEX</span>
               </div>
-              <h3 className="font-serif text-xl font-bold text-foreground">
-                Unbroken Reflection
-              </h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                A single-page, fluid interface free from dopamine traps, algorithmic recommendations, or endless scrolling feeds. Your thoughts remain your sanctuary.
-              </p>
+
+              <div className="flex justify-center py-1">
+                <Link href="/tag-management" className="block focus:outline-none" title="Tag Taxonomy">
+                  <TagsIndexPlateSvg className="w-full max-w-[170px]" />
+                </Link>
+              </div>
+
+              <div className="space-y-1.5">
+                <h3 className="font-serif text-lg font-bold text-foreground">
+                  Tag Taxonomy
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Organize entries with tailored color tags and taxonomy filters, making every past reflection effortless to locate.
+                </p>
+              </div>
+
+              <Link href="/tag-management" className="block pt-1">
+                <button className="w-full py-2 px-3 bg-muted/40 hover:bg-[#8B5CF6] hover:text-white border border-border text-foreground text-xs font-serif tracking-wide flex items-center justify-between transition-colors cursor-pointer">
+                  <span>Explore Tags</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </Link>
             </div>
 
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* 5. EDITORIAL PULL QUOTE */}
-      <section className="max-w-4xl w-full mx-auto px-6 pb-16 text-center">
-        <div className="pull-quote py-6 px-8 bg-muted/20 border-l-4 border-[#3368A0] text-left sm:text-center">
-          <p className="font-serif italic text-lg sm:text-2xl text-foreground/90 leading-snug">
-            &ldquo;We write not to impress the ephemeral crowd, but to anchor our own soul in the quiet stream of time.&rdquo;
-          </p>
-          <span className="block mt-3 font-mono text-[11px] uppercase tracking-widest text-[#3368A0] dark:text-[#66A3BF]">
-            — The Commons Editorial Manifesto § Vol. I
-          </span>
-        </div>
-      </section>
-
-      {/* 6. CALL TO ACTION REGISTRY SEAL */}
-      <section className="max-w-6xl w-full mx-auto px-6 pb-20">
-        <div className="border-2 border-[#3368A0] dark:border-[#66A3BF] p-8 sm:p-12 text-center bg-card flex flex-col items-center space-y-6">
-          <CommonsSealVector size={96} className="hover:scale-105 transition-transform duration-300" />
-          
-          <div className="space-y-2 max-w-lg">
-            <h3 className="font-serif text-3xl sm:text-4xl font-bold text-foreground">
-              Affix Your Seal & Enter The Commons
-            </h3>
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed font-serif">
-              Access your personal diaries, citizen ledger, and archives with a single click.
+        {/* 5. EDITORIAL PULL QUOTE BULLETIN */}
+        <section className="max-w-6xl w-full mx-auto px-6 pb-14">
+          <div className="border-t-2 border-b-2 border-[#3368A0] py-8 px-6 text-center bg-muted/20">
+            <p className="font-serif italic text-lg sm:text-2xl text-foreground/90 max-w-2xl mx-auto leading-snug">
+              &ldquo;We write not to impress the ephemeral crowd, but to anchor our own soul in the quiet stream of time.&rdquo;
             </p>
+            <span className="block mt-3 font-mono text-[11px] uppercase tracking-widest text-[#3368A0] dark:text-[#66A3BF]">
+              — The Commons Editorial Broadside
+            </span>
           </div>
+        </section>
 
-          <Link href="/my-diaries">
-            <Button
-              size="lg"
-              className="h-13 bg-[#3368A0] hover:bg-[#285380] text-white font-serif text-sm tracking-wide gap-3 rounded-none px-8 shadow-md cursor-pointer transition-all"
-            >
-              <BookOpen className="h-5 w-5" />
-              <span>Explore My Diaries</span>
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-
-          <div className="flex items-center justify-center gap-4 text-[11px] font-mono text-muted-foreground uppercase pt-2">
-            <span>TLS 1.3 ENCRYPTED</span>
-            <span>•</span>
-            <span>POSTGRESQL RLS</span>
-            <span>•</span>
-            <span>ZERO ADS</span>
+        {/* 6. BROADSHEET FOOTER */}
+        <footer className="border-t-2 border-border mt-auto bg-muted/30 py-8 px-6">
+          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground font-mono">
+            <div className="flex items-center gap-3">
+              <CommonsSealVector size={20} markOnly />
+              <span className="font-bold text-foreground font-serif text-sm">THE COMMONS</span>
+              <span>•</span>
+              <span>PUBLIC BROADSHEET & DIGITAL SANCTUARY</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <Link href="/my-diaries" className="hover:text-foreground">My Diaries</Link>
+              <span>•</span>
+              <Link href="/goals" className="hover:text-foreground">Goals</Link>
+              <span>•</span>
+              <Link href="/citizen-passport" className="hover:text-foreground">Passport</Link>
+              <span>•</span>
+              <Link href="/tag-management" className="hover:text-foreground">Tags</Link>
+              <span>•</span>
+              <Link href="/settings" className="hover:text-foreground">Settings</Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </footer>
 
-      {/* 7. EDITORIAL FOOTER */}
-      <footer className="border-t-2 border-border mt-auto bg-muted/30 py-8 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground font-mono">
-          <div className="flex items-center gap-3">
-            <CommonsSealVector size={20} markOnly />
-            <span className="font-bold text-foreground font-serif text-sm">THE COMMONS</span>
-            <span>•</span>
-            <span>PUBLIC BROADSHEET & LANDING DESK</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/my-diaries" className="hover:text-foreground">My Diaries</Link>
-            <span>•</span>
-            <Link href="/citizen-passport" className="hover:text-foreground">Citizen Passport</Link>
-            <span>•</span>
-            <Link href="/settings" className="hover:text-foreground">Settings</Link>
-            <span>•</span>
-            <Link href="/login" className="hover:text-foreground">Citizen Login</Link>
-            <span>•</span>
-            <Link href="/dev/design-system" className="hover:text-foreground">Design Codex</Link>
-          </div>
-        </div>
-      </footer>
-
-    </div>
+      </div>
     </AuthGuard>
   );
 }
+
+
 

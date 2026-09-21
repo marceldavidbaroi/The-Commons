@@ -29,6 +29,7 @@ import { notify } from "@/lib/notify";
 
 const FEATURE_TABS = [
   { id: "all", label: "All Features" },
+  { id: "goals", label: "Horizons & Goals" },
   { id: "diary", label: "Daily Diary" },
   { id: "document", label: "Documents" },
   { id: "general", label: "General" },

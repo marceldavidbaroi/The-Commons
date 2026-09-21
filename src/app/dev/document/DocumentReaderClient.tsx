@@ -51,13 +51,8 @@ export default function DocumentReaderClient({ initialDocs, categoryGroups }: Pr
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [activeTab, setActiveTab] = useState<"rendered" | "raw">("rendered");
   
-  // Track open feature subfolder state in sidebar
-  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({
-    "Authentication": true,
-    "Daily Diary": true,
-    "Citizen Passport": true,
-    "Boilerplate Template": true,
-  });
+  // Track open feature subfolder state in sidebar (collapsed by default)
+  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({});
 
   const selectDocument = (docId: string, updateUrl = true) => {
     setSelectedDocId(docId);
@@ -392,7 +387,7 @@ export default function DocumentReaderClient({ initialDocs, categoryGroups }: Pr
                   {group.featureSubGroups && group.featureSubGroups.length > 0 ? (
                     <div className="space-y-2 pl-1">
                       {group.featureSubGroups.map((subGroup) => {
-                        const isOpen = openFolders[subGroup.featureName] ?? true;
+                        const isOpen = Boolean(openFolders[subGroup.featureName]);
                         return (
                           <div key={subGroup.featureName} className="space-y-0.5">
                             {/* Feature Folder Dropdown Header */}
@@ -530,9 +525,45 @@ export default function DocumentReaderClient({ initialDocs, categoryGroups }: Pr
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-400 font-mono">
-                      {currentDoc.filePath}
-                    </p>
+                    <div className="flex items-center gap-2 pt-0.5">
+                      <button
+                        onClick={() => copyToClipboard(currentDoc.filePath, "path")}
+                        title="Click to copy relative path"
+                        className="group/path inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800/80 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 font-mono text-[11px] border border-slate-200 dark:border-slate-700/60 transition-colors"
+                      >
+                        {copiedText === "path" ? (
+                          <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                        ) : (
+                          <Copy className="h-3 w-3 text-slate-400 group-hover/path:text-blue-500" />
+                        )}
+                        <span>{currentDoc.filePath}</span>
+                        {copiedText === "path" && (
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-sans font-medium ml-1">
+                            Copied path!
+                          </span>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          copyToClipboard(
+                            `See [${currentDoc.title}](${currentDoc.filePath})`,
+                            "prompt-ref"
+                          )
+                        }
+                        title="Copy as prompt reference markdown"
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-mono text-[10px] border border-dashed border-slate-300 dark:border-slate-700 transition-colors"
+                      >
+                        {copiedText === "prompt-ref" ? (
+                          <Check className="h-2.5 w-2.5 text-emerald-600" />
+                        ) : (
+                          <Sparkles className="h-2.5 w-2.5 text-amber-500" />
+                        )}
+                        <span>
+                          {copiedText === "prompt-ref" ? "Copied Ref!" : "Copy Ref for Prompt"}
+                        </span>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Actions */}
