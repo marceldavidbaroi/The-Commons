@@ -5,55 +5,47 @@ import {
   CheckCircle2,
   AlertOctagon,
   AlertTriangle,
-  Sparkles,
+  Info,
   X,
   ArrowRight,
 } from "lucide-react";
-import { useNotificationStore, NotificationItem, NotificationType } from "@/stores/notification-store";
-import { CommonsSealVector } from "@/components/brand/logo";
-
-const THEME_STYLES: Record<
+import {
+  useNotificationStore,
+  NotificationItem,
   NotificationType,
-  {
-    kicker: string;
-    kickerColor: string;
-    borderColor: string;
-    iconBg: string;
-    iconColor: string;
-    icon: React.ReactNode;
-  }
-> = {
+} from "@/stores/notification-store";
+
+interface ThemeConfig {
+  icon: React.ReactNode;
+  iconColor: string;
+  progressColor: string;
+  accentBorder: string;
+}
+
+const THEME_STYLES: Record<NotificationType, ThemeConfig> = {
   success: {
-    kicker: "§ CONFIRMED",
-    kickerColor: "text-emerald-700 dark:text-emerald-400 border-emerald-600/30 bg-emerald-600/10",
-    borderColor: "border-emerald-600/40 dark:border-emerald-500/40 shadow-emerald-950/10",
-    iconBg: "bg-emerald-600/15 border-emerald-600/30",
+    icon: <CheckCircle2 className="h-4 w-4" />,
     iconColor: "text-emerald-600 dark:text-emerald-400",
-    icon: <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />,
+    progressColor: "bg-emerald-600 dark:bg-emerald-500",
+    accentBorder: "border-l-emerald-600 dark:border-l-emerald-500",
   },
   error: {
-    kicker: "§ SYSTEM NOTICE",
-    kickerColor: "text-[#8C3A27] dark:text-[#E59375] border-[#8C3A27]/30 bg-[#8C3A27]/10",
-    borderColor: "border-[#8C3A27]/50 dark:border-[#D94A4A]/50 shadow-red-950/10",
-    iconBg: "bg-[#8C3A27]/15 border-[#8C3A27]/30",
-    iconColor: "text-[#8C3A27] dark:text-[#E59375]",
-    icon: <AlertOctagon className="h-4 w-4 text-[#8C3A27] dark:text-[#E59375]" />,
+    icon: <AlertOctagon className="h-4 w-4" />,
+    iconColor: "text-rose-600 dark:text-rose-400",
+    progressColor: "bg-rose-600 dark:bg-rose-500",
+    accentBorder: "border-l-rose-600 dark:border-l-rose-500",
   },
   warning: {
-    kicker: "§ ATTENTION",
-    kickerColor: "text-amber-700 dark:text-amber-400 border-amber-600/30 bg-amber-500/10",
-    borderColor: "border-amber-600/40 dark:border-amber-500/40 shadow-amber-950/10",
-    iconBg: "bg-amber-500/15 border-amber-500/30",
+    icon: <AlertTriangle className="h-4 w-4" />,
     iconColor: "text-amber-600 dark:text-amber-400",
-    icon: <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />,
+    progressColor: "bg-amber-600 dark:bg-amber-500",
+    accentBorder: "border-l-amber-600 dark:border-l-amber-500",
   },
   info: {
-    kicker: "§ DISPATCH",
-    kickerColor: "text-[#3368A0] dark:text-[#66A3BF] border-[#3368A0]/30 bg-[#3368A0]/10",
-    borderColor: "border-[#3368A0]/40 dark:border-[#66A3BF]/40 shadow-sky-950/10",
-    iconBg: "bg-[#3368A0]/15 border-[#3368A0]/30",
-    iconColor: "text-[#3368A0] dark:text-[#66A3BF]",
-    icon: <Sparkles className="h-4 w-4 text-[#3368A0] dark:text-[#66A3BF]" />,
+    icon: <Info className="h-4 w-4" />,
+    iconColor: "text-sky-600 dark:text-sky-400",
+    progressColor: "bg-sky-600 dark:bg-sky-500",
+    accentBorder: "border-l-sky-600 dark:border-l-sky-500",
   },
 };
 
@@ -88,36 +80,28 @@ function NotificationCard({
   return (
     <div
       role="alert"
-      className={`pointer-events-auto relative w-full max-w-md bg-card dark:bg-[#152232] border rounded-xl p-3.5 sm:p-4 shadow-xl flex items-start gap-3 transition-all duration-300 transform animate-in slide-in-from-bottom-5 fade-in-0 ${theme.borderColor}`}
+      className={`pointer-events-auto relative w-full max-w-[360px] bg-card text-card-foreground border border-border border-l-[3.5px] rounded-lg p-3 shadow-lg shadow-black/5 dark:shadow-black/25 flex items-start gap-2.5 transition-all duration-200 animate-in slide-in-from-bottom-2 fade-in-0 ${theme.accentBorder}`}
     >
-      {/* Icon Badge */}
-      <div
-        className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${theme.iconBg}`}
-      >
+      {/* Status Icon */}
+      <div className={`shrink-0 mt-0.5 ${theme.iconColor}`}>
         {theme.icon}
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0 pr-2 space-y-1">
-        <div className="flex items-center gap-2">
-          <span
-            className={`font-mono text-[9.5px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded border leading-none ${theme.kickerColor}`}
-          >
-            {theme.kicker}
-          </span>
+      <div className="flex-1 min-w-0 pr-1">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <p className="text-xs font-semibold text-foreground leading-snug">
+            {item.title}
+          </p>
           {item.code && (
-            <span className="font-mono text-[9px] text-muted-foreground/80">
-              [{item.code}]
+            <span className="font-mono text-[9.5px] text-muted-foreground bg-muted/80 px-1 py-0.2 rounded border border-border/50">
+              {item.code}
             </span>
           )}
         </div>
 
-        <h4 className="font-serif text-sm font-bold text-foreground leading-snug">
-          {item.title}
-        </h4>
-
         {item.reason && (
-          <p className="font-serif italic text-xs text-muted-foreground leading-relaxed">
+          <p className="text-[11.5px] text-muted-foreground leading-normal mt-0.5">
             {item.reason}
           </p>
         )}
@@ -129,7 +113,7 @@ function NotificationCard({
               item.action?.onClick();
               onDismiss();
             }}
-            className="mt-1.5 inline-flex items-center gap-1 font-serif text-xs font-semibold text-[#3368A0] dark:text-[#66A3BF] hover:underline cursor-pointer"
+            className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline cursor-pointer"
           >
             <span>{item.action.label}</span>
             <ArrowRight className="h-3 w-3" />
@@ -141,25 +125,18 @@ function NotificationCard({
       <button
         type="button"
         onClick={onDismiss}
+        aria-label="Dismiss notification"
         title="Dismiss notification"
-        className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer shrink-0 mt-0.5"
+        className="p-1 -mr-1 -mt-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0"
       >
         <X className="h-3.5 w-3.5" />
       </button>
 
       {/* Progress Line */}
       {item.duration && item.duration > 0 && (
-        <div className="absolute bottom-0 left-3 right-3 h-[2px] bg-muted overflow-hidden rounded-full">
+        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-muted/40 overflow-hidden rounded-b-lg">
           <div
-            className={`h-full transition-all linear duration-75 ${
-              item.type === "success"
-                ? "bg-emerald-500"
-                : item.type === "error"
-                ? "bg-[#8C3A27] dark:bg-[#D94A4A]"
-                : item.type === "warning"
-                ? "bg-amber-500"
-                : "bg-[#3368A0]"
-            }`}
+            className={`h-full transition-all linear duration-75 ${theme.progressColor}`}
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -169,7 +146,7 @@ function NotificationCard({
 }
 
 /**
- * Global Notifier Container placed at the bottom-center of the viewport.
+ * Global Notifier Container placed unobtrusively at the bottom-right corner.
  */
 export function CentralNotifier() {
   const notifications = useNotificationStore((s) => s.notifications);
@@ -181,7 +158,7 @@ export function CentralNotifier() {
     <aside
       aria-live="polite"
       aria-label="System notifications"
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2.5 max-w-md w-full px-4 pointer-events-none"
+      className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2 max-w-[360px] w-[calc(100vw-2.5rem)] pointer-events-none"
     >
       {notifications.map((item) => (
         <NotificationCard
@@ -193,3 +170,4 @@ export function CentralNotifier() {
     </aside>
   );
 }
+

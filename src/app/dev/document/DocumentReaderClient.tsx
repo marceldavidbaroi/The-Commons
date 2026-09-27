@@ -936,7 +936,7 @@ function MermaidViewer({ code }: { code: string }) {
           suppressErrorRendering: true,
           theme: isDark ? "dark" : "default",
           themeVariables: {
-            fontFamily: "var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif",
+            fontFamily: "var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, sans-serif",
             fontSize: "12px",
             darkMode: isDark,
             background: isDark ? "#0B0F17" : "#FFFFFF",

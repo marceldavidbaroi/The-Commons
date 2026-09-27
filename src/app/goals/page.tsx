@@ -370,7 +370,7 @@ export default function GoalsPage() {
                   <span>Sanctuary Desk</span>
                 </Link>
                 <span>/</span>
-                <span className="text-[#3368A0] dark:text-[#66A3BF] font-semibold flex items-center gap-1">
+                <span className="text-primary font-semibold flex items-center gap-1">
                   <Compass className="h-3 w-3" />
                   Horizon Compass
                 </span>
@@ -386,11 +386,11 @@ export default function GoalsPage() {
                   <span className="font-bold text-foreground">{activeGoals.length}</span>
                   <span className="text-border">|</span>
                   <span className="text-muted-foreground">Done:</span>
-                  <span className="font-bold text-[#4A7C59] dark:text-[#84A98C]">
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
                     {completedGoals}
                   </span>
                   <span className="text-border">|</span>
-                  <span className="font-bold text-[#3368A0] dark:text-[#66A3BF]">
+                  <span className="font-bold text-primary">
                     {completionRate}%
                   </span>
                 </div>
@@ -401,7 +401,7 @@ export default function GoalsPage() {
             <div className="flex items-center gap-2">
               <Button
                 onClick={() => handleOpenCreate("daily")}
-                className="bg-[#3368A0] hover:bg-[#285380] text-white font-serif text-xs tracking-wide rounded-md gap-2 h-9 px-4 shadow-xs cursor-pointer transition-all duration-200"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-sans font-medium text-xs tracking-wide rounded-md gap-2 h-9 px-4 shadow-xs cursor-pointer transition-all duration-200"
               >
                 <Plus className="h-3.5 w-3.5" />
                 <span>Inscribe Goal</span>
@@ -418,7 +418,7 @@ export default function GoalsPage() {
                   onClick={() => setDueFilter("all")}
                   className={`px-3 py-1.5 rounded-md border transition-all cursor-pointer ${
                     dueFilter === "all"
-                      ? "bg-[#3368A0] text-white border-[#3368A0] font-semibold"
+                      ? "bg-primary text-primary-foreground border-primary font-semibold shadow-xs"
                       : "bg-background border-border/80 text-muted-foreground hover:text-foreground hover:bg-muted/30"
                   }`}
                 >
@@ -509,7 +509,7 @@ export default function GoalsPage() {
                   onClick={() => setStatusFilter("active")}
                   className={`px-2.5 py-1 rounded cursor-pointer transition-colors ${
                     statusFilter === "active"
-                      ? "bg-[#3368A0] text-white font-semibold"
+                      ? "bg-primary text-primary-foreground font-semibold shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -636,7 +636,7 @@ export default function GoalsPage() {
                   <div
                     key={goal.id}
                     onClick={() => router.push(`/goals/${goal.id}`)}
-                    className={`goal-card-surface p-3.5 sm:p-4 flex items-start justify-between gap-3.5 cursor-pointer transition-all hover:border-[#3368A0]/50 ${
+                    className={`goal-card-surface p-3.5 sm:p-4 flex items-start justify-between gap-3.5 cursor-pointer transition-all hover:border-primary/50 ${
                       isDone ? "opacity-75 bg-muted/10" : ""
                     }`}
                   >
@@ -649,9 +649,9 @@ export default function GoalsPage() {
                         title={isDone ? "Mark as active" : "Mark as completed"}
                       >
                         {isDone ? (
-                          <CheckCircle2 className="h-5 w-5 text-[#4A7C59] dark:text-[#84A98C]" />
+                          <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                         ) : (
-                          <Circle className="h-5 w-5 text-muted-foreground hover:text-[#3368A0]" />
+                          <Circle className="h-5 w-5 text-muted-foreground hover:text-primary" />
                         )}
                       </button>
 
@@ -661,7 +661,7 @@ export default function GoalsPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span
                             className={`font-serif text-base sm:text-lg font-bold text-foreground break-words transition-colors ${
-                              isDone ? "line-through text-muted-foreground" : "hover:text-[#3368A0]"
+                              isDone ? "line-through text-muted-foreground" : "hover:text-primary"
                             }`}
                           >
                             {goal.title}
@@ -753,7 +753,7 @@ export default function GoalsPage() {
           ) : (
             /* Blank Slate */
             <div className="border border-dashed border-border/80 bg-card rounded-xl p-10 sm:p-14 text-center flex flex-col items-center justify-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-[#3368A0]/10 border border-[#3368A0]/20 flex items-center justify-center text-[#3368A0] dark:text-[#66A3BF]">
+              <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
                 <Target className="h-6 w-6" />
               </div>
 
@@ -779,7 +779,7 @@ export default function GoalsPage() {
               ) : (
                 <Button
                   onClick={() => handleOpenCreate("daily")}
-                  className="bg-[#3368A0] hover:bg-[#285380] text-white font-serif text-xs rounded-md gap-2 h-9 px-4 shadow-xs cursor-pointer"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-sans font-medium text-xs rounded-md gap-2 h-9 px-4 shadow-xs cursor-pointer"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   <span>Inscribe First Goal</span>
@@ -793,7 +793,7 @@ export default function GoalsPage() {
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogContent className="sm:max-w-md bg-card border border-border shadow-lg rounded-xl p-6 space-y-4">
             <DialogHeader className="space-y-1">
-              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-[#3368A0] dark:text-[#66A3BF] font-semibold">
+              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-primary font-semibold">
                 <Compass className="h-3.5 w-3.5" />
                 <span>SANCTUARY COMPASS • INSCRIBE OBJECTIVE</span>
               </div>
@@ -809,14 +809,14 @@ export default function GoalsPage() {
               {/* Goal Title Input */}
               <div className="space-y-1.5">
                 <label className="text-xs font-mono text-foreground uppercase tracking-wide block">
-                  Task / Objective Title <span className="text-[#8C3A27]">*</span>
+                  Task / Objective Title <span className="text-destructive">*</span>
                 </label>
                 <Input
                   type="text"
                   placeholder="e.g., Complete draft review or 30 min reading"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="rounded-md border-border font-serif text-sm h-11 focus-visible:ring-1 focus-visible:ring-[#3368A0] bg-background"
+                  className="rounded-md border-border font-sans text-sm h-11 focus-visible:ring-1 focus-visible:ring-primary bg-background"
                   required
                   autoFocus
                 />
@@ -832,7 +832,7 @@ export default function GoalsPage() {
                     <button
                       type="button"
                       onClick={() => setDueDate(new Date().toISOString().split("T")[0])}
-                      className="text-[#3368A0] dark:text-[#66A3BF] hover:underline cursor-pointer"
+                      className="text-primary hover:underline cursor-pointer"
                     >
                       Today
                     </button>
@@ -844,7 +844,7 @@ export default function GoalsPage() {
                         d.setDate(d.getDate() + 1);
                         setDueDate(d.toISOString().split("T")[0]);
                       }}
-                      className="text-[#3368A0] dark:text-[#66A3BF] hover:underline cursor-pointer"
+                      className="text-primary hover:underline cursor-pointer"
                     >
                       Tomorrow
                     </button>
@@ -856,7 +856,7 @@ export default function GoalsPage() {
                         d.setDate(d.getDate() + 7);
                         setDueDate(d.toISOString().split("T")[0]);
                       }}
-                      className="text-[#3368A0] dark:text-[#66A3BF] hover:underline cursor-pointer"
+                      className="text-primary hover:underline cursor-pointer"
                     >
                       Next Week
                     </button>
@@ -924,7 +924,7 @@ export default function GoalsPage() {
                 <Button
                   type="submit"
                   disabled={!title.trim() || createGoalMutation.isPending}
-                  className="bg-[#3368A0] hover:bg-[#285380] text-white font-serif text-xs rounded-md h-9 px-5 cursor-pointer"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-sans font-medium text-xs rounded-md h-9 px-5 cursor-pointer"
                 >
                   {createGoalMutation.isPending ? "Inscribing..." : "Inscribe Goal"}
                 </Button>

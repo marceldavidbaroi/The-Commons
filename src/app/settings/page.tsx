@@ -14,8 +14,11 @@ import {
   Save,
   RotateCcw,
   Loader2,
+  Palette,
+  Check,
 } from "lucide-react";
 import { SanctuaryNav } from "@/components/navigation/sanctuary-nav";
+import { THEME_PALETTES } from "@/components/theme/theme-selector";
 import { Button } from "@/components/ui/button";
 import { AuthGuard } from "@/components/auth/auth-guard";
 
@@ -54,6 +57,8 @@ export default function SettingsPage() {
   const setFontSizeScale = useUIStore((state) => state.setFontSizeScale);
   const readingMode = useUIStore((state) => state.readingMode);
   const setReadingMode = useUIStore((state) => state.setReadingMode);
+  const themePalette = useUIStore((state) => state.themePalette);
+  const setThemePalette = useUIStore((state) => state.setThemePalette);
 
   // React Query Diary state
   const { data: diaries = [] } = useDiariesOverview();
@@ -232,8 +237,86 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-6">
+              {/* Atmosphere Palette Setting */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-mono font-semibold uppercase tracking-wider block text-foreground">
+                    Sanctuary Atmosphere Palette
+                  </label>
+                  <span className="text-[10px] font-mono text-muted-foreground">WCAG Contrast Tuned</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Carefully balanced color tones designed to prevent eye strain during long journaling and planning sessions.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {THEME_PALETTES.map((p) => {
+                    const isSelected = themePalette === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          setThemePalette(p.id);
+                          notify.info("Atmosphere Calibrated", `Switched to ${p.name}.`);
+                        }}
+                        className={`p-3 border rounded-lg text-left transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                          isSelected
+                            ? "border-primary bg-primary/10 shadow-xs ring-1 ring-primary"
+                            : "border-border bg-card/60 text-muted-foreground hover:text-foreground hover:border-foreground/30 hover:bg-card"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="h-5 w-5 rounded-md border border-border/80 flex items-center justify-center shadow-2xs"
+                              style={{ backgroundColor: p.bgHex }}
+                            >
+                              <div
+                                className="h-2 w-2 rounded-full"
+                                style={{ backgroundColor: p.accentHex }}
+                              />
+                            </div>
+                            <span className="font-bold text-xs text-foreground">{p.name}</span>
+                          </div>
+                          {isSelected && <Check className="h-3.5 w-3.5 text-primary" />}
+                        </div>
+                        <div className="text-[10px] font-mono text-muted-foreground leading-snug">
+                          {p.tagline}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Unified Sanctuary Typography Setting */}
+              <div className="space-y-3 pt-4 border-t border-border/80">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-xs font-mono font-semibold uppercase tracking-wider block text-foreground">
+                      Unified Sanctuary Typography
+                    </label>
+                    <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">
+                      The entire app is harmonized to a single comforting, low-fatigue typeface family.
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-mono font-semibold px-2 py-0.5 bg-primary/10 text-primary rounded border border-primary/20 shrink-0">
+                    Active System
+                  </span>
+                </div>
+                <div className="p-3.5 rounded-lg border border-border bg-card/60 flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-semibold text-foreground">Plus Jakarta Sans</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      Calming neo-grotesque with soft open letterforms, optimal for long-form reading, UI, and mindful journaling.
+                    </div>
+                  </div>
+                  <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
+                </div>
+              </div>
+
               {/* Density Setting */}
-              <div className="space-y-2">
+              <div className="space-y-2 pt-4 border-t border-border/80">
                 <label className="text-xs font-mono font-semibold uppercase tracking-wider block text-foreground">
                   Broadsheet Layout Density
                 </label>

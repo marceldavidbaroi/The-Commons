@@ -679,9 +679,9 @@ export default function DesignSystemPage() {
                 </div>
 
                 <div className="pt-4 flex flex-col md:flex-row md:items-baseline justify-between gap-4">
-                  <span className="text-xs font-mono text-muted-foreground w-44">Handwriting (Diary)</span>
+                  <span className="text-xs font-mono text-muted-foreground w-44">Journal & Reading</span>
                   <p className="font-handwriting text-2xl text-[#8C3A27] dark:text-[#E59375] flex-1">
-                    Caveat & Kalam handwriting typography for analog diary entries.
+                    Plus Jakarta Sans unified typography for journal and reading entries.
                   </p>
                 </div>
               </CardContent>

@@ -1,15 +1,12 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta-sans",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -19,6 +16,7 @@ export const metadata: Metadata = {
 
 import { QueryProvider } from "@/providers/query-provider";
 import { CentralNotifier } from "@/components/ui/notifier";
+import { ThemeSynchronizer } from "@/components/theme/theme-synchronizer";
 
 export default function RootLayout({
   children,
@@ -28,22 +26,36 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${plusJakartaSans.variable} font-sans h-full antialiased`}
+      suppressHydrationWarning
     >
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Cinzel:wght@500;700&family=Kalam:wght@300;400;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap"
-          rel="stylesheet"
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const stored = localStorage.getItem("the-commons-ui-store");
+                if (stored) {
+                  const parsed = JSON.parse(stored);
+                  const theme = parsed?.state?.themePalette || "paper";
+                  const font = parsed?.state?.readingFont || "sans";
+                  document.documentElement.setAttribute("data-theme", theme);
+                  document.documentElement.setAttribute("data-reading-font", font);
+                  if (theme === "midnight") {
+                    document.documentElement.classList.add("dark");
+                  }
+                } else {
+                  document.documentElement.setAttribute("data-theme", "paper");
+                  document.documentElement.setAttribute("data-reading-font", "sans");
+                }
+              } catch (e) {}
+            `,
+          }}
         />
       </head>
       <body className="min-h-full flex flex-col">
         <QueryProvider>
+          <ThemeSynchronizer />
           {children}
           <CentralNotifier />
         </QueryProvider>

@@ -215,7 +215,7 @@ export default function GoalDetailPage() {
               The requested goal could not be found in your private ledger.
             </p>
             <Link href="/goals">
-              <Button className="bg-[#3368A0] text-white font-serif text-xs rounded-md cursor-pointer">
+              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-sans font-medium text-xs rounded-md cursor-pointer">
                 Return to Goals Compass
               </Button>
             </Link>
@@ -243,7 +243,7 @@ export default function GoalDetailPage() {
             <div className="flex items-center gap-2">
               <Link
                 href="/goals"
-                className="hover:text-foreground transition-colors flex items-center gap-1.5 text-[#3368A0] dark:text-[#66A3BF] font-semibold"
+                className="hover:text-foreground transition-colors flex items-center gap-1.5 text-primary font-semibold"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
                 <span>Goals Compass</span>
@@ -263,7 +263,7 @@ export default function GoalDetailPage() {
 
             <div className="flex items-center gap-3">
               {isSavedFlash && (
-                <span className="text-[#4A7C59] dark:text-[#84A98C] text-xs font-mono flex items-center gap-1 animate-in fade-in font-medium">
+                <span className="text-emerald-600 dark:text-emerald-400 text-xs font-mono flex items-center gap-1 animate-in fade-in font-medium">
                   <Check className="h-3.5 w-3.5" />
                   Changes Saved
                 </span>
@@ -272,7 +272,7 @@ export default function GoalDetailPage() {
               <Button
                 onClick={handleSaveDetails}
                 disabled={updateGoalMutation.isPending}
-                className="bg-[#3368A0] hover:bg-[#285380] text-white font-serif text-xs rounded-md h-8 px-4 gap-1.5 cursor-pointer shadow-xs transition-all"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-sans font-medium text-xs rounded-md h-8 px-4 gap-1.5 cursor-pointer shadow-xs transition-all"
               >
                 <Save className="h-3.5 w-3.5" />
                 <span>{updateGoalMutation.isPending ? "Saving..." : "Save Page"}</span>
@@ -295,7 +295,7 @@ export default function GoalDetailPage() {
           <article className="bg-card border border-border/90 rounded-2xl shadow-sm p-6 sm:p-10 md:p-12 space-y-8">
             {/* Folio Page Masthead Line */}
             <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground border-b border-border/80 pb-3">
-              <div className="flex items-center gap-2 font-semibold text-[#3368A0] dark:text-[#66A3BF]">
+              <div className="flex items-center gap-2 font-semibold text-primary">
                 <Compass className="h-3.5 w-3.5" />
                 <span>HORIZON DOSSIER • LEAF § {goal.id.slice(0, 8).toUpperCase()}</span>
               </div>
@@ -315,9 +315,9 @@ export default function GoalDetailPage() {
                   title={isCompleted ? "Mark as in progress" : "Mark as completed"}
                 >
                   {isCompleted ? (
-                    <CheckCircle2 className="h-7 w-7 text-[#4A7C59] dark:text-[#84A98C]" />
+                    <CheckCircle2 className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
                   ) : (
-                    <Circle className="h-7 w-7 text-muted-foreground hover:text-[#3368A0]" />
+                    <Circle className="h-7 w-7 text-muted-foreground hover:text-primary" />
                   )}
                 </button>
 
@@ -328,7 +328,7 @@ export default function GoalDetailPage() {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Enter objective title..."
-                    className={`font-serif text-2xl sm:text-3xl font-bold bg-transparent border-transparent hover:border-border/60 focus:border-[#3368A0] px-2 py-1 h-auto rounded-md tracking-tight ${
+                    className={`font-editorial text-2xl sm:text-3xl font-bold bg-transparent border-transparent hover:border-border/60 focus:border-primary px-2 py-1 h-auto rounded-md tracking-tight ${
                       isCompleted ? "line-through text-muted-foreground" : "text-foreground"
                     }`}
                   />
@@ -337,8 +337,8 @@ export default function GoalDetailPage() {
                     <span
                       className={`font-semibold uppercase ${
                         isCompleted
-                          ? "text-[#4A7C59] dark:text-[#84A98C]"
-                          : "text-[#3368A0] dark:text-[#66A3BF]"
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-primary"
                       }`}
                     >
                       {goal.status.replace("_", " ")}
@@ -418,7 +418,7 @@ export default function GoalDetailPage() {
             {/* Section A: Inscription / Notes */}
             <div className="space-y-2 pt-2 border-t border-border/80">
               <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground uppercase tracking-wider font-semibold">
-                <FileText className="h-3.5 w-3.5 text-[#3368A0] dark:text-[#66A3BF]" />
+                <FileText className="h-3.5 w-3.5 text-primary" />
                 <span>Intention & Strategic Notes</span>
               </div>
               <textarea
@@ -426,7 +426,7 @@ export default function GoalDetailPage() {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Write reflection notes, motivations, and guidelines for this objective..."
                 rows={4}
-                className="w-full rounded-xl border border-border/80 bg-background/50 p-4 font-serif text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-[#3368A0] outline-none transition-all resize-y"
+                className="w-full rounded-xl border border-border/80 bg-background/50 p-4 font-reading text-sm sm:text-base leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-primary outline-none transition-all resize-y"
               />
             </div>
 
@@ -434,7 +434,7 @@ export default function GoalDetailPage() {
             <div className="space-y-4 pt-2 border-t border-border/80">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground uppercase tracking-wider font-semibold">
-                  <ListOrdered className="h-3.5 w-3.5 text-[#3368A0] dark:text-[#66A3BF]" />
+                  <ListOrdered className="h-3.5 w-3.5 text-primary" />
                   <span>Actionable Milestone Steps ({completedSubgoals} / {subgoals.length})</span>
                 </div>
                 <span className="text-xs font-mono text-muted-foreground">
@@ -449,12 +449,12 @@ export default function GoalDetailPage() {
                   placeholder="Add a milestone step (e.g., Draft outline, schedule interview)..."
                   value={subgoalInput}
                   onChange={(e) => setSubgoalInput(e.target.value)}
-                  className="h-9 text-xs font-serif bg-background border-border rounded-md flex-1"
+                  className="h-9 text-xs font-sans bg-background border-border rounded-md flex-1"
                 />
                 <Button
                   type="submit"
                   disabled={!subgoalInput.trim() || createSubgoalMutation.isPending}
-                  className="bg-[#3368A0] hover:bg-[#285380] text-white font-serif text-xs rounded-md h-9 px-4 gap-1.5 cursor-pointer shadow-xs shrink-0"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-sans font-medium text-xs rounded-md h-9 px-4 gap-1.5 cursor-pointer shadow-xs shrink-0"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   <span>Add Step</span>
@@ -483,13 +483,13 @@ export default function GoalDetailPage() {
                             title={isSubDone ? "Mark in progress" : "Mark completed"}
                           >
                             {isSubDone ? (
-                              <CheckCircle2 className="h-4.5 w-4.5 text-[#4A7C59] dark:text-[#84A98C]" />
+                              <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />
                             ) : (
-                              <Circle className="h-4.5 w-4.5 text-muted-foreground hover:text-[#3368A0]" />
+                              <Circle className="h-4.5 w-4.5 text-muted-foreground hover:text-primary" />
                             )}
                           </button>
                           <span
-                            className={`text-xs font-serif break-words ${
+                            className={`text-xs font-sans break-words ${
                               isSubDone ? "line-through text-muted-foreground" : "text-foreground"
                             }`}
                           >
@@ -533,23 +533,23 @@ export default function GoalDetailPage() {
             <div className="space-y-3 pt-2 border-t border-border/80">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground uppercase tracking-wider font-semibold">
-                  <TagIcon className="h-3.5 w-3.5 text-[#3368A0] dark:text-[#66A3BF]" />
+                  <TagIcon className="h-3.5 w-3.5 text-primary" />
                   <span>Associated Taxonomy Tags</span>
                 </div>
 
                 {/* Dialog to pick/add tags from Goal categories */}
                 <Dialog open={isTagDialogOpen} onOpenChange={setIsTagDialogOpen}>
                   <DialogTrigger
-                    className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-border hover:border-[#3368A0] text-xs font-mono text-muted-foreground hover:text-foreground bg-background hover:bg-muted/40 transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-border hover:border-primary text-xs font-mono text-muted-foreground hover:text-foreground bg-background hover:bg-muted/40 transition-colors cursor-pointer"
                   >
-                    <Plus className="h-3.5 w-3.5 text-[#3368A0] dark:text-[#66A3BF]" />
+                    <Plus className="h-3.5 w-3.5 text-primary" />
                     <span>Add Tags</span>
                   </DialogTrigger>
 
                   <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2 font-mono text-base">
-                        <TagIcon className="h-4 w-4 text-[#3368A0] dark:text-[#66A3BF]" />
+                        <TagIcon className="h-4 w-4 text-primary" />
                         Select Taxonomy Tags
                       </DialogTitle>
                       <DialogDescription className="text-xs">
@@ -567,14 +567,14 @@ export default function GoalDetailPage() {
                               size="sm"
                               disabled={provisionMutation.isPending}
                               onClick={() => provisionMutation.mutate("goals")}
-                              className="text-xs font-mono gap-1.5 bg-[#3368A0] hover:bg-[#285380] text-white cursor-pointer"
+                              className="text-xs font-mono gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer"
                             >
                               <Sparkles className="h-3.5 w-3.5" />
                               <span>{provisionMutation.isPending ? "Seeding..." : "Seed Default Goal Tags"}</span>
                             </Button>
                             <Link
                               href="/tag-management"
-                              className="text-xs text-[#3368A0] dark:text-[#66A3BF] hover:underline"
+                              className="text-xs text-primary hover:underline"
                             >
                               Open Tag Management
                             </Link>
@@ -586,7 +586,7 @@ export default function GoalDetailPage() {
                             <div className="flex items-center gap-1.5 text-[11px] font-mono font-medium text-muted-foreground uppercase tracking-wider">
                               <span
                                 className="w-2 h-2 rounded-full inline-block shrink-0"
-                                style={{ backgroundColor: cat.color || "#3368A0" }}
+                                style={{ backgroundColor: cat.color || "var(--primary)" }}
                               />
                               <span>{cat.name}</span>
                             </div>
@@ -602,7 +602,7 @@ export default function GoalDetailPage() {
                                       onClick={() => handleToggleTag(tag.id)}
                                       className={`text-xs font-mono px-2.5 py-1 rounded-md border transition-all cursor-pointer flex items-center gap-1.5 ${
                                         isAssigned
-                                          ? "bg-[#3368A0] text-white border-[#3368A0] shadow-xs font-semibold"
+                                          ? "bg-primary text-primary-foreground border-primary shadow-xs font-semibold"
                                           : "bg-muted/40 hover:bg-muted text-foreground border-border hover:border-foreground"
                                       }`}
                                     >
@@ -631,9 +631,9 @@ export default function GoalDetailPage() {
                   {assignedGoalTags.map((tag) => (
                     <div
                       key={tag.id}
-                      className="inline-flex items-center gap-1.5 text-xs font-mono px-2.5 py-1 rounded-md border bg-[#3368A0]/10 border-[#3368A0]/30 text-foreground font-medium group"
+                      className="inline-flex items-center gap-1.5 text-xs font-mono px-2.5 py-1 rounded-md border bg-primary/10 border-primary/30 text-foreground font-medium group"
                     >
-                      <span className="text-[#3368A0] dark:text-[#66A3BF] font-semibold">#{tag.name}</span>
+                      <span className="text-primary font-semibold">#{tag.name}</span>
                       <button
                         type="button"
                         onClick={() => handleToggleTag(tag.id)}
@@ -652,7 +652,7 @@ export default function GoalDetailPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setIsTagDialogOpen(true)}
-                    className="h-6 text-xs text-[#3368A0] dark:text-[#66A3BF] hover:underline p-0 cursor-pointer"
+                    className="h-6 text-xs text-primary hover:underline p-0 cursor-pointer"
                   >
                     Select tags +
                   </Button>

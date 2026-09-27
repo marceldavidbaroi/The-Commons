@@ -7,9 +7,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-sans: var(--font-plus-jakarta-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: var(--font-plus-jakarta-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-plus-jakarta-sans), monospace;
+  --font-heading: var(--font-plus-jakarta-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   /* Brand Palette Tokens */
   --color-brand-primary: #3368A0;
@@ -56,8 +57,117 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-:root {
-  /* Warm minimal palette based on #F2EFE7, #3368A0, #66A3BF, #C8DFDB */
+:root,
+:root[data-theme="paper"] {
+  /* Warm Linen / Sepia Sanctuary - Low Eye Strain Default */
+  --background: #F6F4EE;
+  --foreground: #2C2825;
+  --card: #FFFFFF;
+  --card-foreground: #2C2825;
+  --popover: #FFFFFF;
+  --popover-foreground: #2C2825;
+  --primary: #9E5A3C;
+  --primary-foreground: #FFFFFF;
+  --secondary: #EFECE3;
+  --secondary-foreground: #382F2A;
+  --muted: #ECE8DD;
+  --muted-foreground: #736B63;
+  --accent: #E2D9C8;
+  --accent-foreground: #2E241E;
+  --destructive: #C94A4A;
+  --border: #E3DDD1;
+  --input: #DBD4C6;
+  --ring: #9E5A3C;
+  --chart-1: #9E5A3C;
+  --chart-2: #B87A5B;
+  --chart-3: #D9A482;
+  --chart-4: #6E5D4F;
+  --chart-5: #2C2825;
+  --radius: 0.75rem;
+  --sidebar: #ECE8DD;
+  --sidebar-foreground: #2C2825;
+  --sidebar-primary: #9E5A3C;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #E2D9C8;
+  --sidebar-accent-foreground: #2C2825;
+  --sidebar-border: #E3DDD1;
+  --sidebar-ring: #9E5A3C;
+}
+
+:root[data-theme="sage"] {
+  /* Botanical Sage - Low blue light, restful for long work */
+  --background: #F3F4F1;
+  --foreground: #1E2522;
+  --card: #FFFFFF;
+  --card-foreground: #1E2522;
+  --popover: #FFFFFF;
+  --popover-foreground: #1E2522;
+  --primary: #3A6053;
+  --primary-foreground: #FFFFFF;
+  --secondary: #E7ECE6;
+  --secondary-foreground: #213B31;
+  --muted: #E7ECE6;
+  --muted-foreground: #5C6B64;
+  --accent: #D8E2D7;
+  --accent-foreground: #1B332A;
+  --destructive: #C94A4A;
+  --border: #D7E0D6;
+  --input: #CBD6CA;
+  --ring: #3A6053;
+  --chart-1: #3A6053;
+  --chart-2: #527A6D;
+  --chart-3: #8CAFA3;
+  --chart-4: #687971;
+  --chart-5: #1E2522;
+  --radius: 0.75rem;
+  --sidebar: #E7ECE6;
+  --sidebar-foreground: #1E2522;
+  --sidebar-primary: #3A6053;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #D8E2D7;
+  --sidebar-accent-foreground: #1E2522;
+  --sidebar-border: #D7E0D6;
+  --sidebar-ring: #3A6053;
+}
+
+:root[data-theme="denim"] {
+  /* Quiet Denim - Soft daylight slate without harsh saturated blues */
+  --background: #F6F7F9;
+  --foreground: #1F2633;
+  --card: #FFFFFF;
+  --card-foreground: #1F2633;
+  --popover: #FFFFFF;
+  --popover-foreground: #1F2633;
+  --primary: #415E78;
+  --primary-foreground: #FFFFFF;
+  --secondary: #EAF0F4;
+  --secondary-foreground: #20364B;
+  --muted: #EAF0F4;
+  --muted-foreground: #616F80;
+  --accent: #D6E3EC;
+  --accent-foreground: #182E42;
+  --destructive: #C94A4A;
+  --border: #DCE4EB;
+  --input: #D0DBE4;
+  --ring: #415E78;
+  --chart-1: #415E78;
+  --chart-2: #5D7C97;
+  --chart-3: #90AEC5;
+  --chart-4: #606F7D;
+  --chart-5: #1F2633;
+  --radius: 0.75rem;
+  --sidebar: #EAF0F4;
+  --sidebar-foreground: #1F2633;
+  --sidebar-primary: #415E78;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #D6E3EC;
+  --sidebar-accent-foreground: #1F2633;
+  --sidebar-border: #DCE4EB;
+  --sidebar-ring: #415E78;
+}
+
+:root[data-theme="classic"] {
+  /* Sanctuary Classic Broadside */
   --background: #FAF8F5;
   --foreground: #1E293B;
   --card: #FFFFFF;
@@ -92,38 +202,50 @@
   --sidebar-ring: #3368A0;
 }
 
+:root[data-theme="midnight"],
 .dark {
-  --background: #0F1722;
-  --foreground: #F2EFE7;
-  --card: #152232;
-  --card-foreground: #F2EFE7;
-  --popover: #152232;
-  --popover-foreground: #F2EFE7;
-  --primary: #66A3BF;
-  --primary-foreground: #0A1420;
-  --secondary: #1F3347;
-  --secondary-foreground: #E0EFF6;
-  --muted: #1B293A;
-  --muted-foreground: #94A8BA;
-  --accent: #1C3837;
-  --accent-foreground: #C8DFDB;
+  /* Midnight Basalt - Warm charcoal night reading, no harsh blue glare */
+  --background: #181716;
+  --foreground: #EDE8DF;
+  --card: #201F1D;
+  --card-foreground: #EDE8DF;
+  --popover: #201F1D;
+  --popover-foreground: #EDE8DF;
+  --primary: #D49B55;
+  --primary-foreground: #181716;
+  --secondary: #282623;
+  --secondary-foreground: #F5EFEB;
+  --muted: #262421;
+  --muted-foreground: #A39B8F;
+  --accent: #332E27;
+  --accent-foreground: #F0D6B2;
   --destructive: #F87171;
-  --border: #23364A;
-  --input: #23364A;
-  --ring: #66A3BF;
-  --chart-1: #66A3BF;
-  --chart-2: #3368A0;
-  --chart-3: #C8DFDB;
-  --chart-4: #4B7894;
-  --chart-5: #9CBBC9;
-  --sidebar: #111C2B;
-  --sidebar-foreground: #F2EFE7;
-  --sidebar-primary: #66A3BF;
-  --sidebar-primary-foreground: #0A1420;
-  --sidebar-accent: #1B293A;
-  --sidebar-accent-foreground: #F2EFE7;
-  --sidebar-border: #23364A;
-  --sidebar-ring: #66A3BF;
+  --border: #34302B;
+  --input: #34302B;
+  --ring: #D49B55;
+  --chart-1: #D49B55;
+  --chart-2: #B37D3E;
+  --chart-3: #8C6230;
+  --chart-4: #70685E;
+  --chart-5: #EDE8DF;
+  --radius: 0.75rem;
+  --sidebar: #141312;
+  --sidebar-foreground: #EDE8DF;
+  --sidebar-primary: #D49B55;
+  --sidebar-primary-foreground: #181716;
+  --sidebar-accent: #262421;
+  --sidebar-accent-foreground: #EDE8DF;
+  --sidebar-border: #34302B;
+  --sidebar-ring: #D49B55;
+}
+
+/* Dynamic Reading Font Classes - Standardized to single calming font family */
+:root .font-reading,
+:root[data-reading-font] .font-reading,
+:root[data-reading-font="sans"] .font-reading,
+:root[data-reading-font="serif"] .font-reading,
+:root[data-reading-font="handwriting"] .font-reading {
+  font-family: var(--font-plus-jakarta-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
 }
 
 @layer base {
@@ -131,10 +253,12 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground transition-colors duration-200 antialiased selection:bg-[#C8DFDB] selection:text-[#193836];
+    @apply bg-background text-foreground transition-colors duration-200 antialiased selection:bg-accent selection:text-accent-foreground font-sans;
+    font-family: var(--font-plus-jakarta-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
   html {
     @apply font-sans;
+    font-family: var(--font-plus-jakarta-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
 }
 
@@ -144,25 +268,22 @@
    dividers, mastheads, kicker labels, drop-caps, and refined typography.
    ========================================================================== */
 
-/* Editorial Typography */
-.font-editorial {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
-}
-
+/* Editorial Typography - Standardized to single calming font family */
+.font-editorial,
 .font-serif {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: var(--font-plus-jakarta-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
 }
 
 /* Lead Editorial Drop Cap */
 .drop-cap::first-letter {
   float: left;
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 3.4rem;
-  line-height: 0.8;
+  font-family: var(--font-plus-jakarta-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 3.2rem;
+  line-height: 0.85;
   padding-top: 4px;
   padding-right: 10px;
   padding-bottom: 2px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--primary);
 }
 
@@ -172,27 +293,27 @@
 
 /* Magazine Kicker (Section Header Tag) */
 .kicker {
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-plus-jakarta-sans), sans-serif;
   font-size: 0.6875rem;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--primary);
 }
 
 /* Masthead Header Styling */
 .masthead-title {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: var(--font-plus-jakarta-sans), sans-serif;
   letter-spacing: -0.03em;
-  line-height: 0.95;
+  line-height: 1.0;
   font-weight: 800;
 }
 
 /* Publication Folio Line (Date, Volume, Issue Metadata) */
 .folio-bar {
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-plus-jakarta-sans), sans-serif;
   font-size: 0.72rem;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.10em;
   text-transform: uppercase;
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
@@ -222,7 +343,7 @@
 
 /* Pull Quote (Editorial Magazine Block) */
 .pull-quote {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: var(--font-plus-jakarta-sans), sans-serif;
   font-style: italic;
   position: relative;
   padding-left: 1.5rem;
@@ -232,24 +353,15 @@
 /* ==========================================================================
    2. FEATURE-SCOPED DESIGN SYSTEM: DAILY DIARY (TACTILE PAPER & INK)
    Bespoke tactile sub-system for analog journaling, aged parchment, walnut ink,
-   and deckled paper edges.
+   and deckled paper edges - Unified under Plus Jakarta Sans.
    ========================================================================== */
 
-/* Vintage Book & Handwriting Utilities */
-.font-handwriting {
-  font-family: 'Caveat', 'Kalam', cursive, sans-serif;
-}
-
-.font-kalam {
-  font-family: 'Kalam', cursive, sans-serif;
-}
-
-.font-vintage {
-  font-family: 'Playfair Display', Georgia, serif;
-}
-
+/* Vintage Book & Handwriting Utilities - Unified to Plus Jakarta Sans */
+.font-handwriting,
+.font-kalam,
+.font-vintage,
 .font-stamp {
-  font-family: 'Cinzel', serif;
+  font-family: var(--font-plus-jakarta-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
 }
 
 /* Realistic Old Ruled Journal Paper */

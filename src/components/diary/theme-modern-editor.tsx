@@ -65,16 +65,16 @@ export function ThemeModernEditor({
   };
 
   return (
-    <div className="w-full relative bg-white dark:bg-[#0F172A] rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5 sm:p-8 md:p-10 select-text">
+    <div className="w-full relative bg-card text-card-foreground rounded-2xl shadow-md border border-border p-5 sm:p-8 md:p-10 select-text">
       <div className="space-y-5">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 gap-2">
+        <div className="flex items-center justify-between border-b border-border/80 pb-3 gap-2">
           <button
             type="button"
             onClick={() => {
               if (prevEntry) onNavigate(prevEntry.id);
             }}
             disabled={!prevEntry}
-            className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-sans text-xs flex items-center gap-1 disabled:opacity-30 cursor-pointer"
+            className="px-2.5 py-1 rounded-lg bg-muted text-muted-foreground hover:text-foreground font-sans text-xs flex items-center gap-1 disabled:opacity-30 cursor-pointer"
           >
             <ChevronLeft className="h-3 w-3" />
             <span>Prev</span>
@@ -86,7 +86,7 @@ export function ThemeModernEditor({
               theme="modern"
               onDateSelect={applyInstantChange}
             />
-            <span className="text-slate-300 dark:text-slate-700 text-xs select-none">•</span>
+            <span className="text-border text-xs select-none">•</span>
             <DiaryTimePicker
               startTime={currentEntry.startTime}
               endTime={currentEntry.endTime}
@@ -100,7 +100,7 @@ export function ThemeModernEditor({
             <button
               type="button"
               onClick={onToggleHeart}
-              className="cursor-pointer p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="cursor-pointer p-1 rounded-full hover:bg-muted transition-colors"
               title={currentEntry.isHearted ? "Unmark Favorite" : "Mark as Favorite"}
             >
               <PencilHeart filled={!!currentEntry.isHearted} theme="modern" />
@@ -110,13 +110,13 @@ export function ThemeModernEditor({
               type="button"
               onClick={onDeletePage}
               disabled={isDeleting}
-              className="cursor-pointer p-1 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors disabled:opacity-30"
+              className="cursor-pointer p-1 rounded-full hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-30"
               title="Delete this page"
             >
               <PencilDelete theme="modern" />
             </button>
 
-            <span className="font-mono text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold">
+            <span className="font-mono text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-bold">
               p. {currentEntry.pageNumber}
             </span>
 
@@ -126,7 +126,7 @@ export function ThemeModernEditor({
                 if (nextEntry) onNavigate(nextEntry.id);
                 else onNewPage();
               }}
-              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-sans text-xs flex items-center gap-1 cursor-pointer"
+              className="px-2.5 py-1 rounded-lg bg-muted text-muted-foreground hover:text-foreground font-sans text-xs flex items-center gap-1 cursor-pointer"
             >
               <span>{nextEntry ? "Next" : "New +"}</span>
               <ChevronRight className="h-3 w-3" />
@@ -141,7 +141,7 @@ export function ThemeModernEditor({
             onChange={(e) => onUpdate({ title: e.target.value })}
             onBlur={onSave}
             placeholder="Focus Title or Morning Intent..."
-            className="w-full bg-transparent font-sans text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 focus:border-sky-500 focus:outline-none py-1 placeholder:text-slate-400"
+            className="w-full bg-transparent font-sans text-2xl sm:text-3xl font-bold text-foreground border-b border-border/80 focus:border-primary focus:outline-none py-1 placeholder:text-muted-foreground/50"
           />
         </div>
 
@@ -151,7 +151,7 @@ export function ThemeModernEditor({
             value={currentEntry.description}
             onChange={(e) => onUpdate({ description: e.target.value })}
             placeholder="Type your notes, sprint logs, and mindful reflections..."
-            className="w-full bg-transparent font-sans text-base sm:text-lg text-slate-700 dark:text-slate-200 leading-relaxed focus:outline-none resize-none placeholder:text-slate-400"
+            className="w-full bg-transparent font-reading text-base sm:text-lg text-foreground leading-relaxed focus:outline-none resize-none placeholder:text-muted-foreground/50"
           />
           {hasDescriptionChanges && (
             <div className="flex justify-end">
@@ -159,7 +159,7 @@ export function ThemeModernEditor({
                 type="button"
                 onClick={onSave}
                 disabled={isSaving}
-                className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 font-sans text-xs font-semibold rounded-lg shadow-sm cursor-pointer flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
+                className="px-3.5 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-sans text-xs font-semibold rounded-lg shadow-xs cursor-pointer flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
                 title="Save Reflection"
               >
                 {isSaving ? (
@@ -178,13 +178,13 @@ export function ThemeModernEditor({
           )}
         </div>
 
-        <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-slate-800">
-          <span className="font-mono text-[11px] uppercase text-sky-500 font-semibold tracking-wider block">
+        <div className="space-y-2 pt-1 border-t border-border/80">
+          <span className="font-mono text-[11px] uppercase text-primary font-semibold tracking-wider block">
             Key Gratitudes
           </span>
           {currentEntry.gratitude.map((item: string, idx: number) => (
             <div key={idx} className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 text-xs font-bold flex items-center justify-center shrink-0">
+              <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
                 {idx + 1}
               </span>
               <input
@@ -197,19 +197,19 @@ export function ThemeModernEditor({
                   onUpdate({ gratitude: newGrat });
                 }}
                 onBlur={onSave}
-                className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 font-sans text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-sky-500 placeholder:text-slate-400"
+                className="flex-1 bg-muted/40 border border-border rounded-lg px-3 py-1.5 font-sans text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
               />
             </div>
           ))}
         </div>
 
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-3">
+        <div className="pt-2 border-t border-border/80 space-y-3">
           <div className="space-y-1.5">
             <div className="flex items-baseline justify-between">
-              <span className="font-mono text-xs font-semibold text-slate-500 uppercase">
+              <span className="font-mono text-xs font-semibold text-muted-foreground uppercase">
                 Energy Level
               </span>
-              <span className="text-xs font-bold text-sky-500">
+              <span className="text-xs font-bold text-primary">
                 {ENERGY_LEVELS.find((l) => l.level === currentEntry.energyLevel)?.label}
               </span>
             </div>
@@ -221,8 +221,8 @@ export function ThemeModernEditor({
                   onClick={() => applyInstantChange({ energyLevel: e.level })}
                   className={`py-1.5 px-1 text-center rounded-lg font-sans text-xs transition-colors cursor-pointer ${
                     currentEntry.energyLevel === e.level
-                      ? "bg-slate-900 text-white dark:bg-sky-500 dark:text-slate-900 font-bold shadow-xs"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+                      ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                      : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
                   }`}
                 >
                   <span>{e.label}</span>
@@ -233,7 +233,7 @@ export function ThemeModernEditor({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5">
             <div className="space-y-1.5">
-              <span className="font-mono text-xs font-semibold text-slate-500 uppercase block">
+              <span className="font-mono text-xs font-semibold text-muted-foreground uppercase block">
                 Mood
               </span>
               <div className="grid grid-cols-3 gap-1">
@@ -244,8 +244,8 @@ export function ThemeModernEditor({
                     onClick={() => applyInstantChange({ mood: `${m.emoji} ${m.label}` })}
                     className={`flex items-center justify-center gap-1 px-1.5 py-1.5 rounded-lg text-xs font-sans transition-colors cursor-pointer ${
                       currentEntry.mood === `${m.emoji} ${m.label}`
-                        ? "bg-slate-900 text-white dark:bg-sky-500 dark:text-slate-900 font-bold"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+                        ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                        : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
                     }`}
                   >
                     <span>{m.emoji}</span>
@@ -256,7 +256,7 @@ export function ThemeModernEditor({
             </div>
 
             <div className="space-y-1.5">
-              <span className="font-mono text-xs font-semibold text-slate-500 uppercase block">
+              <span className="font-mono text-xs font-semibold text-muted-foreground uppercase block">
                 Weather
               </span>
               <div className="grid grid-cols-4 gap-1">
@@ -269,8 +269,8 @@ export function ThemeModernEditor({
                       onClick={() => applyInstantChange({ weather: w.id })}
                       className={`p-1.5 rounded-lg flex flex-col items-center justify-center transition-colors cursor-pointer ${
                         currentEntry.weather === w.id
-                          ? "bg-slate-900 text-white dark:bg-sky-500 dark:text-slate-900 font-bold"
-                          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+                          ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                          : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"
                       }`}
                     >
                       <Icon className="h-3 w-3" />

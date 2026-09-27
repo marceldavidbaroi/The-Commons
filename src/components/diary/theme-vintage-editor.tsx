@@ -145,15 +145,13 @@ export function ThemeVintageEditor({
               placeholder="Chronicle Header..."
               className="w-full bg-transparent font-handwriting text-2xl sm:text-3xl font-bold text-[#1E2536] dark:text-[#FAF6EE] border-b border-[#D5CAA8]/80 dark:border-[#2A3B4E] focus:outline-none focus:border-[#8C3A27] py-0.5 placeholder:text-[#8C7A68]/40"
             />
-          </div>
-
-          <div className="pt-2 space-y-2">
+          </div>          <div className="pt-2 space-y-2">
             <textarea
               rows={5}
               value={currentEntry.description}
               placeholder="Pen your thoughts upon the parchment..."
               onChange={(e) => onUpdate({ description: e.target.value })}
-              className="w-full bg-transparent ruled-lines-bg font-handwriting text-lg sm:text-xl text-[#1E2536] dark:text-[#F3EDE2] focus:outline-none resize-none selection:bg-[#E8C89A] placeholder:text-[#8C7A68]/40"
+              className="w-full bg-transparent ruled-lines-bg font-reading text-lg sm:text-xl text-[#1E2536] dark:text-[#F3EDE2] focus:outline-none resize-none selection:bg-accent placeholder:text-muted-foreground/40"
             />
             {hasDescriptionChanges && (
               <div className="flex justify-end">
@@ -161,7 +159,7 @@ export function ThemeVintageEditor({
                   type="button"
                   onClick={onSave}
                   disabled={isSaving}
-                  className="px-3 py-1 bg-[#8C3A27] hover:bg-[#732E1E] text-[#FAF6EE] font-handwriting text-sm rounded shadow-sm cursor-pointer flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
+                  className="px-3 py-1 bg-primary hover:bg-primary/90 text-primary-foreground font-sans text-xs font-semibold rounded shadow-xs cursor-pointer flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
                   title="Save Reflection"
                 >
                   {isSaving ? (

@@ -38,6 +38,7 @@ import { ThemeVintageEditor } from "./theme-vintage-editor";
 import { ThemeClassicEditor } from "./theme-classic-editor";
 import { ThemeModernEditor } from "./theme-modern-editor";
 import { TagPicker } from "@/components/tags/tag-picker";
+import { ThemeSelector } from "@/components/theme/theme-selector";
 import type { Diary, DiaryEntry, DiaryTheme } from "@/types/diary";
 
 type ViewMode = "entry" | "index" | "summary";
@@ -210,33 +211,10 @@ export function SingleDiaryEntryClient({ targetId }: { targetId: string }) {
     );
   }
 
-  const themePageBg =
-    theme === "vintage"
-      ? "bg-[#DED6C4] dark:bg-[#0A0F17] text-[#2C241E] dark:text-[#E2E8F0]"
-      : theme === "classic"
-      ? "bg-[#EAE5D9] dark:bg-[#0D141F] text-[#152B47] dark:text-[#E2ECF7]"
-      : "bg-[#F1F5F9] dark:bg-[#090D16] text-[#0F172A] dark:text-[#F8FAFC]";
-
-  const themeHeaderBg =
-    theme === "vintage"
-      ? "bg-[#DED6C4]/95 dark:bg-[#0A0F17]/95 border-[#C8BEA8]/40 dark:border-[#223348]/40"
-      : theme === "classic"
-      ? "bg-[#EAE5D9]/95 dark:bg-[#0D141F]/95 border-[#D0C5B0]/50 dark:border-[#1E3048]/50"
-      : "bg-[#F1F5F9]/95 dark:bg-[#090D16]/95 border-slate-200 dark:border-slate-800";
-
-  const themeActiveTab =
-    theme === "vintage"
-      ? "bg-[#8C3A27] text-[#FAF6EE]"
-      : theme === "classic"
-      ? "bg-[#1E3A5F] text-[#FAF7EE] shadow-xs"
-      : "bg-[#0F172A] dark:bg-[#38BDF8] text-white dark:text-[#090D16] shadow-xs";
-
-  const themeSaveBtn =
-    theme === "vintage"
-      ? "bg-[#8C3A27] hover:bg-[#732E1E] text-[#FAF7F0]"
-      : theme === "classic"
-      ? "bg-[#1E3A5F] hover:bg-[#152B47] text-[#FAF7EE] border border-[#D4AF37]/30"
-      : "bg-[#0F172A] hover:bg-[#1E293B] dark:bg-[#38BDF8] dark:hover:bg-[#0EA5E9] text-white dark:text-[#0F172A]";
+  const themePageBg = "bg-background text-foreground";
+  const themeHeaderBg = "bg-card/90 border-border/80 text-foreground shadow-2xs";
+  const themeActiveTab = "bg-primary text-primary-foreground shadow-xs font-semibold";
+  const themeSaveBtn = "bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs font-medium";
 
   return (
     <AuthGuard>
@@ -398,6 +376,10 @@ export function SingleDiaryEntryClient({ targetId }: { targetId: string }) {
                     <span className="text-[11px] text-emerald-600 dark:text-emerald-400 hidden sm:inline font-sans">Saved</span>
                   </>
                 )}
+              </div>
+
+              <div className="shrink-0 border-l border-border/80 pl-1.5 ml-0.5">
+                <ThemeSelector compact />
               </div>
             </div>
           </div>

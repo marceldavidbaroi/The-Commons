@@ -200,7 +200,7 @@ function DiaryBookCover({
             title="Edit diary name, description, and theme"
             className="p-1.5 rounded-full bg-background hover:bg-muted text-foreground/80 hover:text-foreground border border-border shadow-md transition-colors cursor-pointer"
           >
-            <Pencil className="h-3.5 w-3.5 text-[#3368A0] dark:text-[#66A3BF]" />
+            <Pencil className="h-3.5 w-3.5 text-primary" />
           </button>
         </div>
 
@@ -390,14 +390,14 @@ function DiaryBookCover({
       {/* Book Metadata Under Title */}
       <div className="mt-4 text-center space-y-1 w-full px-1">
         <div className="flex items-center justify-center gap-1.5 text-xs font-mono text-muted-foreground">
-          <span className="font-bold text-[#3368A0] dark:text-[#66A3BF]">
+          <span className="font-bold text-primary">
             {themeConfig.name}
           </span>
           <span>•</span>
           <span>{entriesCount} {entriesCount === 1 ? "Page" : "Pages"}</span>
         </div>
 
-        <h3 className="font-serif text-sm font-bold text-foreground group-hover:text-[#3368A0] dark:group-hover:text-[#66A3BF] line-clamp-1 transition-colors">
+        <h3 className="font-serif text-sm font-bold text-foreground group-hover:text-primary line-clamp-1 transition-colors">
           {diary.name}
         </h3>
 
@@ -681,119 +681,39 @@ export default function MyDiariesPage() {
         {/* 1. TOP EDITORIAL NAVIGATION */}
         <SanctuaryNav subtitle="CHRONICLES & TOMES ARCHIVE" />
 
-        {/* 2. OVERVIEW HEADER & GLOBAL ANALYTICS BANNER */}
-        <section className="max-w-6xl w-full mx-auto px-4 sm:px-6 pt-10 pb-6 text-center flex flex-col items-center">
-          <span className="kicker block text-[#3368A0] dark:text-[#66A3BF] mb-1.5 font-mono text-xs tracking-wider uppercase font-semibold">
-            § CITIZEN CHRONICLES & TOMES
+        {/* 2. OVERVIEW HEADER */}
+        <section className="max-w-6xl w-full mx-auto px-4 sm:px-6 pt-8 pb-4 text-center flex flex-col items-center">
+          <span className="kicker block text-primary mb-1 font-mono text-xs tracking-wider uppercase font-semibold">
+            § CITIZEN CHRONICLES
           </span>
 
-          <h1 className="masthead-title text-4xl sm:text-5xl md:text-6xl text-foreground font-serif font-bold">
+          <h1 className="masthead-title text-3xl sm:text-4xl md:text-5xl text-foreground font-serif font-bold tracking-tight">
             My Diaries
           </h1>
 
-          <p className="font-serif italic text-base text-muted-foreground mt-2 max-w-xl mx-auto">
-            Select a book volume to open your journal, edit volume properties, or bind a new volume.
+          <p className="font-serif italic text-sm text-muted-foreground mt-1.5 max-w-lg mx-auto">
+            Select a book volume to open your journal or bind a new volume.
           </p>
 
-          {/* 3. SANCTUARY SUMMARY STATS BANNER (PRD / Matrix Analytics) */}
-          <div className="w-full mt-8 p-4 sm:p-5 rounded-2xl bg-card border border-border/80 shadow-xs space-y-4 text-left">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/60">
-              <div className="flex items-center gap-2">
-                <CommonsSealVector size={16} markOnly />
-                <span className="font-mono text-xs uppercase tracking-wider font-bold text-foreground">
-                  Manuscript Archive Analytics
-                </span>
-              </div>
-              <span className="font-mono text-[11px] text-muted-foreground">
-                Synced in real-time via PostgreSQL RPC
+          {/* Compact Inline Metrics Strip */}
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs font-mono text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/40 border border-border/60">
+              <BookOpen className="h-3.5 w-3.5 text-primary" />
+              <span className="text-foreground font-bold">{diaries.length}</span> {diaries.length === 1 ? "Volume" : "Volumes"}
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/40 border border-border/60">
+              <Layers className="h-3.5 w-3.5 text-[#8C3A27] dark:text-[#E59375]" />
+              <span className="text-foreground font-bold">{stats?.total_entries ?? entries.length}</span> Pages
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/40 border border-border/60">
+              <Feather className="h-3.5 w-3.5 text-[#2C5F4D] dark:text-[#62B394]" />
+              <span className="text-foreground font-bold">{totalWordsDisplay >= 1000 ? `${(totalWordsDisplay / 1000).toFixed(1)}k` : totalWordsDisplay}</span> Words
+            </span>
+            {(stats?.current_streak ?? 0) > 0 && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400">
+                <Flame className="h-3.5 w-3.5 fill-current" />
+                <span className="font-bold">{stats?.current_streak}</span> day streak
               </span>
-            </div>
-
-            {/* Quick Metrics Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-              
-              {/* Volumes */}
-              <div className="p-3 rounded-xl bg-muted/30 border border-border/50 flex flex-col">
-                <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
-                  <BookOpen className="h-3.5 w-3.5 text-[#3368A0] dark:text-[#66A3BF]" />
-                  Volumes
-                </span>
-                <span className="text-xl font-serif font-bold text-foreground mt-1">
-                  {diaries.length}
-                </span>
-              </div>
-
-              {/* Total Pages */}
-              <div className="p-3 rounded-xl bg-muted/30 border border-border/50 flex flex-col">
-                <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
-                  <Layers className="h-3.5 w-3.5 text-[#8C3A27] dark:text-[#E59375]" />
-                  Pages
-                </span>
-                <span className="text-xl font-serif font-bold text-foreground mt-1">
-                  {stats?.total_entries ?? entries.length}
-                </span>
-              </div>
-
-              {/* Streak */}
-              <div className="p-3 rounded-xl bg-muted/30 border border-border/50 flex flex-col">
-                <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
-                  <Flame className="h-3.5 w-3.5 text-amber-500" />
-                  Streak
-                </span>
-                <span className="text-xl font-serif font-bold text-foreground mt-1">
-                  {stats?.current_streak ?? 0} <span className="text-xs font-normal font-sans text-muted-foreground">{stats?.current_streak === 1 ? "day" : "days"}</span>
-                </span>
-              </div>
-
-              {/* Total Words */}
-              <div className="p-3 rounded-xl bg-muted/30 border border-border/50 flex flex-col">
-                <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
-                  <Feather className="h-3.5 w-3.5 text-[#2C5F4D] dark:text-[#62B394]" />
-                  Words
-                </span>
-                <span className="text-xl font-serif font-bold text-foreground mt-1">
-                  {totalWordsDisplay >= 1000 ? `${(totalWordsDisplay / 1000).toFixed(1)}k` : totalWordsDisplay}
-                </span>
-              </div>
-
-              {/* Vitality */}
-              <div className="p-3 rounded-xl bg-muted/30 border border-border/50 flex flex-col">
-                <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
-                  <Sparkles className="h-3.5 w-3.5 text-emerald-500" />
-                  Avg Vitality
-                </span>
-                <span className="text-xl font-serif font-bold text-foreground mt-1">
-                  {stats?.average_energy ? `${stats.average_energy}` : "4.0"} <span className="text-xs font-normal font-sans text-muted-foreground">/ 5</span>
-                </span>
-              </div>
-
-              {/* Hearted Leaves */}
-              <div className="p-3 rounded-xl bg-muted/30 border border-border/50 flex flex-col">
-                <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
-                  <Heart className="h-3.5 w-3.5 text-rose-500" />
-                  Hearted
-                </span>
-                <span className="text-xl font-serif font-bold text-foreground mt-1">
-                  {stats?.hearted_entries ?? entries.filter((e) => e.isHearted).length}
-                </span>
-              </div>
-
-            </div>
-
-            {/* Mood Distribution Chips */}
-            {stats?.mood_breakdown && Object.keys(stats.mood_breakdown).length > 0 && (
-              <div className="pt-2 flex flex-wrap items-center gap-2 text-xs font-mono">
-                <span className="text-muted-foreground mr-1 text-[11px]">Mood Balance:</span>
-                {Object.entries(stats.mood_breakdown).map(([mood, count]) => (
-                  <span
-                    key={mood}
-                    className="px-2.5 py-1 rounded-full bg-background/80 border border-border/60 text-foreground font-medium flex items-center gap-1 shadow-2xs"
-                  >
-                    <span>{mood}</span>
-                    <span className="text-muted-foreground font-bold font-mono">({count})</span>
-                  </span>
-                ))}
-              </div>
             )}
           </div>
 
@@ -808,7 +728,7 @@ export default function MyDiariesPage() {
                 placeholder="Search volume archives..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 bg-card/80 border border-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#3368A0]"
+                className="w-full pl-9 pr-3 py-1.5 bg-card/80 border border-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               />
               {searchQuery && (
                 <button
@@ -869,7 +789,7 @@ export default function MyDiariesPage() {
         <main className="max-w-6xl w-full mx-auto px-4 sm:px-8 py-6 flex-1">
           {isDiariesLoading && diaries.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-muted-foreground space-y-3">
-              <Loader2 className="h-8 w-8 animate-spin text-[#3368A0]" />
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <span className="font-mono text-xs">Accessing manuscript archive...</span>
             </div>
           ) : filteredDiaries.length === 0 && collectionFilter !== "all" ? (
@@ -922,7 +842,7 @@ export default function MyDiariesPage() {
           {/* 6. SAMPLE PROMPT INSPIRATIONS (PRD Empty / Inspiration State) */}
           {diaries.length <= 2 && (
             <section className="mt-16 p-6 sm:p-8 rounded-2xl bg-card border border-border/80 text-center max-w-3xl mx-auto space-y-4">
-              <span className="font-mono text-xs uppercase tracking-wider text-[#3368A0] dark:text-[#66A3BF] font-semibold">
+              <span className="font-mono text-xs uppercase tracking-wider text-primary font-semibold">
                 § INSPIRATION FOR YOUR MANUSCRIPTS
               </span>
               <h2 className="font-serif text-2xl font-bold text-foreground">
@@ -1003,7 +923,7 @@ export default function MyDiariesPage() {
               
               <div className="flex items-start justify-between border-b border-border/70 pb-3">
                 <div className="space-y-1">
-                  <span className="kicker text-[#3368A0] dark:text-[#66A3BF] font-mono text-xs uppercase font-semibold">
+                  <span className="kicker text-primary font-mono text-xs uppercase font-semibold">
                     § BIND NEW CHRONICLE
                   </span>
                   <h2 className="font-serif text-2xl font-bold text-foreground">
@@ -1032,7 +952,7 @@ export default function MyDiariesPage() {
                     placeholder="e.g. Morning Inquiries, Architectural Codex..."
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#3368A0]"
+                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
 
@@ -1045,7 +965,7 @@ export default function MyDiariesPage() {
                     placeholder="Brief intention or purpose of this volume..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#3368A0] resize-none"
+                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
                   />
                 </div>
 
@@ -1194,7 +1114,7 @@ export default function MyDiariesPage() {
                   <Button
                     type="submit"
                     disabled={createDiaryMutation.isPending}
-                    className="bg-[#3368A0] hover:bg-[#254F7A] text-white font-serif text-xs font-bold px-4 cursor-pointer disabled:opacity-50"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-sans font-medium text-xs px-4 cursor-pointer disabled:opacity-50"
                   >
                     {createDiaryMutation.isPending ? (
                       <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
@@ -1220,7 +1140,7 @@ export default function MyDiariesPage() {
               
               <div className="flex items-start justify-between border-b border-border/70 pb-3">
                 <div className="space-y-1">
-                  <span className="kicker text-[#3368A0] dark:text-[#66A3BF] font-mono text-xs uppercase font-semibold">
+                  <span className="kicker text-primary font-mono text-xs uppercase font-semibold">
                     § EDIT CHRONICLE PROPERTIES
                   </span>
                   <h2 className="font-serif text-2xl font-bold text-foreground">
@@ -1249,7 +1169,7 @@ export default function MyDiariesPage() {
                     placeholder="e.g. Morning Inquiries, Architectural Codex..."
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#3368A0]"
+                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
 
@@ -1262,7 +1182,7 @@ export default function MyDiariesPage() {
                     placeholder="Brief intention or purpose of this volume..."
                     value={editDescription}
                     onChange={(e) => setEditDescription(e.target.value)}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#3368A0] resize-none"
+                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
                   />
                 </div>
 
@@ -1397,7 +1317,7 @@ export default function MyDiariesPage() {
                       type="checkbox"
                       checked={editIsFavorite}
                       onChange={(e) => setEditIsFavorite(e.target.checked)}
-                      className="rounded text-[#3368A0] focus:ring-0"
+                      className="rounded text-primary focus:ring-0"
                     />
                     <span className="text-xs font-mono font-medium flex items-center gap-1 text-foreground">
                       <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
@@ -1410,7 +1330,7 @@ export default function MyDiariesPage() {
                       type="checkbox"
                       checked={editIsArchived}
                       onChange={(e) => setEditIsArchived(e.target.checked)}
-                      className="rounded text-[#3368A0] focus:ring-0"
+                      className="rounded text-primary focus:ring-0"
                     />
                     <span className="text-xs font-mono font-medium flex items-center gap-1 text-foreground">
                       <Archive className="h-3 w-3 text-muted-foreground" />
@@ -1444,7 +1364,7 @@ export default function MyDiariesPage() {
                     <Button
                       type="submit"
                       disabled={updateDiaryMutation.isPending}
-                      className="bg-[#3368A0] hover:bg-[#254F7A] text-white font-serif text-xs font-bold px-4 cursor-pointer disabled:opacity-50"
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground font-sans font-medium text-xs px-4 cursor-pointer disabled:opacity-50"
                     >
                       {updateDiaryMutation.isPending ? (
                         <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />

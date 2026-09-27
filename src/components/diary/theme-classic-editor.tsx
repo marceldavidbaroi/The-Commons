@@ -65,18 +65,18 @@ export function ThemeClassicEditor({
   };
 
   return (
-    <div className="w-full relative shadow-xl rounded-lg overflow-hidden border border-[#D0C5B0] dark:border-[#1E3048]">
-      <div className="bg-[#FBF9F2] dark:bg-[#121A26] p-5 sm:p-8 md:p-10 relative">
-        <div className="absolute top-0 right-10 w-6 h-8 bg-gradient-to-b from-[#D4AF37] to-[#AA8520] rounded-b shadow-sm pointer-events-none" />
+    <div className="w-full relative shadow-md rounded-lg overflow-hidden border border-border">
+      <div className="bg-card text-card-foreground p-5 sm:p-8 md:p-10 relative">
+        <div className="absolute top-0 right-10 w-6 h-8 bg-gradient-to-b from-primary to-primary/70 rounded-b shadow-sm pointer-events-none" />
         <div className="space-y-5 relative z-10">
-          <div className="flex items-center justify-between border-b border-[#D4AF37]/40 pb-2 gap-2">
+          <div className="flex items-center justify-between border-b border-border/80 pb-2 gap-2">
             <button
               type="button"
               onClick={() => {
                 if (prevEntry) onNavigate(prevEntry.id);
               }}
               disabled={!prevEntry}
-              className="px-2 py-0.5 rounded bg-[#EDE7D6] dark:bg-[#1A2636] text-[#1E3A5F] dark:text-[#D4AF37] font-serif text-xs flex items-center gap-1 disabled:opacity-30 cursor-pointer"
+              className="px-2 py-0.5 rounded bg-muted text-muted-foreground hover:text-foreground font-serif text-xs flex items-center gap-1 disabled:opacity-30 cursor-pointer"
             >
               <ChevronLeft className="h-3 w-3" />
               <span>Prev</span>
@@ -88,7 +88,7 @@ export function ThemeClassicEditor({
                 theme="classic"
                 onDateSelect={applyInstantChange}
               />
-              <span className="text-[#D4AF37]/60 text-xs select-none">•</span>
+              <span className="text-border text-xs select-none">•</span>
               <DiaryTimePicker
                 startTime={currentEntry.startTime}
                 endTime={currentEntry.endTime}
@@ -118,7 +118,7 @@ export function ThemeClassicEditor({
                 <PencilDelete theme="classic" />
               </button>
 
-              <span className="font-mono text-xs font-bold text-[#AA8520]">
+              <span className="font-mono text-xs font-bold text-primary">
                 #{currentEntry.pageNumber}
               </span>
 
@@ -128,7 +128,7 @@ export function ThemeClassicEditor({
                   if (nextEntry) onNavigate(nextEntry.id);
                   else onNewPage();
                 }}
-                className="px-2 py-0.5 rounded bg-[#EDE7D6] dark:bg-[#1A2636] text-[#1E3A5F] dark:text-[#D4AF37] font-serif text-xs flex items-center gap-1 cursor-pointer"
+                className="px-2 py-0.5 rounded bg-muted text-muted-foreground hover:text-foreground font-serif text-xs flex items-center gap-1 cursor-pointer"
               >
                 <span>{nextEntry ? "Next" : "New +"}</span>
                 <ChevronRight className="h-3 w-3" />
@@ -143,7 +143,7 @@ export function ThemeClassicEditor({
               onChange={(e) => onUpdate({ title: e.target.value })}
               onBlur={onSave}
               placeholder="The Day's Proclamation..."
-              className="w-full bg-transparent font-serif text-2xl sm:text-3xl font-bold text-[#1E3A5F] dark:text-[#FAF7EE] border-b border-[#D4AF37]/50 focus:border-[#D4AF37] focus:outline-none py-1 placeholder:text-[#1E3A5F]/30"
+              className="w-full bg-transparent font-serif text-2xl sm:text-3xl font-bold text-foreground border-b border-primary/40 focus:border-primary focus:outline-none py-1 placeholder:text-muted-foreground/40"
             />
           </div>
 
@@ -153,7 +153,7 @@ export function ThemeClassicEditor({
               value={currentEntry.description}
               onChange={(e) => onUpdate({ description: e.target.value })}
               placeholder="Record your daily inquiries, field notes, and reflections with fountain pen clarity..."
-              className="w-full bg-transparent font-serif text-base sm:text-lg text-[#152B47] dark:text-[#E2ECF7] leading-relaxed focus:outline-none resize-none placeholder:text-[#1E3A5F]/30"
+              className="w-full bg-transparent font-reading text-base sm:text-lg text-foreground leading-relaxed focus:outline-none resize-none placeholder:text-muted-foreground/40"
             />
             {hasDescriptionChanges && (
               <div className="flex justify-end">
@@ -161,7 +161,7 @@ export function ThemeClassicEditor({
                   type="button"
                   onClick={onSave}
                   disabled={isSaving}
-                  className="px-3 py-1 bg-[#1E3A5F] hover:bg-[#152B47] text-[#FAF7EE] border border-[#D4AF37]/50 font-serif text-xs rounded font-bold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
+                  className="px-3 py-1 bg-primary hover:bg-primary/90 text-primary-foreground border border-primary/50 font-serif text-xs rounded font-bold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
                   title="Save Reflection"
                 >
                   {isSaving ? (
@@ -180,13 +180,13 @@ export function ThemeClassicEditor({
             )}
           </div>
 
-          <div className="space-y-2 pt-1 border-t border-[#D0C5B0]/50">
-            <span className="font-mono text-[10px] uppercase text-[#AA8520] font-bold tracking-wider block">
+          <div className="space-y-2 pt-1 border-t border-border/80">
+            <span className="font-mono text-[10px] uppercase text-primary font-bold tracking-wider block">
               Gratitude Inscriptions
             </span>
             {currentEntry.gratitude.map((item: string, idx: number) => (
               <div key={idx} className="flex items-baseline gap-2">
-                <span className="font-serif text-sm font-bold text-[#D4AF37]">§{idx + 1}.</span>
+                <span className="font-serif text-sm font-bold text-primary">§{idx + 1}.</span>
                 <input
                   type="text"
                   value={item}
@@ -197,17 +197,17 @@ export function ThemeClassicEditor({
                     onUpdate({ gratitude: newGrat });
                   }}
                   onBlur={onSave}
-                  className="flex-1 bg-transparent border-b border-[#D0C5B0]/40 font-serif text-base text-[#152B47] dark:text-[#E2ECF7] focus:outline-none focus:border-[#1E3A5F] py-0.5 placeholder:text-muted-foreground/40"
+                  className="flex-1 bg-transparent border-b border-border font-serif text-base text-foreground focus:outline-none focus:border-primary py-0.5 placeholder:text-muted-foreground/40"
                 />
               </div>
             ))}
           </div>
 
-          <div className="pt-2 border-t border-[#D0C5B0]/50 space-y-3">
+          <div className="pt-2 border-t border-border/80 space-y-3">
             <div className="space-y-1">
               <div className="flex items-baseline justify-between">
-                <span className="font-mono text-xs font-bold text-[#AA8520] uppercase">Vitality</span>
-                <span className="font-serif text-xs font-bold text-[#1E3A5F] dark:text-[#E2ECF7]">
+                <span className="font-mono text-xs font-bold text-primary uppercase">Vitality</span>
+                <span className="font-serif text-xs font-bold text-foreground">
                   {ENERGY_LEVELS.find((l) => l.level === currentEntry.energyLevel)?.label}
                 </span>
               </div>
@@ -219,8 +219,8 @@ export function ThemeClassicEditor({
                     onClick={() => applyInstantChange({ energyLevel: e.level })}
                     className={`py-1.5 px-1 text-center rounded border font-serif text-xs cursor-pointer ${
                       currentEntry.energyLevel === e.level
-                        ? "bg-[#1E3A5F] text-[#FAF7EE] border-[#D4AF37] font-bold"
-                        : "bg-[#EDE7D6]/60 dark:bg-[#162232] border-[#D0C5B0]/60 text-[#152B47] dark:text-[#CBD5E1]"
+                        ? "bg-primary text-primary-foreground border-primary font-bold shadow-xs"
+                        : "bg-muted/60 border-border text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     <span>{e.label}</span>
@@ -231,7 +231,7 @@ export function ThemeClassicEditor({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5">
               <div className="space-y-1">
-                <span className="font-mono text-xs font-bold text-[#AA8520] uppercase block">
+                <span className="font-mono text-xs font-bold text-primary uppercase block">
                   Disposition
                 </span>
                 <div className="grid grid-cols-3 gap-1">
@@ -242,8 +242,8 @@ export function ThemeClassicEditor({
                       onClick={() => applyInstantChange({ mood: `${m.emoji} ${m.label}` })}
                       className={`flex items-center justify-center gap-1 px-1 py-1 rounded border text-xs font-serif cursor-pointer ${
                         currentEntry.mood === `${m.emoji} ${m.label}`
-                          ? "bg-[#1E3A5F] text-[#FAF7EE] border-[#D4AF37] font-bold"
-                          : "bg-[#EDE7D6]/60 dark:bg-[#162232] border-[#D0C5B0]/60 text-[#152B47] dark:text-[#CBD5E1]"
+                          ? "bg-primary text-primary-foreground border-primary font-bold shadow-xs"
+                          : "bg-muted/60 border-border text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       <span>{m.emoji}</span>
@@ -254,7 +254,7 @@ export function ThemeClassicEditor({
               </div>
 
               <div className="space-y-1">
-                <span className="font-mono text-xs font-bold text-[#AA8520] uppercase block">
+                <span className="font-mono text-xs font-bold text-primary uppercase block">
                   Atmosphere
                 </span>
                 <div className="grid grid-cols-4 gap-1">
@@ -267,8 +267,8 @@ export function ThemeClassicEditor({
                         onClick={() => applyInstantChange({ weather: w.id })}
                         className={`p-1 rounded border flex flex-col items-center justify-center cursor-pointer ${
                           currentEntry.weather === w.id
-                            ? "bg-[#1E3A5F] text-[#FAF7EE] border-[#D4AF37] font-bold"
-                            : "bg-[#EDE7D6]/60 dark:bg-[#162232] border-[#D0C5B0]/60 text-[#152B47] dark:text-[#CBD5E1]"
+                            ? "bg-primary text-primary-foreground border-primary font-bold shadow-xs"
+                            : "bg-muted/60 border-border text-muted-foreground hover:text-foreground"
                         }`}
                       >
                         <Icon className="h-3 w-3" />

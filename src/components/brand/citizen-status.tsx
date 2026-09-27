@@ -8,13 +8,14 @@ import { useAuthStore } from "@/stores/auth-store";
 
 interface CitizenStatusProps {
   compact?: boolean;
+  showEmail?: boolean;
 }
 
 /**
  * Editorial Broadside Citizen Clearance status indicator.
  * Displays current authenticated user or clear passport action.
  */
-export function CitizenStatus({ compact = false }: CitizenStatusProps) {
+export function CitizenStatus({ compact = false, showEmail = false }: CitizenStatusProps) {
   const { data: user, isLoading } = useUserSession();
   const authUser = useAuthStore((state) => state.user);
   const { mutate: signOut, isPending: isSigningOut } = useSignOutMutation();
@@ -24,8 +25,8 @@ export function CitizenStatus({ compact = false }: CitizenStatusProps) {
   if (isLoading) {
     return (
       <div className="flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground animate-pulse">
-        <Loader2 className="h-3 w-3 animate-spin text-[#3368A0]" />
-        <span>VERIFYING CITIZEN CLEARANCE...</span>
+        <Loader2 className="h-3 w-3 animate-spin text-primary" />
+        <span className="hidden sm:inline">VERIFYING...</span>
       </div>
     );
   }
@@ -38,50 +39,60 @@ export function CitizenStatus({ compact = false }: CitizenStatusProps) {
 
     if (compact) {
       return (
-        <div className="flex items-center gap-2 text-[11px] font-mono">
+        <div className="flex items-center gap-1.5 text-[11px] font-mono">
           <Link
             href="/citizen-passport"
-            className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium hover:underline cursor-pointer"
-            title="Open Citizen Passport"
+            className="flex items-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-muted text-foreground transition-colors cursor-pointer"
+            title={`Citizen Passport (${currentUser.email})`}
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>{displayName}</span>
+            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+            <span className="font-medium truncate max-w-[120px]">{displayName}</span>
           </Link>
           <button
             onClick={() => signOut()}
             disabled={isSigningOut}
             title="Sign out of Citizen Ledger"
-            className="text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+            className="p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
           >
-            <LogOut className="h-3 w-3" />
+            {isSigningOut ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <LogOut className="h-3 w-3" />
+            )}
           </button>
         </div>
       );
     }
 
     return (
-      <div className="flex items-center gap-2 text-[11px] font-mono">
+      <div className="flex items-center gap-1.5 text-[11px] font-mono">
         <Link
           href="/citizen-passport"
-          className="flex items-center gap-1.5 px-2.5 py-1 bg-muted/60 hover:bg-[#3368A0]/10 border border-border/80 hover:border-[#3368A0]/60 text-foreground transition-all cursor-pointer group"
-          title="Open Citizen Passport & Clearance"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-card/80 hover:bg-card border border-border hover:border-primary/50 text-foreground transition-all cursor-pointer group shadow-xs"
+          title={`Citizen Passport & Clearance (${currentUser.email})`}
         >
-          <ShieldCheck className="h-3.5 w-3.5 text-[#3368A0] dark:text-[#66A3BF] group-hover:scale-110 transition-transform" />
-          <span className="font-semibold uppercase tracking-wider group-hover:text-[#3368A0] transition-colors">{displayName}</span>
-          <span className="text-muted-foreground font-normal hidden sm:inline">({currentUser.email})</span>
+          <ShieldCheck className="h-3.5 w-3.5 text-primary group-hover:scale-110 transition-transform" />
+          <span className="font-semibold uppercase tracking-wider group-hover:text-primary transition-colors truncate max-w-[140px] sm:max-w-[180px]">
+            {displayName}
+          </span>
+          {showEmail && (
+            <span className="text-muted-foreground font-normal hidden lg:inline text-[10px]">
+              ({currentUser.email})
+            </span>
+          )}
         </Link>
         <button
           onClick={() => signOut()}
           disabled={isSigningOut}
           title="Sign out of Citizen Sanctuary"
-          className="inline-flex items-center gap-1 px-2 py-1 text-muted-foreground hover:text-destructive border border-transparent hover:border-destructive/30 transition-all cursor-pointer uppercase tracking-wider"
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border/60 hover:border-destructive/30 transition-all cursor-pointer uppercase tracking-wider"
         >
           {isSigningOut ? (
             <Loader2 className="h-3 w-3 animate-spin" />
           ) : (
             <LogOut className="h-3 w-3" />
           )}
-          <span className="hidden sm:inline">Exit</span>
+          <span className="hidden md:inline text-[10px]">Exit</span>
         </button>
       </div>
     );
@@ -90,10 +101,10 @@ export function CitizenStatus({ compact = false }: CitizenStatusProps) {
   return (
     <Link
       href="/login"
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#3368A0] text-white hover:bg-[#285380] font-serif text-xs transition-all shadow-xs cursor-pointer"
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 font-serif text-xs transition-all shadow-xs cursor-pointer"
     >
       <User className="h-3 w-3" />
-      <span>Enter Sanctuary</span>
+      <span>Enter</span>
       <ArrowRight className="h-2.5 w-2.5" />
     </Link>
   );
