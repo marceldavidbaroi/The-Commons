@@ -9,10 +9,32 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import {
+  List,
+  ListItem,
+  ListHeader,
+  ListTitle,
+  ListPrefix,
+  ListContent,
+  ListText,
+  ListDescription,
+  ListSuffix,
+  ListEmpty,
+  ListFilter,
+  ListFilterSearch,
+  ListFilterGroup,
+  ListFilterChip,
+  ListFilterCount,
+} from "@/components/ui/list";
 import { CommonsLogo, CommonsSealVector } from "@/components/brand/logo";
 import {
   Check,
   CheckCircle2,
+  Circle,
+  Clock,
+  Trash2,
+  Plus,
+  ListOrdered,
   Copy,
   Layers,
   Palette,
@@ -209,6 +231,8 @@ export default function DesignSystemPage() {
   const [copiedHex, setCopiedHex] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [interactiveInput, setInteractiveInput] = useState("The Commons Design Tokens");
+  const [demoFilterSearch, setDemoFilterSearch] = useState("");
+  const [demoFilterStatus, setDemoFilterStatus] = useState<"all" | "active" | "completed">("all");
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -638,6 +662,172 @@ export default function DesignSystemPage() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* List Components Design System Showcase */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <ListOrdered className="h-5 w-5 text-[#3368A0]" />
+                  <span>List & Item Components (`List`, `ListItem`)</span>
+                </CardTitle>
+                <CardDescription>
+                  Universal, accessible list primitives with customizable variants (`default`, `cards`, `bordered`, `inset`, `ghost`), status styling, prefixes, text descriptions, actions, and empty states.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Interactive & Task List Style */}
+                  <div className="space-y-3">
+                    <ListHeader>
+                      <ListTitle>Milestones & Checklist (Default Variant)</ListTitle>
+                      <Badge variant="secondary" className="text-[10px]">2 / 3 Done</Badge>
+                    </ListHeader>
+
+                    <List variant="default">
+                      <ListItem state="completed">
+                        <ListPrefix>
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        </ListPrefix>
+                        <ListContent>
+                          <ListText completed>Draft system specifications and schema</ListText>
+                          <ListDescription>Completed on September 27th</ListDescription>
+                        </ListContent>
+                        <ListSuffix>
+                          <span className="text-[10px] font-mono text-muted-foreground">09/27</span>
+                        </ListSuffix>
+                      </ListItem>
+
+                      <ListItem variant="interactive">
+                        <ListPrefix>
+                          <Circle className="h-4 w-4 text-[#3368A0]" />
+                        </ListPrefix>
+                        <ListContent>
+                          <ListText>Implement customizable List primitives</ListText>
+                          <ListDescription>Support bordered, cards, inset, and ghost formats</ListDescription>
+                        </ListContent>
+                        <ListSuffix>
+                          <Badge className="bg-[#3368A0] text-white text-[10px]">In Progress</Badge>
+                        </ListSuffix>
+                      </ListItem>
+
+                      <ListItem variant="subtle">
+                        <ListPrefix>
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                        </ListPrefix>
+                        <ListContent>
+                          <ListText>Review design system parity</ListText>
+                        </ListContent>
+                        <ListSuffix>
+                          <Button variant="ghost" size="icon-xs">
+                            <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                          </Button>
+                        </ListSuffix>
+                      </ListItem>
+                    </List>
+                  </div>
+
+                  {/* Bordered & Inset Variants */}
+                  <div className="space-y-3">
+                    <ListHeader>
+                      <ListTitle>Grouped Card / Bordered Variant</ListTitle>
+                      <span className="text-[11px] font-mono text-muted-foreground">variant="bordered"</span>
+                    </ListHeader>
+
+                    <List variant="bordered">
+                      <ListItem variant="bordered">
+                        <ListContent>
+                          <ListText>Sanctuary Archive Sync</ListText>
+                          <ListDescription>Automatic database snapshots every 24h</ListDescription>
+                        </ListContent>
+                        <ListSuffix>
+                          <Badge variant="outline" className="text-[10px]">Active</Badge>
+                        </ListSuffix>
+                      </ListItem>
+
+                      <ListItem variant="bordered">
+                        <ListContent>
+                          <ListText>End-to-End Encryption Keys</ListText>
+                          <ListDescription>Hardware secure enclave storage</ListDescription>
+                        </ListContent>
+                        <ListSuffix>
+                          <Badge variant="secondary" className="text-[10px]">Configured</Badge>
+                        </ListSuffix>
+                      </ListItem>
+                    </List>
+
+                    {/* Empty State Preview */}
+                    <div className="pt-2">
+                      <ListEmpty
+                        icon={<ListOrdered className="h-6 w-6" />}
+                        title="No Archive Entries"
+                        description="Your custom list is ready. Add items above to populate."
+                        action={
+                          <Button size="xs" variant="outline" className="text-xs gap-1">
+                            <Plus className="h-3 w-3" />
+                            <span>Create First Item</span>
+                          </Button>
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Customizable ListFilter Showcase */}
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground">Customizable Filter Bar (`ListFilter`)</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Combines instant search, filter chips with counts, item totals, and action buttons in inline, default, or panel layouts.
+                    </p>
+                  </div>
+
+                  {/* Filter Section Component */}
+                  <ListFilter variant="inline" className="bg-muted/20 p-3 rounded-xl border border-border">
+                    <div className="flex flex-wrap items-center gap-2 flex-1">
+                      <ListFilterSearch
+                        value={demoFilterSearch}
+                        onChange={setDemoFilterSearch}
+                        placeholder="Filter items in list..."
+                        className="max-w-xs"
+                      />
+                      <ListFilterGroup>
+                        <ListFilterChip
+                          active={demoFilterStatus === "all"}
+                          onClick={() => setDemoFilterStatus("all")}
+                          count={3}
+                        >
+                          All
+                        </ListFilterChip>
+                        <ListFilterChip
+                          active={demoFilterStatus === "active"}
+                          onClick={() => setDemoFilterStatus("active")}
+                          count={2}
+                        >
+                          Active
+                        </ListFilterChip>
+                        <ListFilterChip
+                          active={demoFilterStatus === "completed"}
+                          onClick={() => setDemoFilterStatus("completed")}
+                          count={1}
+                        >
+                          Completed
+                        </ListFilterChip>
+                      </ListFilterGroup>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <ListFilterCount total={3} filtered={demoFilterStatus === "all" ? 3 : demoFilterStatus === "active" ? 2 : 1} />
+                      <Button size="xs" variant="outline" className="text-xs gap-1">
+                        <Plus className="h-3 w-3" />
+                        <span>Add Item</span>
+                      </Button>
+                    </div>
+                  </ListFilter>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* 3. TYPOGRAPHY */}

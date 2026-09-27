@@ -29,6 +29,15 @@ import { AuthGuard } from "@/components/auth/auth-guard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  List,
+  ListItem,
+  ListPrefix,
+  ListContent,
+  ListText,
+  ListSuffix,
+  ListEmpty,
+} from "@/components/ui/list";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -463,19 +472,16 @@ export default function GoalDetailPage() {
 
               {/* Subgoals List */}
               {subgoals.length > 0 ? (
-                <div className="space-y-2">
+                <List variant="default">
                   {subgoals.map((sub) => {
                     const isSubDone = sub.status === "completed";
                     return (
-                      <div
+                      <ListItem
                         key={sub.id}
-                        className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
-                          isSubDone
-                            ? "bg-muted/20 border-border/60 opacity-80"
-                            : "bg-background border-border hover:border-border/90"
-                        }`}
+                        state={isSubDone ? "completed" : "idle"}
+                        className="py-2.5 px-3"
                       >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <ListPrefix className="mr-2.5">
                           <button
                             type="button"
                             onClick={() => handleToggleSubgoal(sub.id, sub.status)}
@@ -488,16 +494,15 @@ export default function GoalDetailPage() {
                               <Circle className="h-4.5 w-4.5 text-muted-foreground hover:text-primary" />
                             )}
                           </button>
-                          <span
-                            className={`text-xs font-sans break-words ${
-                              isSubDone ? "line-through text-muted-foreground" : "text-foreground"
-                            }`}
-                          >
-                            {sub.title}
-                          </span>
-                        </div>
+                        </ListPrefix>
 
-                        <div className="flex items-center gap-2 shrink-0">
+                        <ListContent>
+                          <ListText completed={isSubDone}>
+                            {sub.title}
+                          </ListText>
+                        </ListContent>
+
+                        <ListSuffix className="ml-2">
                           <Link
                             href={`/goals/${sub.id}`}
                             className="p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors"
@@ -517,15 +522,15 @@ export default function GoalDetailPage() {
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
-                        </div>
-                      </div>
+                        </ListSuffix>
+                      </ListItem>
                     );
                   })}
-                </div>
+                </List>
               ) : (
-                <div className="p-6 border border-dashed border-border/80 rounded-xl text-center text-xs font-mono text-muted-foreground bg-muted/10">
-                  No milestone steps added yet. Add simple actionable steps above to build momentum.
-                </div>
+                <ListEmpty
+                  description="No milestone steps added yet. Add simple actionable steps above to build momentum."
+                />
               )}
             </div>
 
