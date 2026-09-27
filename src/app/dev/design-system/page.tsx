@@ -51,7 +51,11 @@ import {
   Smartphone,
   Tablet,
   Monitor,
-  Stamp
+  Stamp,
+  LayoutList,
+  ShieldAlert,
+  SlidersHorizontal,
+  XCircle,
 } from "lucide-react";
 
 interface ColorSwatch {
@@ -343,9 +347,13 @@ export default function DesignSystemPage() {
 
       {/* Main Tabs Explorer */}
       <main className="max-w-6xl mx-auto px-6 pb-24">
-        <Tabs defaultValue="brand-logo" className="space-y-8">
+        <Tabs defaultValue="list-rules" className="space-y-8">
           <TabsList className="bg-muted p-1 rounded-xl border border-border inline-flex flex-wrap gap-1">
-            <TabsTrigger value="brand-logo" className="gap-2 text-xs sm:text-sm text-[#3368A0] dark:text-[#66A3BF] font-semibold">
+            <TabsTrigger value="list-rules" className="gap-2 text-xs sm:text-sm text-[#3368A0] dark:text-[#66A3BF] font-semibold">
+              <LayoutList className="h-4 w-4" />
+              <span>List Page System & Rules</span>
+            </TabsTrigger>
+            <TabsTrigger value="brand-logo" className="gap-2 text-xs sm:text-sm">
               <Stamp className="h-4 w-4" />
               <span>Brand Logo & Seal</span>
             </TabsTrigger>
@@ -378,6 +386,289 @@ export default function DesignSystemPage() {
               <span>Sandbox</span>
             </TabsTrigger>
           </TabsList>
+
+          {/* LIST PAGE SYSTEM & RULES (NEW DEDICATED SHOWCASE) */}
+          <TabsContent value="list-rules" className="space-y-8">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
+                  <LayoutList className="h-5 w-5 text-[#3368A0]" />
+                  <span>Common List Page System (Anti-Layer-Cake Architecture)</span>
+                </h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-3xl leading-relaxed">
+                  Rules and interactive demonstrations to prevent vertical bloat, maintain maximum working screen real-estate, and guarantee high information density across all ledger and list pages.
+                </p>
+              </div>
+
+              {/* Comparison Grid: AI Anti-Pattern vs Commons Standard */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+                
+                {/* Flawed AI Stacking Anti-Pattern */}
+                <Card className="border-red-500/30 bg-red-500/5">
+                  <CardHeader className="pb-3 border-b border-red-500/20">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold text-sm">
+                        <XCircle className="h-4 w-4" />
+                        <span>Flawed Pattern: AI Vertical Stacking</span>
+                      </div>
+                      <Badge variant="destructive" className="text-[10px]">Wastes 45% Screen</Badge>
+                    </div>
+                    <CardDescription className="text-xs text-muted-foreground">
+                      5 separate vertical rows before any task is visible. High cognitive load & immediate scrolling.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-4 space-y-3 font-sans text-xs">
+                    {/* Row 1 */}
+                    <div className="p-2 bg-background border border-red-500/30 rounded text-[11px] text-muted-foreground flex justify-between">
+                      <span>Row 1: Global Nav</span>
+                      <span className="text-red-500">~48px</span>
+                    </div>
+                    {/* Row 2 */}
+                    <div className="p-2 bg-background border border-red-500/30 rounded text-[11px] text-muted-foreground flex justify-between">
+                      <span>Row 2: Breadcrumb context</span>
+                      <span className="text-red-500">~32px</span>
+                    </div>
+                    {/* Row 3 */}
+                    <div className="p-2 bg-background border border-red-500/30 rounded text-[11px] text-muted-foreground flex justify-between">
+                      <span>Row 3: Huge H1 Heading + Duplicated Stats + CTA</span>
+                      <span className="text-red-500">~56px</span>
+                    </div>
+                    {/* Row 4 */}
+                    <div className="p-2 bg-background border border-red-500/30 rounded text-[11px] text-muted-foreground flex justify-between">
+                      <span>Row 4: Filter Pills Row + Segmented Control</span>
+                      <span className="text-red-500">~44px</span>
+                    </div>
+                    {/* Row 5 */}
+                    <div className="p-2 bg-background border border-red-500/30 rounded text-[11px] text-muted-foreground flex justify-between">
+                      <span>Row 5: Full-width Search + 3 Dropdowns</span>
+                      <span className="text-red-500">~48px</span>
+                    </div>
+                    <div className="pt-2 text-center text-red-600 dark:text-red-400 font-mono text-[11px] font-semibold">
+                      ⚠️ Total Header Height: ~228px (Barely 3-4 items fit on 1080p!)
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Commons Standard Pattern */}
+                <Card className="border-emerald-500/40 bg-emerald-500/5">
+                  <CardHeader className="pb-3 border-b border-emerald-500/20">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                        <CheckCircle2 className="h-4 w-4" />
+                        <span>The Commons Standard: 2-Tier Budget</span>
+                      </div>
+                      <Badge className="bg-emerald-600 text-white text-[10px]">Optimal Ergonomics</Badge>
+                    </div>
+                    <CardDescription className="text-xs text-muted-foreground">
+                      Max 2 compact tiers (~80px). 10-14 items visible above the fold on desktop.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-4 space-y-3 font-sans text-xs">
+                    {/* Tier 1 */}
+                    <div className="p-2.5 bg-background border border-emerald-500/40 rounded-lg space-y-1">
+                      <div className="flex items-center justify-between font-semibold text-foreground">
+                        <span>Tier 1: Context & Primary Action</span>
+                        <span className="text-emerald-600 font-mono">~40px</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Page title + item tally count on the left, primary action CTA button on the right.
+                      </p>
+                    </div>
+                    {/* Tier 2 */}
+                    <div className="p-2.5 bg-background border border-emerald-500/40 rounded-lg space-y-1">
+                      <div className="flex items-center justify-between font-semibold text-foreground">
+                        <span>Tier 2: Unified Interactive Toolbar</span>
+                        <span className="text-emerald-600 font-mono">~38px</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Inline search (`ListFilterSearch`), filter tabs with embedded counts (`ListFilterChip count=&#123;..&#125;`), and sort triggers on one single row.
+                      </p>
+                    </div>
+                    <div className="pt-2 text-center text-emerald-600 dark:text-emerald-400 font-mono text-[11px] font-semibold">
+                      ✓ Total Header Height: ~80px (Preserves 85% for actual content!)
+                    </div>
+                  </CardContent>
+                </Card>
+
+              </div>
+
+              {/* Live Interactive 2-Tier Common List Demo */}
+              <Card className="border-border shadow-xs mt-6">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <SlidersHorizontal className="h-4 w-4 text-[#3368A0]" />
+                        <span>Interactive 2-Tier List Page Architecture Demo</span>
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Complies with all Design System Rules: compact header, single-row toolbar, and high row density.
+                      </CardDescription>
+                    </div>
+                    <Badge variant="outline" className="font-mono text-[10px]">
+                      &lt;List variant=&quot;default&quot;&gt;
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  
+                  {/* TIER 1: Header + Primary CTA */}
+                  <div className="flex items-center justify-between pb-2 border-b border-border">
+                    <div className="flex items-center gap-2.5">
+                      <h4 className="font-bold text-sm text-foreground">Sanctuary Objectives & Goals</h4>
+                      <Badge variant="secondary" className="font-mono text-[10px]">
+                        4 Active
+                      </Badge>
+                    </div>
+                    <Button size="xs" className="bg-[#3368A0] hover:bg-[#285380] text-white gap-1 text-xs">
+                      <Plus className="h-3 w-3" />
+                      <span>Inscribe Goal</span>
+                    </Button>
+                  </div>
+
+                  {/* TIER 2: Unified Inline Toolbar */}
+                  <ListFilter variant="inline" className="bg-muted/30 p-2 rounded-lg border border-border">
+                    <div className="flex flex-wrap items-center gap-2 flex-1">
+                      <ListFilterSearch
+                        value={demoFilterSearch}
+                        onChange={setDemoFilterSearch}
+                        placeholder="Filter goals by keyword..."
+                        className="max-w-[200px]"
+                      />
+                      <ListFilterGroup>
+                        <ListFilterChip
+                          active={demoFilterStatus === "all"}
+                          onClick={() => setDemoFilterStatus("all")}
+                          count={4}
+                          size="sm"
+                        >
+                          All
+                        </ListFilterChip>
+                        <ListFilterChip
+                          active={demoFilterStatus === "active"}
+                          onClick={() => setDemoFilterStatus("active")}
+                          count={3}
+                          size="sm"
+                        >
+                          Today
+                        </ListFilterChip>
+                        <ListFilterChip
+                          active={demoFilterStatus === "completed"}
+                          onClick={() => setDemoFilterStatus("completed")}
+                          count={1}
+                          size="sm"
+                        >
+                          Done
+                        </ListFilterChip>
+                      </ListFilterGroup>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs">
+                      <ListFilterCount total={4} filtered={demoFilterStatus === "all" ? 4 : demoFilterStatus === "active" ? 3 : 1} />
+                    </div>
+                  </ListFilter>
+
+                  {/* HIGH DENSITY LIST ROWS */}
+                  <List variant="default" className="space-y-1.5 pt-1">
+                    <ListItem variant="interactive" size="sm">
+                      <ListPrefix>
+                        <Circle className="h-3.5 w-3.5 text-[#3368A0]" />
+                      </ListPrefix>
+                      <ListContent>
+                        <div className="flex items-center gap-2">
+                          <ListText>ERP Weekly Horizon & Infrastructure Milestone</ListText>
+                          <Badge variant="outline" className="text-[10px] py-0 h-4">Weekly Horizon</Badge>
+                          <span className="text-[10px] font-mono text-[#C48C28]">Due Tomorrow</span>
+                        </div>
+                      </ListContent>
+                      <ListSuffix>
+                        <Button variant="ghost" size="icon-xs">
+                          <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                        </Button>
+                      </ListSuffix>
+                    </ListItem>
+
+                    <ListItem variant="interactive" size="sm">
+                      <ListPrefix>
+                        <Circle className="h-3.5 w-3.5 text-muted-foreground" />
+                      </ListPrefix>
+                      <ListContent>
+                        <div className="flex items-center gap-2">
+                          <ListText>Check how the backlog and task ledgers are structured</ListText>
+                          <Badge variant="outline" className="text-[10px] py-0 h-4 bg-[#6B8E23]/10 text-[#6B8E23]">Daily Ritual</Badge>
+                        </div>
+                      </ListContent>
+                      <ListSuffix>
+                        <Button variant="ghost" size="icon-xs">
+                          <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                        </Button>
+                      </ListSuffix>
+                    </ListItem>
+
+                    <ListItem variant="interactive" size="sm">
+                      <ListPrefix>
+                        <Circle className="h-3.5 w-3.5 text-muted-foreground" />
+                      </ListPrefix>
+                      <ListContent>
+                        <div className="flex items-center gap-2">
+                          <ListText>Test the link with the shipment and customs clearance</ListText>
+                          <Badge variant="outline" className="text-[10px] py-0 h-4 bg-[#6B8E23]/10 text-[#6B8E23]">Daily Ritual</Badge>
+                        </div>
+                      </ListContent>
+                      <ListSuffix>
+                        <Button variant="ghost" size="icon-xs">
+                          <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                        </Button>
+                      </ListSuffix>
+                    </ListItem>
+
+                    <ListItem state="completed" size="sm">
+                      <ListPrefix>
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                      </ListPrefix>
+                      <ListContent>
+                        <div className="flex items-center gap-2">
+                          <ListText completed>Add batch code migration in production database</ListText>
+                          <Badge variant="outline" className="text-[10px] py-0 h-4 opacity-70">Completed</Badge>
+                        </div>
+                      </ListContent>
+                      <ListSuffix>
+                        <span className="text-[10px] font-mono text-muted-foreground">Today</span>
+                      </ListSuffix>
+                    </ListItem>
+                  </List>
+
+                </CardContent>
+              </Card>
+
+              {/* Rules Checklist for Developers & Designers */}
+              <div className="p-4 bg-muted/40 rounded-xl border border-border space-y-3 mt-6">
+                <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
+                  <ShieldAlert className="h-4 w-4 text-[#3368A0]" />
+                  <span>Mandatory Rules for Common & List Pages</span>
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-muted-foreground leading-relaxed">
+                  <div className="space-y-1 p-2.5 bg-background rounded-lg border border-border">
+                    <span className="font-bold text-foreground">1. Never stack Search and Filters on separate lines</span>
+                    <p>Always merge them using &lt;ListFilter variant=&quot;inline&quot;&gt; to save ~40-50px of vertical space.</p>
+                  </div>
+                  <div className="space-y-1 p-2.5 bg-background rounded-lg border border-border">
+                    <span className="font-bold text-foreground">2. Max 2 tiers above the list content</span>
+                    <p>Combined header and toolbar must never exceed ~85px height to ensure 8-12 items remain visible above fold.</p>
+                  </div>
+                  <div className="space-y-1 p-2.5 bg-background rounded-lg border border-border">
+                    <span className="font-bold text-foreground">3. Embed counters directly in filter tabs</span>
+                    <p>Use `&lt;ListFilterChip count=&#123;3&#125;&gt;` instead of creating redundant stats banners or counter rows.</p>
+                  </div>
+                  <div className="space-y-1 p-2.5 bg-background rounded-lg border border-border">
+                    <span className="font-bold text-foreground">4. Use Modals/Drawers for complex inputs</span>
+                    <p>Do not embed large static multi-field forms on the main list canvas. Use dialogs, drawers, or inline quick-add.</p>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </TabsContent>
 
           {/* 0. BRAND LOGO & SEAL SHOWCASE */}
           <TabsContent value="brand-logo" className="space-y-8">
