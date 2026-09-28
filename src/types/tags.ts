@@ -65,7 +65,7 @@ export interface EntityTagJunction {
   tag?: TagRow;
 }
 
-export type EntityType = "document" | "diary_entry" | "goal";
+export type EntityType = "document" | "diary_entry" | "goal" | "task";
 
 // ============================================================================
 // Zod Validation Schemas
@@ -98,6 +98,6 @@ export const updateTagSchema = z.object({
 
 export const syncEntityTagsSchema = z.object({
   entity_id: z.string().uuid("Invalid entity UUID"),
-  entity_type: z.enum(["document", "diary_entry", "goal"]),
+  entity_type: z.enum(["document", "diary_entry", "goal", "task"]),
   tag_ids: z.array(z.number().int().positive("Invalid numeric tag ID")),
 });

@@ -30,6 +30,7 @@ import { useGoalsQuery } from "@/hooks/queries/use-goals";
 import { 
   DailyDiaryBookSvg, 
   GoalsCompassSvg, 
+  TasksChecklistSvg,
   CitizenPassportSvg, 
   TagsIndexPlateSvg 
 } from "@/components/brand/magazine-illustrations";
@@ -85,7 +86,7 @@ export default function HomePage() {
           </div>
 
           {/* 2. MODERN MINIMALIST TILES (Smaller, Modern Card Design) */}
-          <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             
             {/* Card 1: Daily Journal */}
             <Link 
@@ -109,11 +110,24 @@ export default function HomePage() {
                 <GoalsCompassSvg className="w-5 h-5" />
               </div>
               <span className="font-serif font-semibold text-xs sm:text-sm text-foreground group-hover:text-[#3368A0] dark:group-hover:text-[#66A3BF] transition-colors text-center">
-                Goals & Roadmap
+                Goals & Horizons
               </span>
             </Link>
 
-            {/* Card 3: Tag Taxonomy */}
+            {/* Card 3: Task Ledger */}
+            <Link 
+              href="/tasks" 
+              className="group relative p-4 rounded-xl border border-border/80 bg-card hover:border-[#0EA5E9]/50 hover:bg-[#0EA5E9]/5 transition-all duration-200 flex flex-col items-center justify-center gap-2.5 shadow-xs cursor-pointer overflow-hidden"
+            >
+              <div className="h-10 w-10 rounded-lg bg-[#0EA5E9]/10 text-[#0EA5E9] dark:text-[#38BDF8] flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                <TasksChecklistSvg className="w-5 h-5" />
+              </div>
+              <span className="font-serif font-semibold text-xs sm:text-sm text-foreground group-hover:text-[#0EA5E9] dark:group-hover:text-[#38BDF8] transition-colors text-center">
+                Daily Tasks
+              </span>
+            </Link>
+
+            {/* Card 4: Tag Taxonomy */}
             <Link 
               href="/tag-management" 
               className="group relative p-4 rounded-xl border border-border/80 bg-card hover:border-[#8B5CF6]/50 hover:bg-[#8B5CF6]/5 transition-all duration-200 flex flex-col items-center justify-center gap-2.5 shadow-xs cursor-pointer overflow-hidden"
@@ -126,7 +140,7 @@ export default function HomePage() {
               </span>
             </Link>
 
-            {/* Card 4: Citizen Passport */}
+            {/* Card 5: Citizen Passport */}
             <Link 
               href="/citizen-passport" 
               className="group relative p-4 rounded-xl border border-border/80 bg-card hover:border-[#6B8E23]/50 hover:bg-[#6B8E23]/5 transition-all duration-200 flex flex-col items-center justify-center gap-2.5 shadow-xs cursor-pointer overflow-hidden"
@@ -272,6 +286,8 @@ export default function HomePage() {
               <Link href="/my-diaries" className="hover:text-foreground">Diaries</Link>
               <span>•</span>
               <Link href="/goals" className="hover:text-foreground">Goals</Link>
+              <span>•</span>
+              <Link href="/tasks" className="hover:text-foreground">Tasks</Link>
               <span>•</span>
               <Link href="/tag-management" className="hover:text-foreground">Tags</Link>
               <span>•</span>

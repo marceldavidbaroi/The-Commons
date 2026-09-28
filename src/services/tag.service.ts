@@ -360,12 +360,16 @@ export class TagService extends BaseService {
           ? "diary_entry_tags"
           : entityType === "goal"
           ? "goal_tags"
+          : entityType === "task"
+          ? "task_tags"
           : "document_tags";
       const idColumn =
         entityType === "diary_entry"
           ? "entry_id"
           : entityType === "goal"
           ? "goal_id"
+          : entityType === "task"
+          ? "task_id"
           : "document_id";
 
       // 1. Fetch current tag IDs

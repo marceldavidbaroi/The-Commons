@@ -8,6 +8,7 @@ import {
   Compass, 
   BookOpen, 
   Target, 
+  CheckSquare,
   Tag as TagIcon, 
   Settings, 
   Menu, 
@@ -36,6 +37,7 @@ const PRIMARY_NAV_ITEMS: NavItem[] = [
   { label: "Desk", href: "/home", icon: Compass },
   { label: "Diaries", href: "/my-diaries", icon: BookOpen, matchPrefix: true },
   { label: "Goals", href: "/goals", icon: Target, matchPrefix: true },
+  { label: "Tasks", href: "/tasks", icon: CheckSquare, matchPrefix: true },
   { label: "Tags", href: "/tag-management", icon: TagIcon, matchPrefix: true },
 ];
 

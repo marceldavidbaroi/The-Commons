@@ -114,3 +114,26 @@ export function SettingsDialSvg({ className = "w-6 h-6" }: { className?: string 
     </svg>
   );
 }
+
+/**
+ * 6. TASK LEDGER - Modern Actionable Task Checklist Icon
+ */
+export function TasksChecklistSvg({ className = "w-6 h-6" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect x="3" y="4" width="18" height="16" rx="3" />
+      <path d="m9 12 2 2 4-4" />
+      <path d="M7 8h.01" />
+      <path d="M7 16h.01" />
+    </svg>
+  );
+}

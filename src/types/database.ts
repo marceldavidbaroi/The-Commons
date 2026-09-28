@@ -478,6 +478,115 @@ export interface Database {
           }
         ];
       };
+      tasks: {
+        Row: {
+          id: string;
+          user_id: string;
+          parent_id: string | null;
+          title: string;
+          description: string | null;
+          status: 'todo' | 'in_progress' | 'completed' | 'cancelled' | 'deferred';
+          priority: 'low' | 'normal' | 'high' | 'urgent';
+          scheduled_date: string | null;
+          due_date: string | null;
+          completed_at: string | null;
+          time_estimate_minutes: number | null;
+          actual_minutes: number | null;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          parent_id?: string | null;
+          title: string;
+          description?: string | null;
+          status?: 'todo' | 'in_progress' | 'completed' | 'cancelled' | 'deferred';
+          priority?: 'low' | 'normal' | 'high' | 'urgent';
+          scheduled_date?: string | null;
+          due_date?: string | null;
+          completed_at?: string | null;
+          time_estimate_minutes?: number | null;
+          actual_minutes?: number | null;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<{
+          parent_id: string | null;
+          title: string;
+          description: string | null;
+          status: 'todo' | 'in_progress' | 'completed' | 'cancelled' | 'deferred';
+          priority: 'low' | 'normal' | 'high' | 'urgent';
+          scheduled_date: string | null;
+          due_date: string | null;
+          completed_at: string | null;
+          time_estimate_minutes: number | null;
+          actual_minutes: number | null;
+          sort_order: number;
+          updated_at: string;
+        }>;
+        Relationships: [
+          {
+            foreignKeyName: "tasks_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_parent_id_fkey";
+            columns: ["parent_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      task_tags: {
+        Row: {
+          task_id: string;
+          tag_id: number;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          task_id: string;
+          tag_id: number;
+          user_id?: string;
+          created_at?: string;
+        };
+        Update: Partial<{
+          task_id: string;
+          tag_id: number;
+          user_id: string;
+          created_at: string;
+        }>;
+        Relationships: [
+          {
+            foreignKeyName: "task_tags_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_tags_tag_id_fkey";
+            columns: ["tag_id"];
+            isOneToOne: false;
+            referencedRelation: "tags";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_tags_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -572,6 +681,8 @@ export interface Database {
       goal_type: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'milestone' | 'habit';
       goal_status: 'draft' | 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'deferred';
       goal_priority: 'low' | 'normal' | 'high' | 'critical';
+      task_status: 'todo' | 'in_progress' | 'completed' | 'cancelled' | 'deferred';
+      task_priority: 'low' | 'normal' | 'high' | 'urgent';
     };
     CompositeTypes: {
       [_ in never]: never;
