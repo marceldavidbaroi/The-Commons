@@ -15,7 +15,7 @@ export function ThemeSynchronizer() {
     const root = document.documentElement;
 
     // Apply theme palette attribute
-    root.setAttribute("data-theme", themePalette || "paper");
+    root.setAttribute("data-theme", themePalette || "denim");
 
     // Toggle dark class when midnight is active for backwards compatibility
     if (themePalette === "midnight") {

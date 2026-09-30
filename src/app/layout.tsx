@@ -37,7 +37,7 @@ export default function RootLayout({
                 const stored = localStorage.getItem("the-commons-ui-store");
                 if (stored) {
                   const parsed = JSON.parse(stored);
-                  const theme = parsed?.state?.themePalette || "paper";
+                  const theme = parsed?.state?.themePalette || "denim";
                   const font = parsed?.state?.readingFont || "sans";
                   document.documentElement.setAttribute("data-theme", theme);
                   document.documentElement.setAttribute("data-reading-font", font);
@@ -45,7 +45,7 @@ export default function RootLayout({
                     document.documentElement.classList.add("dark");
                   }
                 } else {
-                  document.documentElement.setAttribute("data-theme", "paper");
+                  document.documentElement.setAttribute("data-theme", "denim");
                   document.documentElement.setAttribute("data-reading-font", "sans");
                 }
               } catch (e) {}

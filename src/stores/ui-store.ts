@@ -29,7 +29,7 @@ export const useUIStore = create<UIState>()(
       broadsheetDensity: "editorial",
       fontSizeScale: "md",
       isCommandPaletteOpen: false,
-      themePalette: "paper",
+      themePalette: "denim",
       readingFont: "sans",
 
       toggleReadingMode: () => set((state) => ({ readingMode: !state.readingMode })),

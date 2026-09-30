@@ -12,6 +12,7 @@ const listVariants = cva("w-full transition-colors", {
     variant: {
       default: "space-y-2",
       bordered: "rounded-xl border border-border bg-card p-1 divide-y divide-border/60 overflow-hidden",
+      compact: "rounded-lg border border-border bg-card divide-y divide-border/50 overflow-hidden",
       cards: "space-y-2.5",
       inset: "rounded-lg bg-muted/40 p-2 space-y-1.5",
       ghost: "divide-y divide-border/40",
@@ -49,7 +50,7 @@ function List({
     className: cn(
       listVariants({
         variant,
-        spacing: spacing ?? (variant === "bordered" || variant === "ghost" ? "none" : undefined),
+        spacing: spacing ?? (variant === "bordered" || variant === "compact" || variant === "ghost" ? "none" : undefined),
       }),
       className
     ),
@@ -70,15 +71,19 @@ const listItemVariants = cva(
           "rounded-lg px-3 py-2 hover:bg-muted/60 text-foreground",
         bordered:
           "px-3.5 py-2.5 hover:bg-muted/40 text-foreground first:rounded-t-lg last:rounded-b-lg",
+        compact:
+          "px-3 py-2 hover:bg-muted/30 text-foreground transition-colors cursor-pointer",
         ghost:
           "py-2.5 px-1 hover:bg-muted/30 text-foreground",
         interactive:
           "rounded-lg border border-border bg-background px-3.5 py-2.5 hover:border-primary/50 hover:bg-muted/40 cursor-pointer active:scale-[0.99] text-foreground",
       },
       size: {
-        sm: "py-1.5 px-2.5 text-xs",
-        default: "py-2.5 px-3.5 text-sm",
-        lg: "py-3 px-4 text-base",
+        xs: "py-1 px-2 text-xs min-h-[32px]",
+        sm: "py-1.5 px-2.5 text-xs min-h-[36px]",
+        compact: "py-2 px-3 text-xs sm:text-sm min-h-[40px]",
+        default: "py-2.5 px-3.5 text-sm min-h-[46px]",
+        lg: "py-3 px-4 text-base min-h-[52px]",
       },
       state: {
         idle: "",

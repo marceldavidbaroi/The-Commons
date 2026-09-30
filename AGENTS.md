@@ -63,6 +63,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Treat `page_number` purely as a visual UI badge ("Leaf No. 12"). Never use `String(e.pageNumber) === id` for entity identification.
 - Use `router.replace(url, { scroll: false })` or `router.push(url)` for route transitions. Avoid manual `window.history.replaceState` hacks.
 
+# UI Simplicity & Plain Language Rules
+- **No Fantasy Vocabulary**: Avoid grandiose/fantasy copy such as "Citizen Passport", "Sanctuary", "Sacred Codex", "Broadside Inscription", "Sovereign Passport", "Wax Seal", "Colophon". Use clean, direct, standard words: "Account", "Profile", "Settings", "Sign In", "Dashboard", "Notes", "Journals", "Tasks", "Goals".
+- **Simple, Minimalist UI**:
+  - Avoid excessive nested decorative cards, heavy frames, badge borders, and artificial layered boxes.
+  - Keep layouts clean, flat, high-density, and straightforward with subtle borders and clear whitespace.
+
 ## 5. Directory & File Responsibilities Sitemap
 - `src/hooks/queries/`: React Query hooks for fetching, mutating, and cache invalidation.
 - `src/services/`: Direct Supabase database client functions and error normalization.

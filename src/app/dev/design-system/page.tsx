@@ -966,12 +966,12 @@ export default function DesignSystemPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Interactive & Task List Style */}
                   <div className="space-y-3">
                     <ListHeader>
-                      <ListTitle>Milestones & Checklist (Default Variant)</ListTitle>
-                      <Badge variant="secondary" className="text-[10px]">2 / 3 Done</Badge>
+                      <ListTitle>Standard Interactive List</ListTitle>
+                      <Badge variant="secondary" className="text-[10px]">variant="default"</Badge>
                     </ListHeader>
 
                     <List variant="default">
@@ -980,8 +980,8 @@ export default function DesignSystemPage() {
                           <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                         </ListPrefix>
                         <ListContent>
-                          <ListText completed>Draft system specifications and schema</ListText>
-                          <ListDescription>Completed on September 27th</ListDescription>
+                          <ListText completed>Draft system specifications</ListText>
+                          <ListDescription>Completed on Sept 27th</ListDescription>
                         </ListContent>
                         <ListSuffix>
                           <span className="text-[10px] font-mono text-muted-foreground">09/27</span>
@@ -993,11 +993,11 @@ export default function DesignSystemPage() {
                           <Circle className="h-4 w-4 text-[#3368A0]" />
                         </ListPrefix>
                         <ListContent>
-                          <ListText>Implement customizable List primitives</ListText>
-                          <ListDescription>Support bordered, cards, inset, and ghost formats</ListDescription>
+                          <ListText>Implement list primitives</ListText>
+                          <ListDescription>Bordered, cards, compact</ListDescription>
                         </ListContent>
                         <ListSuffix>
-                          <Badge className="bg-[#3368A0] text-white text-[10px]">In Progress</Badge>
+                          <Badge className="bg-[#3368A0] text-white text-[10px]">Active</Badge>
                         </ListSuffix>
                       </ListItem>
 
@@ -1006,7 +1006,7 @@ export default function DesignSystemPage() {
                           <Clock className="h-4 w-4 text-muted-foreground" />
                         </ListPrefix>
                         <ListContent>
-                          <ListText>Review design system parity</ListText>
+                          <ListText>Review design parity</ListText>
                         </ListContent>
                         <ListSuffix>
                           <Button variant="ghost" size="icon-xs">
@@ -1017,10 +1017,70 @@ export default function DesignSystemPage() {
                     </List>
                   </div>
 
+                  {/* High-Density Compact List Variant */}
+                  <div className="space-y-3">
+                    <ListHeader>
+                      <ListTitle>Compact Flat List (High Density)</ListTitle>
+                      <span className="text-[11px] font-mono text-muted-foreground">variant="compact"</span>
+                    </ListHeader>
+
+                    <List variant="compact">
+                      <ListItem variant="compact" size="compact">
+                        <ListPrefix>
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                        </ListPrefix>
+                        <ListContent>
+                          <ListText completed className="text-xs">Setup task schema & migration</ListText>
+                        </ListContent>
+                        <ListSuffix>
+                          <Badge variant="outline" className="text-[9px] py-0 px-1">Done</Badge>
+                          <span className="text-[10px] font-mono text-muted-foreground">Today</span>
+                        </ListSuffix>
+                      </ListItem>
+
+                      <ListItem variant="compact" size="compact">
+                        <ListPrefix>
+                          <Circle className="h-3.5 w-3.5 text-primary" />
+                        </ListPrefix>
+                        <ListContent>
+                          <ListText className="text-xs">Design compact flat list UI</ListText>
+                        </ListContent>
+                        <ListSuffix>
+                          <Badge className="text-[9px] py-0 px-1">High</Badge>
+                          <span className="text-[10px] font-mono text-muted-foreground">14:00</span>
+                        </ListSuffix>
+                      </ListItem>
+
+                      <ListItem variant="compact" size="compact">
+                        <ListPrefix>
+                          <Circle className="h-3.5 w-3.5 text-muted-foreground" />
+                        </ListPrefix>
+                        <ListContent>
+                          <ListText className="text-xs">Connect SvelteKit task routes</ListText>
+                        </ListContent>
+                        <ListSuffix>
+                          <span className="text-[10px] font-mono text-muted-foreground">Tomorrow</span>
+                        </ListSuffix>
+                      </ListItem>
+
+                      <ListItem variant="compact" size="compact">
+                        <ListPrefix>
+                          <Circle className="h-3.5 w-3.5 text-muted-foreground" />
+                        </ListPrefix>
+                        <ListContent>
+                          <ListText className="text-xs">Audit master-detail drawer</ListText>
+                        </ListContent>
+                        <ListSuffix>
+                          <span className="text-[10px] font-mono text-muted-foreground">Oct 02</span>
+                        </ListSuffix>
+                      </ListItem>
+                    </List>
+                  </div>
+
                   {/* Bordered & Inset Variants */}
                   <div className="space-y-3">
                     <ListHeader>
-                      <ListTitle>Grouped Card / Bordered Variant</ListTitle>
+                      <ListTitle>Grouped Card / Bordered</ListTitle>
                       <span className="text-[11px] font-mono text-muted-foreground">variant="bordered"</span>
                     </ListHeader>
 
@@ -1028,7 +1088,7 @@ export default function DesignSystemPage() {
                       <ListItem variant="bordered">
                         <ListContent>
                           <ListText>Sanctuary Archive Sync</ListText>
-                          <ListDescription>Automatic database snapshots every 24h</ListDescription>
+                          <ListDescription>Automatic snapshots every 24h</ListDescription>
                         </ListContent>
                         <ListSuffix>
                           <Badge variant="outline" className="text-[10px]">Active</Badge>
@@ -1037,8 +1097,8 @@ export default function DesignSystemPage() {
 
                       <ListItem variant="bordered">
                         <ListContent>
-                          <ListText>End-to-End Encryption Keys</ListText>
-                          <ListDescription>Hardware secure enclave storage</ListDescription>
+                          <ListText>End-to-End Encryption</ListText>
+                          <ListDescription>Hardware secure storage</ListDescription>
                         </ListContent>
                         <ListSuffix>
                           <Badge variant="secondary" className="text-[10px]">Configured</Badge>
@@ -1051,7 +1111,7 @@ export default function DesignSystemPage() {
                       <ListEmpty
                         icon={<ListOrdered className="h-6 w-6" />}
                         title="No Archive Entries"
-                        description="Your custom list is ready. Add items above to populate."
+                        description="Your custom list is ready. Add items above."
                         action={
                           <Button size="xs" variant="outline" className="text-xs gap-1">
                             <Plus className="h-3 w-3" />
