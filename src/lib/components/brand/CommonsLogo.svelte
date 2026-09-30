@@ -1,9 +1,11 @@
 <script lang="ts">
 	import CommonsSealVector from './CommonsSealVector.svelte';
+	import type { ThemePalette } from '$lib/theme';
 
 	interface Props {
 		variant?: 'seal' | 'mark' | 'horizontal' | 'stacked';
 		size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | number;
+		theme?: ThemePalette | 'current';
 		href?: string;
 		subtitle?: string;
 		showFolio?: boolean;
@@ -21,6 +23,7 @@
 	let {
 		variant = 'horizontal',
 		size = 'md',
+		theme = 'current',
 		href,
 		subtitle,
 		showFolio = false,
@@ -34,11 +37,12 @@
 
 {#snippet logoContent()}
 	<div
-		class="commons-logo variant-{variant} {className}"
+		class="commons-logo variant-{variant} theme-{theme} {className}"
 		class:stacked={variant === 'stacked'}
+		data-logo-theme={theme !== 'current' ? theme : undefined}
 	>
 		<div class="seal-wrapper">
-			<CommonsSealVector size={pixelSize} markOnly={variant === 'mark'} />
+			<CommonsSealVector size={pixelSize} markOnly={variant === 'mark'} {theme} />
 		</div>
 
 		{#if variant !== 'seal' && variant !== 'mark'}
@@ -79,12 +83,64 @@
 		gap: 0.75rem;
 		user-select: none;
 		transition: all 0.2s ease;
+
+		--logo-title-color: var(--text-primary, #2C2825);
+		--logo-hover-color: var(--primary, #9E5A3C);
+		--logo-folio-color: var(--primary, #9E5A3C);
+		--logo-folio-border: var(--border-subtle, #E3DDD1);
+		--logo-sub-color: var(--text-muted, #948B82);
 	}
 
 	.commons-logo.stacked {
 		flex-direction: column;
 		text-align: center;
 		gap: 0.5rem;
+	}
+
+	/* Theme overrides for standalone displays */
+	.commons-logo.theme-paper,
+	.commons-logo[data-logo-theme="paper"] {
+		--logo-title-color: #2C2825;
+		--logo-hover-color: #9E5A3C;
+		--logo-folio-color: #9E5A3C;
+		--logo-folio-border: #E3DDD1;
+		--logo-sub-color: #948B82;
+	}
+
+	.commons-logo.theme-sage,
+	.commons-logo[data-logo-theme="sage"] {
+		--logo-title-color: #1E2522;
+		--logo-hover-color: #3A6053;
+		--logo-folio-color: #3A6053;
+		--logo-folio-border: #D7E0D6;
+		--logo-sub-color: #84948D;
+	}
+
+	.commons-logo.theme-denim,
+	.commons-logo[data-logo-theme="denim"] {
+		--logo-title-color: #1F2633;
+		--logo-hover-color: #415E78;
+		--logo-folio-color: #415E78;
+		--logo-folio-border: #DCE4EB;
+		--logo-sub-color: #8A97A6;
+	}
+
+	.commons-logo.theme-classic,
+	.commons-logo[data-logo-theme="classic"] {
+		--logo-title-color: #1E293B;
+		--logo-hover-color: #3368A0;
+		--logo-folio-color: #3368A0;
+		--logo-folio-border: #E5E1D8;
+		--logo-sub-color: #8E9CA8;
+	}
+
+	.commons-logo.theme-midnight,
+	.commons-logo[data-logo-theme="midnight"] {
+		--logo-title-color: #EDE8DF;
+		--logo-hover-color: #D49B55;
+		--logo-folio-color: #D49B55;
+		--logo-folio-border: #34302B;
+		--logo-sub-color: #736C61;
 	}
 
 	.seal-wrapper {
@@ -119,20 +175,20 @@
 		font-size: 1.125rem;
 		line-height: 1;
 		letter-spacing: -0.01em;
-		color: var(--text-primary, #f1f5f9);
+		color: var(--logo-title-color);
 		transition: color 0.15s ease;
 	}
 
 	.commons-logo:hover .logo-title {
-		color: #66A3BF;
+		color: var(--logo-hover-color);
 	}
 
 	.logo-folio {
 		font-family: var(--font-mono, monospace);
 		font-size: 0.59375rem;
 		letter-spacing: 0.15em;
-		color: #66A3BF;
-		border-left: 1px solid var(--border-subtle, #2d3748);
+		color: var(--logo-folio-color);
+		border-left: 1px solid var(--logo-folio-border);
 		padding-left: 0.5rem;
 	}
 
@@ -141,7 +197,7 @@
 		font-size: 0.625rem;
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
-		color: var(--text-muted, #64748b);
+		color: var(--logo-sub-color);
 		margin-top: 0.25rem;
 	}
 </style>

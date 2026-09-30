@@ -677,6 +677,70 @@
 						</div>
 					</div>
 				</div>
+
+				<div class="section-heading" style="margin-top: 2.5rem;">
+					<h2 class="section-title">2. Logos Tailored for All 5 Themes</h2>
+					<p class="section-desc">
+						Dedicated heraldic seals and logotypes harmonized for each atmospheric theme palette.
+					</p>
+				</div>
+
+				<div class="grid-showcase" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+					<!-- 1. Warm Linen (Paper) -->
+					<div class="card" style="background-color: #F6F4EE; border-color: #E3DDD1;">
+						<div class="card-header" style="border-color: #E3DDD1;">
+							<span class="card-title" style="color: #2C2825;">Warm Linen (Paper)</span>
+							<span class="card-meta" style="color: #9E5A3C;">#9E5A3C / #D9C3B0</span>
+						</div>
+						<div class="card-content centered-preview" style="padding: 1.5rem 1rem; flex-direction: column; gap: 1rem;">
+							<CommonsLogo variant="stacked" size="lg" theme="paper" showFolio={true} subtitle="Archival Sanctuary" />
+						</div>
+					</div>
+
+					<!-- 2. Botanical Sage -->
+					<div class="card" style="background-color: #F3F4F1; border-color: #D7E0D6;">
+						<div class="card-header" style="border-color: #D7E0D6;">
+							<span class="card-title" style="color: #1E2522;">Botanical Sage</span>
+							<span class="card-meta" style="color: #3A6053;">#3A6053 / #8CAFA3</span>
+						</div>
+						<div class="card-content centered-preview" style="padding: 1.5rem 1rem; flex-direction: column; gap: 1rem;">
+							<CommonsLogo variant="stacked" size="lg" theme="sage" showFolio={true} subtitle="Archival Sanctuary" />
+						</div>
+					</div>
+
+					<!-- 3. Quiet Denim -->
+					<div class="card" style="background-color: #F6F7F9; border-color: #DCE4EB;">
+						<div class="card-header" style="border-color: #DCE4EB;">
+							<span class="card-title" style="color: #1F2633;">Quiet Denim</span>
+							<span class="card-meta" style="color: #415E78;">#415E78 / #8BA9C4</span>
+						</div>
+						<div class="card-content centered-preview" style="padding: 1.5rem 1rem; flex-direction: column; gap: 1rem;">
+							<CommonsLogo variant="stacked" size="lg" theme="denim" showFolio={true} subtitle="Archival Sanctuary" />
+						</div>
+					</div>
+
+					<!-- 4. Sanctuary Classic -->
+					<div class="card" style="background-color: #FAF8F5; border-color: #E5E1D8;">
+						<div class="card-header" style="border-color: #E5E1D8;">
+							<span class="card-title" style="color: #1E293B;">Sanctuary Classic</span>
+							<span class="card-meta" style="color: #3368A0;">#3368A0 / #66A3BF</span>
+						</div>
+						<div class="card-content centered-preview" style="padding: 1.5rem 1rem; flex-direction: column; gap: 1rem;">
+							<CommonsLogo variant="stacked" size="lg" theme="classic" showFolio={true} subtitle="Archival Sanctuary" />
+						</div>
+					</div>
+
+					<!-- 5. Midnight Basalt -->
+					<div class="card" style="background-color: #181716; border-color: #34302B;">
+						<div class="card-header" style="border-color: #34302B;">
+							<span class="card-title" style="color: #EDE8DF;">Midnight Basalt</span>
+							<span class="card-meta" style="color: #D49B55;">#D49B55 / #B37D3E</span>
+						</div>
+						<div class="card-content centered-preview" style="padding: 1.5rem 1rem; flex-direction: column; gap: 1rem;">
+							<CommonsLogo variant="stacked" size="lg" theme="midnight" showFolio={true} subtitle="Archival Sanctuary" />
+						</div>
+					</div>
+				</div>
 			</section>
 		{/if}
 

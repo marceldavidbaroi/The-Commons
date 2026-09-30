@@ -37,6 +37,7 @@ export interface TagRow {
   user_id: string;
   name: string;
   color: string | null;
+  is_system: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -45,6 +46,7 @@ export interface TagInsert {
   category_id: number;
   name: string;
   color?: string | null;
+  is_system?: boolean;
 }
 
 export interface TagUpdate {

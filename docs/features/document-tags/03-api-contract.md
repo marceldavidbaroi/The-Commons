@@ -18,8 +18,8 @@
 | **Update Tag Category** | Direct `UPDATE` | `tag_categories` | User | Updates category name, color, display order, or feature by numeric `id`. |
 | **Delete Tag Category** | Direct `DELETE` | `tag_categories` | User | Deletes category with cascade deletion of child tags by numeric `id`. |
 | **Create Tag** | Direct `INSERT` | `tags` | User | Creates a new tag under a specific numeric `category_id`. |
-| **Update Tag** | Direct `UPDATE` | `tags` | User | Updates tag name, color override, or category assignment by numeric `id`. |
-| **Delete Tag** | Direct `DELETE` | `tags` | User | Deletes tag and cascades removal from all junction tables by numeric `id`. |
+| **Update Tag** | Direct `UPDATE` | `tags` | User | Updates tag name, color override, or category assignment by numeric `id` (non-system tags only; enforced by RLS). |
+| **Delete Tag** | Direct `DELETE` | `tags` | User | Deletes tag and cascades removal from all junction tables by numeric `id` (non-system tags only; enforced by RLS). |
 | **Fetch Entity Tags** | Direct `SELECT` | `diary_entry_tags` / `document_tags` joined with `tags` | User | Retrieves all tags assigned to a specific diary entry or document. |
 | **Assign Tag to Entity** | Direct `INSERT` | `diary_entry_tags` / `document_tags` | User | Assigns a numeric tag ID to an entity UUID. |
 | **Remove Tag from Entity** | Direct `DELETE` | `diary_entry_tags` / `document_tags` | User | Unassigns a tag from an entity UUID. |

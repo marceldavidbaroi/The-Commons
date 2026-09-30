@@ -36,7 +36,8 @@ graph TD
 > *As a user, I want to create, customize, and color-code tag categories and individual tags so that I can organize my data according to my personal workflow.*
 
 - [ ] **Create Category**: User can create a new category with a custom name, color hex code, feature scope, and display order.
-- [ ] **Create Tag**: User can create tags under any existing category with unique names per category.
+- [ ] **Create Tag**: User can create custom tags under any existing category (including system categories) with unique names per category.
+- [ ] **System Tag Immutability**: System categories and system tags are pre-populated as defaults. Users can add custom tags to system categories and freely edit or delete their own custom tags, but built-in system tags cannot be edited or deleted.
 - [ ] **On-Demand Feature Tag Provisioning**: When a feature requests tags, an RPC seamlessly ensures the feature's initial category structure exists if not already present.
 - [ ] **Color Overrides**: Individual tags can inherit their category's color or specify a custom color badge.
 - [ ] **Inline Tag Creation**: Users typing in a tag selector combobox can press `Enter` or click "Create new tag" to create a tag in-place without navigating away.

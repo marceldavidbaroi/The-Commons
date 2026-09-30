@@ -31,6 +31,7 @@ erDiagram
         uuid user_id FK
         varchar(50) name
         varchar(7) color
+        boolean is_system
         timestamptz created_at
         timestamptz updated_at
     }
@@ -82,6 +83,7 @@ CREATE TABLE IF NOT EXISTS public.tags (
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     name VARCHAR(50) NOT NULL,
     color VARCHAR(7) DEFAULT NULL, -- NULL means inherit category color
+    is_system BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
@@ -167,7 +169,7 @@ CREATE POLICY "Users can delete own tag categories"
     ON public.tag_categories FOR DELETE
     USING (auth.uid() = user_id);
 
--- Tags Policies
+-- Tags Policies (System tags cannot be updated or deleted by users)
 CREATE POLICY "Users can view own tags"
     ON public.tags FOR SELECT
     USING (auth.uid() = user_id);
@@ -178,12 +180,12 @@ CREATE POLICY "Users can insert own tags"
 
 CREATE POLICY "Users can update own tags"
     ON public.tags FOR UPDATE
-    USING (auth.uid() = user_id)
-    WITH CHECK (auth.uid() = user_id);
+    USING (auth.uid() = user_id AND is_system = false)
+    WITH CHECK (auth.uid() = user_id AND is_system = false);
 
 CREATE POLICY "Users can delete own tags"
     ON public.tags FOR DELETE
-    USING (auth.uid() = user_id);
+    USING (auth.uid() = user_id AND is_system = false);
 
 -- Document Tags Junction Policies
 CREATE POLICY "Users can view own document tags"
@@ -283,11 +285,11 @@ BEGIN
             RETURNING id INTO v_cat_id;
             
             IF v_cat_id IS NOT NULL THEN
-                INSERT INTO public.tags (category_id, user_id, name)
+                INSERT INTO public.tags (category_id, user_id, name, is_system)
                 VALUES 
-                    (v_cat_id, v_user_id, 'Deep Work'),
-                    (v_cat_id, v_user_id, 'Reflections'),
-                    (v_cat_id, v_user_id, 'Planning')
+                    (v_cat_id, v_user_id, 'Deep Work', true),
+                    (v_cat_id, v_user_id, 'Reflections', true),
+                    (v_cat_id, v_user_id, 'Planning', true)
                 ON CONFLICT (category_id, name) DO NOTHING;
             END IF;
 
@@ -298,11 +300,11 @@ BEGIN
             RETURNING id INTO v_cat_id;
 
             IF v_cat_id IS NOT NULL THEN
-                INSERT INTO public.tags (category_id, user_id, name)
+                INSERT INTO public.tags (category_id, user_id, name, is_system)
                 VALUES 
-                    (v_cat_id, v_user_id, 'High Vitality'),
-                    (v_cat_id, v_user_id, 'Medium Vitality'),
-                    (v_cat_id, v_user_id, 'Rest & Recovery')
+                    (v_cat_id, v_user_id, 'High Vitality', true),
+                    (v_cat_id, v_user_id, 'Medium Vitality', true),
+                    (v_cat_id, v_user_id, 'Rest & Recovery', true)
                 ON CONFLICT (category_id, name) DO NOTHING;
             END IF;
 
@@ -314,11 +316,11 @@ BEGIN
             RETURNING id INTO v_cat_id;
 
             IF v_cat_id IS NOT NULL THEN
-                INSERT INTO public.tags (category_id, user_id, name)
+                INSERT INTO public.tags (category_id, user_id, name, is_system)
                 VALUES 
-                    (v_cat_id, v_user_id, 'Engineering'),
-                    (v_cat_id, v_user_id, 'Research'),
-                    (v_cat_id, v_user_id, 'Governance')
+                    (v_cat_id, v_user_id, 'Engineering', true),
+                    (v_cat_id, v_user_id, 'Research', true),
+                    (v_cat_id, v_user_id, 'Governance', true)
                 ON CONFLICT (category_id, name) DO NOTHING;
             END IF;
 
@@ -329,11 +331,11 @@ BEGIN
             RETURNING id INTO v_cat_id;
 
             IF v_cat_id IS NOT NULL THEN
-                INSERT INTO public.tags (category_id, user_id, name)
+                INSERT INTO public.tags (category_id, user_id, name, is_system)
                 VALUES 
-                    (v_cat_id, v_user_id, 'Report'),
-                    (v_cat_id, v_user_id, 'Charter'),
-                    (v_cat_id, v_user_id, 'Dispatch')
+                    (v_cat_id, v_user_id, 'Report', true),
+                    (v_cat_id, v_user_id, 'Charter', true),
+                    (v_cat_id, v_user_id, 'Dispatch', true)
                 ON CONFLICT (category_id, name) DO NOTHING;
             END IF;
         ELSE

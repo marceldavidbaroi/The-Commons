@@ -27,14 +27,14 @@ begin
     select id into v_cat_id from public.tag_categories where user_id = p_user_id and feature = 'goals' and name = 'Domain';
   end if;
 
-  insert into public.tags (category_id, user_id, name)
+  insert into public.tags (category_id, user_id, name, is_system)
   values 
-    (v_cat_id, p_user_id, 'Civic & Guild'),
-    (v_cat_id, p_user_id, 'Knowledge & Craft'),
-    (v_cat_id, p_user_id, 'Health & Vitality'),
-    (v_cat_id, p_user_id, 'Finance & Capital'),
-    (v_cat_id, p_user_id, 'Home & Hearth'),
-    (v_cat_id, p_user_id, 'Creative & Venture')
+    (v_cat_id, p_user_id, 'Civic & Guild', true),
+    (v_cat_id, p_user_id, 'Knowledge & Craft', true),
+    (v_cat_id, p_user_id, 'Health & Vitality', true),
+    (v_cat_id, p_user_id, 'Finance & Capital', true),
+    (v_cat_id, p_user_id, 'Home & Hearth', true),
+    (v_cat_id, p_user_id, 'Creative & Venture', true)
   on conflict (category_id, name) do nothing;
 
   -- 2. Energy & Bandwidth Category (Emerald)
@@ -47,12 +47,12 @@ begin
     select id into v_cat_id from public.tag_categories where user_id = p_user_id and feature = 'goals' and name = 'Energy & Bandwidth';
   end if;
 
-  insert into public.tags (category_id, user_id, name)
+  insert into public.tags (category_id, user_id, name, is_system)
   values 
-    (v_cat_id, p_user_id, 'Deep Focus'),
-    (v_cat_id, p_user_id, 'Quick Win'),
-    (v_cat_id, p_user_id, 'Administrative'),
-    (v_cat_id, p_user_id, 'Collaborative')
+    (v_cat_id, p_user_id, 'Deep Focus', true),
+    (v_cat_id, p_user_id, 'Quick Win', true),
+    (v_cat_id, p_user_id, 'Administrative', true),
+    (v_cat_id, p_user_id, 'Collaborative', true)
   on conflict (category_id, name) do nothing;
 
   -- 3. Impact & Leverage Category (Amber)
@@ -65,11 +65,11 @@ begin
     select id into v_cat_id from public.tag_categories where user_id = p_user_id and feature = 'goals' and name = 'Impact & Leverage';
   end if;
 
-  insert into public.tags (category_id, user_id, name)
+  insert into public.tags (category_id, user_id, name, is_system)
   values 
-    (v_cat_id, p_user_id, 'High Leverage'),
-    (v_cat_id, p_user_id, 'Foundational / Enabler'),
-    (v_cat_id, p_user_id, 'Maintenance')
+    (v_cat_id, p_user_id, 'High Leverage', true),
+    (v_cat_id, p_user_id, 'Foundational / Enabler', true),
+    (v_cat_id, p_user_id, 'Maintenance', true)
   on conflict (category_id, name) do nothing;
 
   -- 4. Horizon & Cycle Category (Sky)
@@ -82,11 +82,11 @@ begin
     select id into v_cat_id from public.tag_categories where user_id = p_user_id and feature = 'goals' and name = 'Horizon & Cycle';
   end if;
 
-  insert into public.tags (category_id, user_id, name)
+  insert into public.tags (category_id, user_id, name, is_system)
   values 
-    (v_cat_id, p_user_id, 'Immediate Focus'),
-    (v_cat_id, p_user_id, 'Quarterly Milestone'),
-    (v_cat_id, p_user_id, 'Long-term Horizon')
+    (v_cat_id, p_user_id, 'Immediate Focus', true),
+    (v_cat_id, p_user_id, 'Quarterly Milestone', true),
+    (v_cat_id, p_user_id, 'Long-term Horizon', true)
   on conflict (category_id, name) do nothing;
 
   -- 5. Execution Archetype Category (Violet)
@@ -99,11 +99,11 @@ begin
     select id into v_cat_id from public.tag_categories where user_id = p_user_id and feature = 'goals' and name = 'Execution Archetype';
   end if;
 
-  insert into public.tags (category_id, user_id, name)
+  insert into public.tags (category_id, user_id, name, is_system)
   values 
-    (v_cat_id, p_user_id, 'Project Deliverable'),
-    (v_cat_id, p_user_id, 'Ritual & Habit'),
-    (v_cat_id, p_user_id, 'Research & Discovery')
+    (v_cat_id, p_user_id, 'Project Deliverable', true),
+    (v_cat_id, p_user_id, 'Ritual & Habit', true),
+    (v_cat_id, p_user_id, 'Research & Discovery', true)
   on conflict (category_id, name) do nothing;
 
   -- ----------------------------------------------------------------------------
@@ -121,11 +121,11 @@ begin
   end if;
 
   if v_cat_id is not null then
-    insert into public.tags (category_id, user_id, name)
+    insert into public.tags (category_id, user_id, name, is_system)
     values 
-      (v_cat_id, p_user_id, 'Deep Work'),
-      (v_cat_id, p_user_id, 'Reflections'),
-      (v_cat_id, p_user_id, 'Planning')
+      (v_cat_id, p_user_id, 'Deep Work', true),
+      (v_cat_id, p_user_id, 'Reflections', true),
+      (v_cat_id, p_user_id, 'Planning', true)
     on conflict (category_id, name) do nothing;
   end if;
 
@@ -140,11 +140,11 @@ begin
   end if;
 
   if v_cat_id is not null then
-    insert into public.tags (category_id, user_id, name)
+    insert into public.tags (category_id, user_id, name, is_system)
     values 
-      (v_cat_id, p_user_id, 'High Vitality'),
-      (v_cat_id, p_user_id, 'Medium Vitality'),
-      (v_cat_id, p_user_id, 'Rest & Recovery')
+      (v_cat_id, p_user_id, 'High Vitality', true),
+      (v_cat_id, p_user_id, 'Medium Vitality', true),
+      (v_cat_id, p_user_id, 'Rest & Recovery', true)
     on conflict (category_id, name) do nothing;
   end if;
 
@@ -163,13 +163,13 @@ begin
   end if;
 
   if v_cat_id is not null then
-    insert into public.tags (category_id, user_id, name)
+    insert into public.tags (category_id, user_id, name, is_system)
     values 
-      (v_cat_id, p_user_id, 'Projects'),
-      (v_cat_id, p_user_id, 'Chores'),
-      (v_cat_id, p_user_id, 'Market & Shopping'),
-      (v_cat_id, p_user_id, 'Personal Care'),
-      (v_cat_id, p_user_id, 'Finance & Bills')
+      (v_cat_id, p_user_id, 'Projects', true),
+      (v_cat_id, p_user_id, 'Chores', true),
+      (v_cat_id, p_user_id, 'Market & Shopping', true),
+      (v_cat_id, p_user_id, 'Personal Care', true),
+      (v_cat_id, p_user_id, 'Finance & Bills', true)
     on conflict (category_id, name) do nothing;
   end if;
 
@@ -184,11 +184,11 @@ begin
   end if;
 
   if v_cat_id is not null then
-    insert into public.tags (category_id, user_id, name)
+    insert into public.tags (category_id, user_id, name, is_system)
     values 
-      (v_cat_id, p_user_id, 'Quick (<15m)'),
-      (v_cat_id, p_user_id, 'Deep Focus'),
-      (v_cat_id, p_user_id, 'Routine / Habit')
+      (v_cat_id, p_user_id, 'Quick (<15m)', true),
+      (v_cat_id, p_user_id, 'Deep Focus', true),
+      (v_cat_id, p_user_id, 'Routine / Habit', true)
     on conflict (category_id, name) do nothing;
   end if;
 
@@ -203,12 +203,12 @@ begin
   end if;
 
   if v_cat_id is not null then
-    insert into public.tags (category_id, user_id, name)
+    insert into public.tags (category_id, user_id, name, is_system)
     values 
-      (v_cat_id, p_user_id, 'Home'),
-      (v_cat_id, p_user_id, 'Work & Desk'),
-      (v_cat_id, p_user_id, 'Out & Errands'),
-      (v_cat_id, p_user_id, 'Online / Calls')
+      (v_cat_id, p_user_id, 'Home', true),
+      (v_cat_id, p_user_id, 'Work & Desk', true),
+      (v_cat_id, p_user_id, 'Out & Errands', true),
+      (v_cat_id, p_user_id, 'Online / Calls', true)
     on conflict (category_id, name) do nothing;
   end if;
 
@@ -227,11 +227,11 @@ begin
   end if;
 
   if v_cat_id is not null then
-    insert into public.tags (category_id, user_id, name)
+    insert into public.tags (category_id, user_id, name, is_system)
     values 
-      (v_cat_id, p_user_id, 'Engineering'),
-      (v_cat_id, p_user_id, 'Research'),
-      (v_cat_id, p_user_id, 'Governance')
+      (v_cat_id, p_user_id, 'Engineering', true),
+      (v_cat_id, p_user_id, 'Research', true),
+      (v_cat_id, p_user_id, 'Governance', true)
     on conflict (category_id, name) do nothing;
   end if;
 
@@ -246,11 +246,11 @@ begin
   end if;
 
   if v_cat_id is not null then
-    insert into public.tags (category_id, user_id, name)
+    insert into public.tags (category_id, user_id, name, is_system)
     values 
-      (v_cat_id, p_user_id, 'Report'),
-      (v_cat_id, p_user_id, 'Charter'),
-      (v_cat_id, p_user_id, 'Dispatch')
+      (v_cat_id, p_user_id, 'Report', true),
+      (v_cat_id, p_user_id, 'Charter', true),
+      (v_cat_id, p_user_id, 'Dispatch', true)
     on conflict (category_id, name) do nothing;
   end if;
 end;
