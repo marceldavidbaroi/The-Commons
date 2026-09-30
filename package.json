@@ -13,10 +13,12 @@
 		"env:local": "cp .env.local.docker .env.local && echo 'Switched to local docker environment (.env.local.docker -> .env.local)'",
 		"env:prod": "cp .env.local.prod .env.local && echo 'Switched to production environment (.env.local.prod -> .env.local)'",
 		"backend:prod": "pnpm env:prod && node scripts/deploy-migrations.mjs",
+		"frontend:prod": "pnpm env:prod && wrangler login && pnpm build && wrangler pages deploy .svelte-kit/cloudflare --project-name=the-commons --branch=main --commit-dirty=true",
 		"db:seed": "pnpm env:prod && npx supabase db execute --file supabase/seed.sql"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^7.0.1",
+		"@sveltejs/adapter-cloudflare": "^7.2.9",
 		"@sveltejs/kit": "^2.63.0",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@types/node": "^26.6.3",
@@ -24,10 +26,17 @@
 		"svelte": "^5.56.1",
 		"svelte-check": "^4.6.0",
 		"typescript": "^6.0.3",
-		"vite": "^8.0.16"
+		"vite": "^8.0.16",
+		"wrangler": "^4.143.0"
 	},
 	"dependencies": {
 		"@supabase/ssr": "^0.12.7",
 		"@supabase/supabase-js": "^2.117.2"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"esbuild",
+			"workerd"
+		]
 	}
 }
