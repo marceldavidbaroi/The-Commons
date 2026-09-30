@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { getSupabaseClient } from '$lib/supabase';
 	import TaskSidePanel, { type Task as TaskType } from '$lib/components/TaskSidePanel.svelte';
+	import TagManagementSidePanel from '$lib/components/TagManagementSidePanel.svelte';
+	import type { TagCategory } from '$lib/types/tags';
 
 	type TaskStatus = 'todo' | 'in_progress' | 'completed' | 'cancelled' | 'deferred';
 	type TaskPriority = 'low' | 'normal' | 'high' | 'urgent';
@@ -37,6 +39,9 @@
 	let panelMode = $state<'create' | 'edit'>('edit');
 	let initialParentId = $state<number | string | null>(null);
 	let isPanelOpen = $state(false);
+
+	// Tag Management Panel state
+	let isTagPanelOpen = $state(false);
 
 	function openNewTaskPanel(parentId?: number | string | null | Event) {
 		selectedTaskId = null;
@@ -82,11 +87,12 @@
 				if (error) throw error;
 				tasks = (data as Task[]) || [];
 			} else {
-				// Fallback mock tasks with clean numeric IDs
+				// Fallback mock tasks with clean numeric IDs and parent-child hierarchy
 				tasks = [
 					{
 						id: 1,
 						user_id: 'mock-user',
+						parent_id: null,
 						title: 'Review quarterly architecture roadmap',
 						description: 'Ensure all service boundaries adhere to single source of truth.',
 						status: 'in_progress',
@@ -100,6 +106,7 @@
 					{
 						id: 2,
 						user_id: 'mock-user',
+						parent_id: 1,
 						title: 'Refactor diary entries table query joins',
 						description: 'Replace RPC dual-track queries with direct Supabase builders.',
 						status: 'todo',
@@ -113,6 +120,7 @@
 					{
 						id: 3,
 						user_id: 'mock-user',
+						parent_id: 1,
 						title: 'Audit performance metrics & bundle sizes',
 						description: 'Verify 60fps rendering and zero blur backdrop overhead.',
 						status: 'completed',
@@ -126,6 +134,7 @@
 					{
 						id: 4,
 						user_id: 'mock-user',
+						parent_id: null,
 						title: 'Update design system tokens for high-contrast dark mode',
 						description: 'Harmonize quiet denim color palette with accessible contrast.',
 						status: 'todo',
@@ -338,6 +347,13 @@
 		completed: tasks.filter((t) => t.status === 'completed').length
 	});
 
+	interface TreeTaskItem {
+		task: Task;
+		depth: number;
+		hasChildren: boolean;
+		isLastChild?: boolean;
+	}
+
 	// Filtered tasks computation
 	const filteredTasks = $derived(
 		tasks.filter((task) => {
@@ -361,6 +377,60 @@
 			return matchesSearch && matchesStatus && matchesPriority;
 		})
 	);
+
+	// Hierarchical tree flattened for list view
+	const treeTasks = $derived.by(() => {
+		// When searching or filtering, if parents/children might be filtered out, we still maintain tree order
+		const result: TreeTaskItem[] = [];
+		const taskMap = new Map<number | string, Task>();
+		const childrenMap = new Map<number | string, Task[]>();
+
+		tasks.forEach((t) => {
+			taskMap.set(t.id, t);
+		});
+
+		filteredTasks.forEach((t) => {
+			if (t.parent_id && taskMap.has(t.parent_id)) {
+				const current = childrenMap.get(t.parent_id) || [];
+				current.push(t);
+				childrenMap.set(t.parent_id, current);
+			}
+		});
+
+		const visited = new Set<number | string>();
+
+		function traverse(task: Task, depth: number) {
+			if (visited.has(task.id)) return;
+			visited.add(task.id);
+
+			const children = childrenMap.get(task.id) || [];
+			result.push({
+				task,
+				depth,
+				hasChildren: children.length > 0
+			});
+
+			children.forEach((child, index) => {
+				traverse(child, depth + 1);
+			});
+		}
+
+		// Top-level tasks (either no parent_id or parent_id not in filtered set)
+		filteredTasks.forEach((t) => {
+			if (!t.parent_id || !taskMap.has(t.parent_id)) {
+				traverse(t, 0);
+			}
+		});
+
+		// Fallback for any remaining unvisited filtered tasks (e.g. orphaned subtasks matching filter)
+		filteredTasks.forEach((t) => {
+			if (!visited.has(t.id)) {
+				traverse(t, 0);
+			}
+		});
+
+		return result;
+	});
 </script>
 
 <svelte:head>
@@ -374,17 +444,30 @@
 			<h1 class="page-title">Tasks</h1>
 			<span class="count-badge">{tasks.length}</span>
 		</div>
-		<button
-			type="button"
-			class="btn btn-primary"
-			onclick={openNewTaskPanel}
-		>
-			<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<line x1="12" y1="5" x2="12" y2="19" />
-				<line x1="5" y1="12" x2="19" y2="12" />
-			</svg>
-			<span>New Task</span>
-		</button>
+		<div class="header-actions">
+			<button
+				type="button"
+				class="btn btn-secondary"
+				onclick={() => (isTagPanelOpen = true)}
+			>
+				<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+					<line x1="7" y1="7" x2="7.01" y2="7" />
+				</svg>
+				<span>Tag Management</span>
+			</button>
+			<button
+				type="button"
+				class="btn btn-primary"
+				onclick={openNewTaskPanel}
+			>
+				<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<line x1="12" y1="5" x2="12" y2="19" />
+					<line x1="5" y1="12" x2="19" y2="12" />
+				</svg>
+				<span>New Task</span>
+			</button>
+		</div>
 	</div>
 
 	<!-- Tier 2: Unified Compact Toolbar (Search, Filter Tabs, Priority Selector, Count) -->
@@ -551,14 +634,25 @@
 				{/if}
 			</div>
 		{:else if viewMode === 'list'}
-			<!-- 1. COMPACT LIST VIEW -->
+			<!-- 1. COMPACT LIST VIEW WITH TREE INDENTATION -->
 			<div class="list-wrapper">
-				{#each filteredTasks as task (task.id)}
+				{#each treeTasks as { task, depth, hasChildren } (task.id)}
 					<div
 						class="task-row"
+						class:is-subtask={depth > 0}
 						class:completed={task.status === 'completed'}
 						class:selected={isPanelOpen && selectedTaskId === task.id}
+						style:padding-left={`${Math.max(0.75, depth * 1.5 + 0.75)}rem`}
 					>
+						<!-- Subtask Tree Branch Connector Icon -->
+						{#if depth > 0}
+							<div class="tree-branch-indicator" aria-hidden="true">
+								<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+									<path d="M4 0v9a3 3 0 0 0 3 3h6" />
+								</svg>
+							</div>
+						{/if}
+
 						<!-- Checkbox prefix -->
 						<button
 							type="button"
@@ -747,6 +841,13 @@
 		onSave={handleUpdateTask}
 		onDelete={handleDeleteTask}
 	/>
+
+	<!-- Feature-Scoped Tag Management Side Panel -->
+	<TagManagementSidePanel
+		feature="tasks"
+		isOpen={isTagPanelOpen}
+		onClose={() => (isTagPanelOpen = false)}
+	/>
 </div>
 
 <style>
@@ -790,6 +891,12 @@
 		border: 1px solid var(--border-subtle);
 		padding: 0.125rem 0.5rem;
 		border-radius: var(--radius-full);
+	}
+
+	.header-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
 	}
 
 	/* =========================================================================
@@ -1063,6 +1170,32 @@
 	.task-row.completed {
 		opacity: 0.65;
 		background-color: var(--bg-tertiary);
+	}
+
+	.task-row.is-subtask {
+		position: relative;
+		border-left: 2px solid var(--border-subtle);
+		background-color: color-mix(in srgb, var(--bg-secondary) 95%, var(--bg-primary) 5%);
+	}
+
+	.task-row.is-subtask:hover {
+		border-left-color: var(--primary);
+	}
+
+	.tree-branch-indicator {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 14px;
+		height: 14px;
+		color: var(--text-muted);
+		flex-shrink: 0;
+		opacity: 0.7;
+	}
+
+	.tree-branch-indicator svg {
+		width: 14px;
+		height: 14px;
 	}
 
 	/* Checkbox button */

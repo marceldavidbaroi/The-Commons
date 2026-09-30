@@ -149,6 +149,70 @@ begin
   end if;
 
   -- ----------------------------------------------------------------------------
+  -- TASKS FEATURE TAGS
+  -- ----------------------------------------------------------------------------
+  
+  -- 1. Life Area (Indigo)
+  insert into public.tag_categories (user_id, feature, name, color, display_order, is_system)
+  values (p_user_id, 'tasks', 'Life Area', '#6366F1', 1, true)
+  on conflict (user_id, feature, name) do update set color = excluded.color, display_order = excluded.display_order
+  returning id into v_cat_id;
+
+  if v_cat_id is null then
+    select id into v_cat_id from public.tag_categories where user_id = p_user_id and feature = 'tasks' and name = 'Life Area';
+  end if;
+
+  if v_cat_id is not null then
+    insert into public.tags (category_id, user_id, name)
+    values 
+      (v_cat_id, p_user_id, 'Projects'),
+      (v_cat_id, p_user_id, 'Chores'),
+      (v_cat_id, p_user_id, 'Market & Shopping'),
+      (v_cat_id, p_user_id, 'Personal Care'),
+      (v_cat_id, p_user_id, 'Finance & Bills')
+    on conflict (category_id, name) do nothing;
+  end if;
+
+  -- 2. Effort & Pace (Emerald)
+  insert into public.tag_categories (user_id, feature, name, color, display_order, is_system)
+  values (p_user_id, 'tasks', 'Effort & Pace', '#10B981', 2, true)
+  on conflict (user_id, feature, name) do update set color = excluded.color, display_order = excluded.display_order
+  returning id into v_cat_id;
+
+  if v_cat_id is null then
+    select id into v_cat_id from public.tag_categories where user_id = p_user_id and feature = 'tasks' and name = 'Effort & Pace';
+  end if;
+
+  if v_cat_id is not null then
+    insert into public.tags (category_id, user_id, name)
+    values 
+      (v_cat_id, p_user_id, 'Quick (<15m)'),
+      (v_cat_id, p_user_id, 'Deep Focus'),
+      (v_cat_id, p_user_id, 'Routine / Habit')
+    on conflict (category_id, name) do nothing;
+  end if;
+
+  -- 3. Context / Location (Sky)
+  insert into public.tag_categories (user_id, feature, name, color, display_order, is_system)
+  values (p_user_id, 'tasks', 'Context / Location', '#0EA5E9', 3, true)
+  on conflict (user_id, feature, name) do update set color = excluded.color, display_order = excluded.display_order
+  returning id into v_cat_id;
+
+  if v_cat_id is null then
+    select id into v_cat_id from public.tag_categories where user_id = p_user_id and feature = 'tasks' and name = 'Context / Location';
+  end if;
+
+  if v_cat_id is not null then
+    insert into public.tags (category_id, user_id, name)
+    values 
+      (v_cat_id, p_user_id, 'Home'),
+      (v_cat_id, p_user_id, 'Work & Desk'),
+      (v_cat_id, p_user_id, 'Out & Errands'),
+      (v_cat_id, p_user_id, 'Online / Calls')
+    on conflict (category_id, name) do nothing;
+  end if;
+
+  -- ----------------------------------------------------------------------------
   -- DOCUMENT FEATURE TAGS
   -- ----------------------------------------------------------------------------
   
