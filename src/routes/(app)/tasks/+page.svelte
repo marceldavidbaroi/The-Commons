@@ -1,17 +1,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getSupabaseClient } from '$lib/supabase';
+	import TaskSidePanel, { type Task as TaskType } from '$lib/components/TaskSidePanel.svelte';
 
 	type TaskStatus = 'todo' | 'in_progress' | 'completed' | 'cancelled' | 'deferred';
 	type TaskPriority = 'low' | 'normal' | 'high' | 'urgent';
 
 	interface Task {
-		id: string;
+		id: number | string;
 		user_id: string;
+		parent_id?: number | string | null;
 		title: string;
 		description: string | null;
 		status: TaskStatus;
 		priority: TaskPriority;
+		tags?: string[];
 		scheduled_date: string | null;
 		due_date: string | null;
 		completed_at: string | null;
@@ -25,13 +28,43 @@
 	let searchQuery = $state('');
 	let statusFilter = $state<string>('all');
 	let priorityFilter = $state<string>('all');
+	let viewMode = $state<'list' | 'card'>('list');
 	let currentUserId = $state<string | null>(null);
 
-	// Quick add form state
-	let isAdding = $state(false);
-	let newTitle = $state('');
-	let newPriority = $state<TaskPriority>('normal');
-	let isSubmitting = $state(false);
+	// Side panel state
+	let selectedTaskId = $state<number | string | null>(null);
+	let selectedTask = $derived(tasks.find((t) => t.id === selectedTaskId) || null);
+	let panelMode = $state<'create' | 'edit'>('edit');
+	let initialParentId = $state<number | string | null>(null);
+	let isPanelOpen = $state(false);
+
+	function openNewTaskPanel(parentId?: number | string | null | Event) {
+		selectedTaskId = null;
+		initialParentId = typeof parentId === 'number' || typeof parentId === 'string' ? parentId : null;
+		panelMode = 'create';
+		isPanelOpen = true;
+	}
+
+	function handleOpenNewSubtask(parentTaskId: number | string) {
+		openNewTaskPanel(parentTaskId);
+	}
+
+	function handleOpenNewParentTask(childTaskId: number | string) {
+		// Open new task panel, and when created, link childTaskId's parent to new task
+		openNewTaskPanel(null);
+	}
+
+	function openTaskDetails(task: Task) {
+		selectedTaskId = task.id;
+		initialParentId = null;
+		panelMode = 'edit';
+		isPanelOpen = true;
+	}
+
+	function closePanel() {
+		isPanelOpen = false;
+		initialParentId = null;
+	}
 
 	// Load user & tasks
 	async function loadTasks() {
@@ -49,51 +82,55 @@
 				if (error) throw error;
 				tasks = (data as Task[]) || [];
 			} else {
-				// Fallback mock tasks for preview/development when not authenticated
+				// Fallback mock tasks with clean numeric IDs
 				tasks = [
 					{
-						id: '1',
+						id: 1,
 						user_id: 'mock-user',
 						title: 'Review quarterly architecture roadmap',
 						description: 'Ensure all service boundaries adhere to single source of truth.',
 						status: 'in_progress',
 						priority: 'high',
+						tags: ['Architecture', 'Review'],
 						scheduled_date: '2026-09-30',
 						due_date: null,
 						completed_at: null,
 						created_at: new Date().toISOString()
 					},
 					{
-						id: '2',
+						id: 2,
 						user_id: 'mock-user',
 						title: 'Refactor diary entries table query joins',
 						description: 'Replace RPC dual-track queries with direct Supabase builders.',
 						status: 'todo',
 						priority: 'normal',
+						tags: ['Engineering'],
 						scheduled_date: null,
 						due_date: null,
 						completed_at: null,
 						created_at: new Date().toISOString()
 					},
 					{
-						id: '3',
+						id: 3,
 						user_id: 'mock-user',
 						title: 'Audit performance metrics & bundle sizes',
 						description: 'Verify 60fps rendering and zero blur backdrop overhead.',
 						status: 'completed',
 						priority: 'normal',
+						tags: ['Performance'],
 						scheduled_date: null,
 						due_date: null,
 						completed_at: new Date().toISOString(),
 						created_at: new Date().toISOString()
 					},
 					{
-						id: '4',
+						id: 4,
 						user_id: 'mock-user',
 						title: 'Update design system tokens for high-contrast dark mode',
 						description: 'Harmonize quiet denim color palette with accessible contrast.',
 						status: 'todo',
 						priority: 'low',
+						tags: ['Design'],
 						scheduled_date: null,
 						due_date: null,
 						completed_at: null,
@@ -109,8 +146,25 @@
 	}
 
 	onMount(() => {
+		try {
+			const savedMode = localStorage.getItem('commons_tasks_view_mode');
+			if (savedMode === 'list' || savedMode === 'card') {
+				viewMode = savedMode;
+			}
+		} catch (err) {
+			// Ignore storage errors
+		}
 		loadTasks();
 	});
+
+	function setViewMode(mode: 'list' | 'card') {
+		viewMode = mode;
+		try {
+			localStorage.setItem('commons_tasks_view_mode', mode);
+		} catch (err) {
+			// Ignore storage errors
+		}
+	}
 
 	// Actions
 	async function handleToggleComplete(task: Task) {
@@ -122,7 +176,7 @@
 			t.id === task.id ? { ...t, status: nextStatus, completed_at: nextCompletedAt } : t
 		);
 
-		if (currentUserId && task.id.length > 5) {
+		if (currentUserId && String(task.id).length > 5) {
 			try {
 				const { error } = await supabase
 					.from('tasks')
@@ -143,16 +197,33 @@
 		}
 	}
 
-	async function handleCreateTask(e: Event) {
-		e.preventDefault();
-		if (!newTitle.trim() || isSubmitting) return;
+	// Generate next numeric ID for mock tasks
+	function getNextMockNumericId(): number {
+		const numericIds = tasks
+			.map((t) => (typeof t.id === 'number' ? t.id : parseInt(String(t.id), 10)))
+			.filter((n) => !isNaN(n));
+		return numericIds.length > 0 ? Math.max(...numericIds) + 1 : 1;
+	}
 
-		isSubmitting = true;
+	async function handleCreateTask(newTaskData: {
+		title: string;
+		parent_id?: number | string | null;
+		description: string | null;
+		status: TaskStatus;
+		priority: TaskPriority;
+		tags: string[];
+		scheduled_date: string | null;
+		due_date: string | null;
+	}) {
 		const taskPayload = {
-			title: newTitle.trim(),
-			priority: newPriority,
-			status: 'todo' as TaskStatus,
-			scheduled_date: new Date().toISOString().split('T')[0]
+			title: newTaskData.title.trim(),
+			parent_id: newTaskData.parent_id || null,
+			description: newTaskData.description,
+			priority: newTaskData.priority,
+			status: newTaskData.status,
+			tags: newTaskData.tags,
+			scheduled_date: newTaskData.scheduled_date,
+			due_date: newTaskData.due_date
 		};
 
 		if (currentUserId) {
@@ -160,7 +231,13 @@
 				const { data, error } = await supabase
 					.from('tasks')
 					.insert({
-						...taskPayload,
+						title: taskPayload.title,
+						parent_id: taskPayload.parent_id,
+						description: taskPayload.description,
+						priority: taskPayload.priority,
+						status: taskPayload.status,
+						scheduled_date: taskPayload.scheduled_date,
+						due_date: taskPayload.due_date,
 						user_id: currentUserId
 					})
 					.select()
@@ -168,40 +245,87 @@
 
 				if (error) throw error;
 				if (data) {
-					tasks = [data as Task, ...tasks];
+					const createdTask = { ...(data as Task), tags: taskPayload.tags };
+					tasks = [createdTask, ...tasks];
 				}
 			} catch (err) {
 				console.error('Failed to add task:', err);
 			}
 		} else {
-			// Mock insert
+			// Mock insert with numeric ID
 			const mockTask: Task = {
-				id: Math.random().toString(36).substring(2, 9),
+				id: getNextMockNumericId(),
 				user_id: 'mock-user',
+				parent_id: taskPayload.parent_id,
 				title: taskPayload.title,
-				description: null,
-				status: 'todo',
+				description: taskPayload.description,
+				status: taskPayload.status,
 				priority: taskPayload.priority,
+				tags: taskPayload.tags,
 				scheduled_date: taskPayload.scheduled_date,
-				due_date: null,
+				due_date: taskPayload.due_date,
 				completed_at: null,
 				created_at: new Date().toISOString()
 			};
 			tasks = [mockTask, ...tasks];
 		}
-
-		newTitle = '';
-		isAdding = false;
-		isSubmitting = false;
 	}
 
-	async function handleDeleteTask(taskId: string) {
-		tasks = tasks.filter((t) => t.id !== taskId);
-		if (currentUserId && taskId.length > 5) {
+	async function handleAddChildTask(parentTaskId: number | string, childTitle: string) {
+		const parent = tasks.find((t) => t.id === parentTaskId);
+		await handleCreateTask({
+			title: childTitle,
+			parent_id: parentTaskId,
+			description: null,
+			status: 'todo',
+			priority: parent?.priority || 'normal',
+			tags: parent?.tags ? [...parent.tags] : [],
+			scheduled_date: parent?.scheduled_date || new Date().toISOString().split('T')[0],
+			due_date: parent?.due_date || null
+		});
+	}
+
+	async function handleDeleteTask(taskId: number | string) {
+		tasks = tasks.filter((t) => t.id !== taskId && t.parent_id !== taskId);
+		if (selectedTaskId === taskId) {
+			isPanelOpen = false;
+			selectedTaskId = null;
+		}
+		if (currentUserId && String(taskId).length > 5) {
 			try {
 				await supabase.from('tasks').delete().eq('id', taskId);
 			} catch (err) {
 				console.error('Error deleting task:', err);
+			}
+		}
+	}
+
+	async function handleUpdateTask(updatedTask: Task) {
+		tasks = tasks.map((t) => (t.id === updatedTask.id ? updatedTask : t));
+
+		if (currentUserId && String(updatedTask.id).length > 5) {
+			try {
+				const { error } = await supabase
+					.from('tasks')
+					.update({
+						title: updatedTask.title,
+						parent_id: updatedTask.parent_id || null,
+						description: updatedTask.description,
+						status: updatedTask.status,
+						priority: updatedTask.priority,
+						scheduled_date: updatedTask.scheduled_date,
+						due_date: updatedTask.due_date,
+						completed_at: updatedTask.completed_at
+					})
+					.eq('id', updatedTask.id);
+
+				if (error) {
+					console.error('Failed to update task:', error);
+					loadTasks();
+				}
+			} catch (err) {
+				console.error('Error updating task:', err);
+				loadTasks();
 			}
 		}
 	}
@@ -253,13 +377,13 @@
 		<button
 			type="button"
 			class="btn btn-primary"
-			onclick={() => (isAdding = !isAdding)}
+			onclick={openNewTaskPanel}
 		>
 			<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 				<line x1="12" y1="5" x2="12" y2="19" />
 				<line x1="5" y1="12" x2="19" y2="12" />
 			</svg>
-			<span>{isAdding ? 'Close' : 'New Task'}</span>
+			<span>New Task</span>
 		</button>
 	</div>
 
@@ -338,51 +462,48 @@
 			</select>
 		</div>
 
+		<!-- View Switcher (List vs Card) -->
+		<div class="view-mode-toggle" role="group" aria-label="View mode">
+			<button
+				type="button"
+				class="view-toggle-btn"
+				class:active={viewMode === 'list'}
+				onclick={() => setViewMode('list')}
+				aria-label="List view"
+				title="List view"
+			>
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<line x1="8" y1="6" x2="21" y2="6" />
+					<line x1="8" y1="12" x2="21" y2="12" />
+					<line x1="8" y1="18" x2="21" y2="18" />
+					<line x1="3" y1="6" x2="3.01" y2="6" />
+					<line x1="3" y1="12" x2="3.01" y2="12" />
+					<line x1="3" y1="18" x2="3.01" y2="18" />
+				</svg>
+			</button>
+			<button
+				type="button"
+				class="view-toggle-btn"
+				class:active={viewMode === 'card'}
+				onclick={() => setViewMode('card')}
+				aria-label="Card view"
+				title="Card grid view"
+			>
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<rect x="3" y="3" width="7" height="7" rx="1" />
+					<rect x="14" y="3" width="7" height="7" rx="1" />
+					<rect x="14" y="14" width="7" height="7" rx="1" />
+					<rect x="3" y="14" width="7" height="7" rx="1" />
+				</svg>
+			</button>
+		</div>
+
 		<div class="tally-count">
 			{filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
 		</div>
 	</div>
 
-	<!-- Quick Add Inline Card (if active) -->
-	{#if isAdding}
-		<form class="quick-add-form" onsubmit={handleCreateTask}>
-			<input
-				type="text"
-				bind:value={newTitle}
-				placeholder="What needs to be done?"
-				class="quick-add-input"
-			/>
-			<div class="quick-add-controls">
-				<select bind:value={newPriority} class="priority-select compact">
-					<option value="low">Low</option>
-					<option value="normal">Normal</option>
-					<option value="high">High</option>
-					<option value="urgent">Urgent</option>
-				</select>
-				<div class="quick-add-actions">
-					<button
-						type="button"
-						class="btn btn-ghost"
-						onclick={() => {
-							isAdding = false;
-							newTitle = '';
-						}}
-					>
-						Cancel
-					</button>
-					<button
-						type="submit"
-						class="btn btn-primary compact"
-						disabled={!newTitle.trim() || isSubmitting}
-					>
-						{isSubmitting ? 'Adding...' : 'Add Task'}
-					</button>
-				</div>
-			</div>
-		</form>
-	{/if}
-
-	<!-- Task Ledger List View -->
+	<!-- Task Ledger Canvas (List or Card View) -->
 	<div class="tasks-container">
 		{#if isLoading}
 			<div class="loading-state">
@@ -423,25 +544,30 @@
 					<button
 						type="button"
 						class="btn btn-primary compact"
-						onclick={() => (isAdding = true)}
+						onclick={openNewTaskPanel}
 					>
 						+ Create Task
 					</button>
 				{/if}
 			</div>
-		{:else}
+		{:else if viewMode === 'list'}
+			<!-- 1. COMPACT LIST VIEW -->
 			<div class="list-wrapper">
 				{#each filteredTasks as task (task.id)}
 					<div
 						class="task-row"
 						class:completed={task.status === 'completed'}
+						class:selected={isPanelOpen && selectedTaskId === task.id}
 					>
 						<!-- Checkbox prefix -->
 						<button
 							type="button"
 							class="checkbox-btn"
 							class:checked={task.status === 'completed'}
-							onclick={() => handleToggleComplete(task)}
+							onclick={(e) => {
+								e.stopPropagation();
+								handleToggleComplete(task);
+							}}
 							aria-label={task.status === 'completed' ? 'Mark as incomplete' : 'Mark as complete'}
 						>
 							{#if task.status === 'completed'}
@@ -451,8 +577,13 @@
 							{/if}
 						</button>
 
-						<!-- Task Content -->
-						<div class="task-content">
+						<!-- Task Content (Click to view details in side panel) -->
+						<button
+							type="button"
+							class="task-content-btn"
+							onclick={() => openTaskDetails(task)}
+							aria-label={`View details for ${task.title}`}
+						>
 							<div class="task-header-line">
 								<span class="task-title" class:line-through={task.status === 'completed'}>
 									{task.title}
@@ -466,19 +597,25 @@
 									{#if task.status === 'in_progress'}
 										<span class="badge badge-in-progress">In Progress</span>
 									{/if}
+									<!-- Task Tags -->
+									{#if task.tags && task.tags.length > 0}
+										{#each task.tags as tag}
+											<span class="badge badge-tag">#{tag}</span>
+										{/each}
+									{/if}
 								</div>
 							</div>
-							{#if task.description}
-								<p class="task-description">{task.description}</p>
-							{/if}
-						</div>
+						</button>
 
 						<!-- Task Suffix Actions -->
 						<div class="task-suffix">
 							<button
 								type="button"
 								class="delete-btn"
-								onclick={() => handleDeleteTask(task.id)}
+								onclick={(e) => {
+									e.stopPropagation();
+									handleDeleteTask(task.id);
+								}}
 								aria-label="Delete task"
 								title="Delete task"
 							>
@@ -491,8 +628,125 @@
 					</div>
 				{/each}
 			</div>
+		{:else}
+			<!-- 2. CARD GRID VIEW -->
+			<div class="card-grid">
+				{#each filteredTasks as task (task.id)}
+					<div
+						class="task-card"
+						class:completed={task.status === 'completed'}
+						class:selected={isPanelOpen && selectedTaskId === task.id}
+					>
+						<!-- Card Top Line -->
+						<div class="card-header-line">
+							<!-- Checkbox -->
+							<button
+								type="button"
+								class="checkbox-btn"
+								class:checked={task.status === 'completed'}
+								onclick={(e) => {
+									e.stopPropagation();
+									handleToggleComplete(task);
+								}}
+								aria-label={task.status === 'completed' ? 'Mark as incomplete' : 'Mark as complete'}
+							>
+								{#if task.status === 'completed'}
+									<svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+										<polyline points="20 6 9 17 4 12" />
+									</svg>
+								{/if}
+							</button>
+
+							<div class="card-badges">
+								<span class="badge priority-{task.priority}">
+									{task.priority}
+								</span>
+								{#if task.status === 'in_progress'}
+									<span class="badge badge-in-progress">In Progress</span>
+								{/if}
+							</div>
+
+							<!-- Delete button -->
+							<button
+								type="button"
+								class="delete-btn card-delete"
+								onclick={(e) => {
+									e.stopPropagation();
+									handleDeleteTask(task.id);
+								}}
+								aria-label="Delete task"
+								title="Delete task"
+							>
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+									<polyline points="3 6 5 6 21 6" />
+									<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+								</svg>
+							</button>
+						</div>
+
+						<!-- Card Interactive Main Area -->
+						<button
+							type="button"
+							class="card-body-btn"
+							onclick={() => openTaskDetails(task)}
+							aria-label={`View details for ${task.title}`}
+						>
+							<h4 class="card-title" class:line-through={task.status === 'completed'}>
+								{task.title}
+							</h4>
+
+							{#if task.tags && task.tags.length > 0}
+								<div class="card-tags">
+									{#each task.tags as tag}
+										<span class="card-tag-pill">#{tag}</span>
+									{/each}
+								</div>
+							{/if}
+						</button>
+
+						<!-- Card Footer (Dates / Meta) -->
+						{#if task.scheduled_date || task.due_date}
+							<div class="card-footer">
+								{#if task.scheduled_date}
+									<span class="card-date-meta">
+										<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+											<rect x="3" y="4" width="18" height="18" rx="2" />
+											<line x1="16" y1="2" x2="16" y2="6" />
+											<line x1="8" y1="2" x2="8" y2="6" />
+											<line x1="3" y1="10" x2="21" y2="10" />
+										</svg>
+										{task.scheduled_date}
+									</span>
+								{/if}
+								{#if task.due_date}
+									<span class="card-date-meta due">
+										Due {task.due_date.split('T')[0]}
+									</span>
+								{/if}
+							</div>
+						{/if}
+					</div>
+				{/each}
+			</div>
 		{/if}
 	</div>
+
+	<!-- Task Side Panel (Used for both Create New Task and Task Details/Editing) -->
+	<TaskSidePanel
+		task={selectedTask}
+		allTasks={tasks}
+		isOpen={isPanelOpen}
+		mode={panelMode}
+		{initialParentId}
+		onClose={closePanel}
+		onCreate={handleCreateTask}
+		onAddChildTask={handleAddChildTask}
+		onOpenNewSubtask={handleOpenNewSubtask}
+		onOpenNewParentTask={handleOpenNewParentTask}
+		onSelectTask={openTaskDetails}
+		onSave={handleUpdateTask}
+		onDelete={handleDeleteTask}
+	/>
 </div>
 
 <style>
@@ -679,6 +933,49 @@
 		font-size: 0.75rem;
 	}
 
+	/* View Mode Switcher (List vs Card) */
+	.view-mode-toggle {
+		display: inline-flex;
+		align-items: center;
+		background-color: var(--bg-secondary);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-sm);
+		padding: 2px;
+		gap: 2px;
+		height: 32px;
+		box-sizing: border-box;
+	}
+
+	.view-toggle-btn {
+		width: 26px;
+		height: 26px;
+		border: none;
+		background: transparent;
+		color: var(--text-muted);
+		border-radius: calc(var(--radius-sm) - 2px);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		padding: 0;
+		transition: all 0.15s ease;
+	}
+
+	.view-toggle-btn:hover {
+		color: var(--text-primary);
+		background-color: var(--bg-tertiary);
+	}
+
+	.view-toggle-btn.active {
+		background-color: var(--primary);
+		color: var(--primary-foreground);
+	}
+
+	.view-toggle-btn svg {
+		width: 14px;
+		height: 14px;
+	}
+
 	.tally-count {
 		font-size: 0.75rem;
 		font-family: var(--font-mono);
@@ -758,6 +1055,11 @@
 		border-color: var(--border-focus);
 	}
 
+	.task-row.selected {
+		border-color: var(--primary);
+		background-color: var(--bg-tertiary);
+	}
+
 	.task-row.completed {
 		opacity: 0.65;
 		background-color: var(--bg-tertiary);
@@ -794,13 +1096,19 @@
 		height: 12px;
 	}
 
-	/* Task Content */
-	.task-content {
+	/* Task Content interactive button */
+	.task-content-btn {
 		flex: 1;
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
 		gap: 0.125rem;
+		background: transparent;
+		border: none;
+		padding: 0;
+		text-align: left;
+		cursor: pointer;
+		color: inherit;
 	}
 
 	.task-header-line {
@@ -862,6 +1170,14 @@
 		color: #0369a1;
 	}
 
+	.badge-tag {
+		background-color: var(--bg-tertiary);
+		color: var(--primary);
+		border: 1px solid var(--border-subtle);
+		text-transform: none;
+		font-weight: 500;
+	}
+
 	.task-description {
 		font-size: 0.75rem;
 		color: var(--text-secondary);
@@ -906,6 +1222,132 @@
 	.delete-btn svg {
 		width: 14px;
 		height: 14px;
+	}
+
+	/* =========================================================================
+	   CARD GRID VIEW
+	   ========================================================================= */
+	.card-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+		gap: 0.75rem;
+		width: 100%;
+	}
+
+	.task-card {
+		display: flex;
+		flex-direction: column;
+		background-color: var(--bg-secondary);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-md);
+		padding: 0.875rem;
+		gap: 0.625rem;
+		transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+		position: relative;
+	}
+
+	.task-card:hover {
+		border-color: var(--border-focus);
+		transform: translateY(-1px);
+	}
+
+	.task-card.selected {
+		border-color: var(--primary);
+		background-color: var(--bg-tertiary);
+	}
+
+	.task-card.completed {
+		opacity: 0.65;
+		background-color: var(--bg-tertiary);
+	}
+
+	.card-header-line {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.card-badges {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		flex: 1;
+	}
+
+	.card-delete {
+		opacity: 0;
+		transition: opacity 0.15s ease;
+	}
+
+	.task-card:hover .card-delete {
+		opacity: 1;
+	}
+
+	.card-body-btn {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		background: transparent;
+		border: none;
+		padding: 0;
+		text-align: left;
+		cursor: pointer;
+		color: inherit;
+		width: 100%;
+	}
+
+	.card-title {
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: var(--text-primary);
+		line-height: 1.35;
+		letter-spacing: -0.01em;
+	}
+
+	.card-title.line-through {
+		text-decoration: line-through;
+		color: var(--text-muted);
+	}
+
+	.card-tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem;
+	}
+
+	.card-tag-pill {
+		font-size: 0.6875rem;
+		color: var(--primary);
+		background-color: var(--bg-tertiary);
+		border: 1px solid var(--border-subtle);
+		padding: 0.0625rem 0.375rem;
+		border-radius: var(--radius-sm);
+	}
+
+	.card-footer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding-top: 0.5rem;
+		border-top: 1px solid var(--border-subtle);
+		font-size: 0.6875rem;
+		color: var(--text-muted);
+	}
+
+	.card-date-meta {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	.card-date-meta svg {
+		width: 12px;
+		height: 12px;
+	}
+
+	.card-date-meta.due {
+		color: var(--accent);
+		font-weight: 500;
 	}
 
 	/* =========================================================================

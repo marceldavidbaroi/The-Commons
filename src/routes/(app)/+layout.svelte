@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { getSupabaseClient } from '$lib/supabase';
 	import CommonsLogo from '$lib/components/brand/CommonsLogo.svelte';
+	import ThemeSelector from '$lib/components/ThemeSelector.svelte';
 
 	let { children } = $props();
 
@@ -94,8 +95,9 @@
 				{/each}
 			</nav>
 
-			<!-- User Avatar & Dropdown Menu -->
+			<!-- Theme Selector & User Avatar Menu -->
 			<div class="header-user">
+				<ThemeSelector />
 				<div class="user-menu-container">
 					<button
 						type="button"
@@ -222,6 +224,7 @@
 	.header-user {
 		display: flex;
 		align-items: center;
+		gap: 0.5rem;
 		flex-shrink: 0;
 	}
 
