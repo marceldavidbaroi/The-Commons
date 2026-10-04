@@ -1,10 +1,10 @@
 -- ==============================================================================
--- The Commons: Development & Initial Data Seeder
+-- The Commons: Development & Initial Data Seeder (Integer ID Compatible)
 -- Seeds default tag taxonomies and sample data for Goals, Diary, and Documents
 -- ==============================================================================
 
 -- 1. Helper function to seed feature tags for all existing profiles (or a specific user)
-create or replace function public.seed_default_tags_for_user(p_user_id uuid)
+create or replace function public.seed_default_tags_for_user(p_user_id bigint)
 returns void
 language plpgsql
 security definer
@@ -264,4 +264,41 @@ begin
   for r in (select id from public.profiles) loop
     perform public.seed_default_tags_for_user(r.id);
   end loop;
+end $$;
+
+-- 3. Seed System Administrator & Allowed Member: marceldavidbaroi@gmail.com
+do $$
+declare
+  v_admin_email text := 'marceldavidbaroi@gmail.com';
+  v_auth_user_id uuid;
+  v_profile_id bigint;
+begin
+  -- 1. Check if auth user exists for this email
+  select id into v_auth_user_id from auth.users where email = v_admin_email;
+
+  -- 2. If profile exists, ensure role is admin
+  if exists (select 1 from public.profiles where email = v_admin_email) then
+    update public.profiles
+    set 
+      role = 'admin',
+      auth_user_id = coalesce(auth_user_id, v_auth_user_id),
+      updated_at = now()
+    where email = v_admin_email
+    returning id into v_profile_id;
+  else
+    insert into public.profiles (auth_user_id, email, full_name, role)
+    values (v_auth_user_id, v_admin_email, 'Marcel David Baroi', 'admin')
+    on conflict (email) do update set role = 'admin', updated_at = now()
+    returning id into v_profile_id;
+  end if;
+
+  -- 3. Ensure email is also whitelisted in allowed_members table
+  if exists (
+    select 1 from information_schema.tables 
+    where table_schema = 'public' and table_name = 'allowed_members'
+  ) then
+    insert into public.allowed_members (email, status, notes, added_by)
+    values (v_admin_email, 'active', 'System Administrator', v_profile_id)
+    on conflict (email) do update set status = 'active', notes = 'System Administrator', updated_at = now();
+  end if;
 end $$;

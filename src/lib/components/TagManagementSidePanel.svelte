@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getSupabaseClient } from '$lib/supabase';
+	import { fetchUserProfile } from '$lib/services/member-service';
 	import type { Tag, TagCategory } from '$lib/types/tags';
 
 	let {
@@ -19,7 +20,7 @@
 
 	let categories = $state<TagCategory[]>([]);
 	let isLoading = $state(true);
-	let currentUserId = $state<string | null>(null);
+	let currentUserId = $state<number | null>(null);
 
 	// Resizing state
 	const MIN_WIDTH = 380;
@@ -155,9 +156,9 @@
 		isLoading = true;
 		categoryError = null;
 		try {
-			const { data: userData } = await supabase.auth.getUser();
-			if (userData?.user) {
-				currentUserId = userData.user.id;
+			const profile = await fetchUserProfile();
+			if (profile) {
+				currentUserId = profile.id;
 
 				// Provision default categories if not already provisioned
 				try {
@@ -172,7 +173,7 @@
 				const { data, error } = await supabase
 					.from('tag_categories')
 					.select('*, tags(*)')
-					.eq('user_id', userData.user.id)
+					.eq('user_id', profile.id)
 					.eq('feature', feature)
 					.order('display_order', { ascending: true })
 					.order('name', { foreignTable: 'tags', ascending: true });

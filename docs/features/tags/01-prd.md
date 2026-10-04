@@ -1,8 +1,8 @@
-# PRD: Universal Document & Entity Tagging System
+# PRD: Shared & Universal Tagging System
 
 ## 1. Executive Summary & Objective
-- **Problem Statement**: As users create content across different features in The Commons (e.g., Daily Diaries, Documents, Citizen Records, Notes), organizing and filtering content becomes difficult without a structured, multi-dimensional taxonomy. Users need a way to group entities by custom contextual dimensions (e.g., "Context", "Energy Level", "Department", "Mood", "Priority").
-- **Proposed Solution**: A universal, categorized tagging architecture composed of **Tag Categories** (e.g., Context, Energy Level, Department) and **Tags** (e.g., Deep Work, High Energy, Engineering, Finance). Each feature can leverage dedicated or shared categories, with the system supplying pre-populated default tag templates while allowing users to create, color-code, and manage their own custom tags. These tags power universal cross-feature filtering, search indexing, and visual badge classification.
+- **Problem Statement**: As users create and manage items across different features in The Commons (e.g., Daily Diaries, Tasks, Goals, Documents, Citizen Records), managing duplicate or isolated tag tables creates fragmentation. Users need a shared, cohesive tagging taxonomy that works universally across all features.
+- **Proposed Solution**: A centralized, universal tagging architecture composed of **Tag Categories** (e.g., Life Area, Context, Energy & Bandwidth, Department, Domain) and **Tags** (e.g., Deep Focus, Quick Win, Engineering, Finance). Tags are defined once and can be shared universally across all entities (Tasks, Goals, Diaries, Documents, User Items) via standard junction relationships, while supporting feature-specific category grouping and defaults.
 - **Target Persona**: Writers, knowledge workers, researchers, and administrators requiring fast retrieval, multi-attribute filtering, and structured classification across all application modules.
 
 ---

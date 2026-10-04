@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getSupabaseClient } from '$lib/supabase';
+	import { fetchUserProfile } from '$lib/services/member-service';
 	import TaskSidePanel, { type Task as TaskType } from '$lib/components/TaskSidePanel.svelte';
 	import TagManagementSidePanel from '$lib/components/TagManagementSidePanel.svelte';
 	import type { TagCategory } from '$lib/types/tags';
@@ -10,7 +11,7 @@
 
 	interface Task {
 		id: number | string;
-		user_id: string;
+		user_id: number | string;
 		parent_id?: number | string | null;
 		title: string;
 		description: string | null;
@@ -30,8 +31,33 @@
 	let searchQuery = $state('');
 	let statusFilter = $state<string>('all');
 	let priorityFilter = $state<string>('all');
-	let viewMode = $state<'list' | 'card'>('list');
-	let currentUserId = $state<string | null>(null);
+	let viewMode = $state<'list' | 'card' | 'tree'>('list');
+	let currentUserId = $state<number | null>(null);
+
+	// Collapsed task node IDs in Tree View
+	let collapsedTaskIds = $state<Set<number | string>>(new Set());
+
+	function toggleCollapse(taskId: number | string, e?: MouseEvent) {
+		if (e) e.stopPropagation();
+		const updated = new Set(collapsedTaskIds);
+		if (updated.has(taskId)) {
+			updated.delete(taskId);
+		} else {
+			updated.add(taskId);
+		}
+		collapsedTaskIds = updated;
+	}
+
+	function expandAll() {
+		collapsedTaskIds = new Set();
+	}
+
+	function collapseAll() {
+		const parentIds = tasks
+			.filter((t) => tasks.some((c) => c.parent_id === t.id))
+			.map((t) => t.id);
+		collapsedTaskIds = new Set(parentIds);
+	}
 
 	// Side panel state
 	let selectedTaskId = $state<number | string | null>(null);
@@ -75,13 +101,13 @@
 	async function loadTasks() {
 		isLoading = true;
 		try {
-			const { data: userData } = await supabase.auth.getUser();
-			if (userData?.user) {
-				currentUserId = userData.user.id;
+			const profile = await fetchUserProfile();
+			if (profile) {
+				currentUserId = profile.id;
 				const { data, error } = await supabase
 					.from('tasks')
 					.select('*')
-					.eq('user_id', userData.user.id)
+					.eq('user_id', profile.id)
 					.order('created_at', { ascending: false });
 
 				if (error) throw error;
@@ -157,7 +183,7 @@
 	onMount(() => {
 		try {
 			const savedMode = localStorage.getItem('commons_tasks_view_mode');
-			if (savedMode === 'list' || savedMode === 'card') {
+			if (savedMode === 'list' || savedMode === 'card' || savedMode === 'tree') {
 				viewMode = savedMode;
 			}
 		} catch (err) {
@@ -166,7 +192,7 @@
 		loadTasks();
 	});
 
-	function setViewMode(mode: 'list' | 'card') {
+	function setViewMode(mode: 'list' | 'card' | 'tree') {
 		viewMode = mode;
 		try {
 			localStorage.setItem('commons_tasks_view_mode', mode);
@@ -185,7 +211,7 @@
 			t.id === task.id ? { ...t, status: nextStatus, completed_at: nextCompletedAt } : t
 		);
 
-		if (currentUserId && String(task.id).length > 5) {
+		if (currentUserId && task.id !== undefined && task.id !== null) {
 			try {
 				const { error } = await supabase
 					.from('tasks')
@@ -196,7 +222,7 @@
 					.eq('id', task.id);
 
 				if (error) {
-					console.error('Failed to update task:', error);
+					console.error('Failed to update task status:', error);
 					loadTasks();
 				}
 			} catch (err) {
@@ -300,11 +326,16 @@
 			isPanelOpen = false;
 			selectedTaskId = null;
 		}
-		if (currentUserId && String(taskId).length > 5) {
+		if (currentUserId && taskId !== undefined && taskId !== null) {
 			try {
-				await supabase.from('tasks').delete().eq('id', taskId);
+				const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+				if (error) {
+					console.error('Failed to delete task in database:', error);
+					loadTasks();
+				}
 			} catch (err) {
 				console.error('Error deleting task:', err);
+				loadTasks();
 			}
 		}
 	}
@@ -312,7 +343,7 @@
 	async function handleUpdateTask(updatedTask: Task) {
 		tasks = tasks.map((t) => (t.id === updatedTask.id ? updatedTask : t));
 
-		if (currentUserId && String(updatedTask.id).length > 5) {
+		if (currentUserId && updatedTask.id !== undefined && updatedTask.id !== null) {
 			try {
 				const { error } = await supabase
 					.from('tasks')
@@ -351,7 +382,8 @@
 		task: Task;
 		depth: number;
 		hasChildren: boolean;
-		isLastChild?: boolean;
+		childCount: number;
+		isCollapsed: boolean;
 	}
 
 	// Filtered tasks computation
@@ -380,7 +412,6 @@
 
 	// Hierarchical tree flattened for list view
 	const treeTasks = $derived.by(() => {
-		// When searching or filtering, if parents/children might be filtered out, we still maintain tree order
 		const result: TreeTaskItem[] = [];
 		const taskMap = new Map<number | string, Task>();
 		const childrenMap = new Map<number | string, Task[]>();
@@ -407,25 +438,109 @@
 			result.push({
 				task,
 				depth,
-				hasChildren: children.length > 0
+				hasChildren: children.length > 0,
+				childCount: children.length,
+				isCollapsed: false
 			});
 
-			children.forEach((child, index) => {
+			children.forEach((child) => {
 				traverse(child, depth + 1);
 			});
 		}
 
-		// Top-level tasks (either no parent_id or parent_id not in filtered set)
+		// Top-level tasks
 		filteredTasks.forEach((t) => {
 			if (!t.parent_id || !taskMap.has(t.parent_id)) {
 				traverse(t, 0);
 			}
 		});
 
-		// Fallback for any remaining unvisited filtered tasks (e.g. orphaned subtasks matching filter)
+		// Fallback for any remaining unvisited filtered tasks
 		filteredTasks.forEach((t) => {
 			if (!visited.has(t.id)) {
 				traverse(t, 0);
+			}
+		});
+
+		return result;
+	});
+
+	// Collapsible Tree View nodes
+	const treeViewNodes = $derived.by(() => {
+		const result: TreeTaskItem[] = [];
+		const taskMap = new Map<number | string, Task>();
+		const childrenMap = new Map<number | string, Task[]>();
+
+		tasks.forEach((t) => {
+			taskMap.set(t.id, t);
+		});
+
+		// For Tree View, we map all children so branch relationships remain intact
+		tasks.forEach((t) => {
+			if (t.parent_id && taskMap.has(t.parent_id)) {
+				const current = childrenMap.get(t.parent_id) || [];
+				current.push(t);
+				childrenMap.set(t.parent_id, current);
+			}
+		});
+
+		// Determine which tasks match the active filters or have descendants matching the active filters
+		const matchingTaskIds = new Set(filteredTasks.map((t) => t.id));
+		const visibleInTree = new Set<number | string>();
+
+		function markVisibleAncestors(id: number | string) {
+			visibleInTree.add(id);
+			const t = taskMap.get(id);
+			if (t?.parent_id && taskMap.has(t.parent_id)) {
+				markVisibleAncestors(t.parent_id);
+			}
+		}
+
+		matchingTaskIds.forEach((id) => markVisibleAncestors(id));
+
+		const visited = new Set<number | string>();
+
+		function traverseTree(task: Task, depth: number) {
+			if (visited.has(task.id)) return;
+			visited.add(task.id);
+
+			const allChildren = childrenMap.get(task.id) || [];
+			// When filters are active, only show relevant child branches
+			const isSearchingOrFiltering =
+				!!searchQuery.trim() || statusFilter !== 'all' || priorityFilter !== 'all';
+			const visibleChildren = isSearchingOrFiltering
+				? allChildren.filter((c) => visibleInTree.has(c.id))
+				: allChildren;
+
+			const isCollapsed = collapsedTaskIds.has(task.id);
+
+			result.push({
+				task,
+				depth,
+				hasChildren: visibleChildren.length > 0,
+				childCount: visibleChildren.length,
+				isCollapsed
+			});
+
+			if (!isCollapsed && visibleChildren.length > 0) {
+				visibleChildren.forEach((child) => {
+					traverseTree(child, depth + 1);
+				});
+			}
+		}
+
+		// Top-level roots
+		tasks.forEach((t) => {
+			const isRoot = !t.parent_id || !taskMap.has(t.parent_id);
+			if (isRoot && visibleInTree.has(t.id)) {
+				traverseTree(t, 0);
+			}
+		});
+
+		// Fallback for any unvisited nodes matching filter
+		tasks.forEach((t) => {
+			if (!visited.has(t.id) && visibleInTree.has(t.id)) {
+				traverseTree(t, 0);
 			}
 		});
 
@@ -545,7 +660,7 @@
 			</select>
 		</div>
 
-		<!-- View Switcher (List vs Card) -->
+		<!-- View Switcher (List vs Tree vs Card) -->
 		<div class="view-mode-toggle" role="group" aria-label="View mode">
 			<button
 				type="button"
@@ -567,6 +682,23 @@
 			<button
 				type="button"
 				class="view-toggle-btn"
+				class:active={viewMode === 'tree'}
+				onclick={() => setViewMode('tree')}
+				aria-label="Tree view"
+				title="Hierarchical Tree view"
+			>
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M6 3v18" />
+					<path d="M6 8h8a2 2 0 0 1 2 2v2" />
+					<path d="M6 16h6" />
+					<circle cx="18" cy="14" r="2" />
+					<circle cx="14" cy="16" r="2" />
+					<circle cx="6" cy="4" r="2" />
+				</svg>
+			</button>
+			<button
+				type="button"
+				class="view-toggle-btn"
 				class:active={viewMode === 'card'}
 				onclick={() => setViewMode('card')}
 				aria-label="Card view"
@@ -580,6 +712,35 @@
 				</svg>
 			</button>
 		</div>
+
+		{#if viewMode === 'tree'}
+			<div class="tree-controls">
+				<button
+					type="button"
+					class="btn-tree-action"
+					onclick={expandAll}
+					title="Expand all tree branches"
+				>
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<polyline points="7 13 12 18 17 13" />
+						<polyline points="7 6 12 11 17 6" />
+					</svg>
+					<span>Expand All</span>
+				</button>
+				<button
+					type="button"
+					class="btn-tree-action"
+					onclick={collapseAll}
+					title="Collapse all subtasks"
+				>
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<polyline points="17 11 12 6 7 11" />
+						<polyline points="17 18 12 13 7 18" />
+					</svg>
+					<span>Collapse All</span>
+				</button>
+			</div>
+		{/if}
 
 		<div class="tally-count">
 			{filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
@@ -722,8 +883,146 @@
 					</div>
 				{/each}
 			</div>
+		{:else if viewMode === 'tree'}
+			<!-- 2. HIERARCHICAL TREE VIEW -->
+			<div class="tree-wrapper">
+				{#each treeViewNodes as { task, depth, hasChildren, childCount, isCollapsed } (task.id)}
+					<div
+						class="tree-node-row"
+						class:is-subnode={depth > 0}
+						class:has-children={hasChildren}
+						class:is-collapsed={isCollapsed}
+						class:completed={task.status === 'completed'}
+						class:selected={isPanelOpen && selectedTaskId === task.id}
+						style:padding-left={`${Math.max(0.75, depth * 1.75 + 0.75)}rem`}
+					>
+						<!-- Branch Connection Line & Guide -->
+						{#if depth > 0}
+							<div class="tree-branch-line" aria-hidden="true" style:left={`${(depth - 1) * 1.75 + 1.25}rem`}></div>
+							<div class="tree-branch-indicator" aria-hidden="true">
+								<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+									<path d="M4 0v8a3 3 0 0 0 3 3h6" />
+								</svg>
+							</div>
+						{/if}
+
+						<!-- Collapse / Expand Toggle Caret for Parent Nodes -->
+						{#if hasChildren}
+							<button
+								type="button"
+								class="tree-toggle-caret-btn"
+								class:collapsed={isCollapsed}
+								onclick={(e) => toggleCollapse(task.id, e)}
+								aria-label={isCollapsed ? `Expand ${task.title}` : `Collapse ${task.title}`}
+								title={isCollapsed ? 'Expand subtasks' : 'Collapse subtasks'}
+							>
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+									<polyline points="6 9 12 15 18 9" />
+								</svg>
+							</button>
+						{:else}
+							<span class="tree-leaf-spacer" aria-hidden="true"></span>
+						{/if}
+
+						<!-- Checkbox prefix -->
+						<button
+							type="button"
+							class="checkbox-btn"
+							class:checked={task.status === 'completed'}
+							onclick={(e) => {
+								e.stopPropagation();
+								handleToggleComplete(task);
+							}}
+							aria-label={task.status === 'completed' ? 'Mark as incomplete' : 'Mark as complete'}
+						>
+							{#if task.status === 'completed'}
+								<svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+									<polyline points="20 6 9 17 4 12" />
+								</svg>
+							{/if}
+						</button>
+
+						<!-- Task Content -->
+						<button
+							type="button"
+							class="task-content-btn"
+							onclick={() => openTaskDetails(task)}
+							aria-label={`View details for ${task.title}`}
+						>
+							<div class="task-header-line">
+								<span class="task-title" class:line-through={task.status === 'completed'}>
+									{task.title}
+								</span>
+
+								{#if hasChildren}
+									<span class="subtask-tally-pill" title={`${childCount} subtasks`}>
+										<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+											<path d="M6 3v18" />
+											<path d="M6 8h8a2 2 0 0 1 2 2v2" />
+										</svg>
+										{childCount} {childCount === 1 ? 'subtask' : 'subtasks'}
+									</span>
+								{/if}
+
+								<div class="task-badges">
+									<!-- Priority Tag -->
+									<span class="badge priority-{task.priority}">
+										{task.priority}
+									</span>
+									<!-- Status Tag -->
+									{#if task.status === 'in_progress'}
+										<span class="badge badge-in-progress">In Progress</span>
+									{/if}
+									<!-- Task Tags -->
+									{#if task.tags && task.tags.length > 0}
+										{#each task.tags as tag}
+											<span class="badge badge-tag">#{tag}</span>
+										{/each}
+									{/if}
+								</div>
+							</div>
+						</button>
+
+						<!-- Task Suffix Actions (Add child & Delete) -->
+						<div class="task-suffix">
+							<button
+								type="button"
+								class="tree-node-action-btn"
+								onclick={(e) => {
+									e.stopPropagation();
+									openNewTaskPanel(task.id);
+								}}
+								aria-label="Add subtask"
+								title="Add subtask to this node"
+							>
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<line x1="12" y1="5" x2="12" y2="19" />
+									<line x1="5" y1="12" x2="19" y2="12" />
+								</svg>
+								<span>Add Subtask</span>
+							</button>
+
+							<button
+								type="button"
+								class="delete-btn"
+								onclick={(e) => {
+									e.stopPropagation();
+									handleDeleteTask(task.id);
+								}}
+								aria-label="Delete task"
+								title="Delete task"
+							>
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+									<polyline points="3 6 5 6 21 6" />
+									<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+								</svg>
+							</button>
+						</div>
+					</div>
+				{/each}
+			</div>
 		{:else}
-			<!-- 2. CARD GRID VIEW -->
+			<!-- 3. CARD GRID VIEW -->
 			<div class="card-grid">
 				{#each filteredTasks as task (task.id)}
 					<div
@@ -1320,6 +1619,40 @@
 		text-overflow: ellipsis;
 	}
 
+	/* Tree Controls */
+	.tree-controls {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+	}
+
+	.btn-tree-action {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		height: 32px;
+		padding: 0 0.5rem;
+		font-size: 0.75rem;
+		font-weight: 500;
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--border-subtle);
+		background-color: var(--bg-secondary);
+		color: var(--text-secondary);
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.btn-tree-action:hover {
+		background-color: var(--bg-tertiary);
+		color: var(--text-primary);
+		border-color: var(--border-focus);
+	}
+
+	.btn-tree-action svg {
+		width: 13px;
+		height: 13px;
+	}
+
 	/* Task Suffix Actions */
 	.task-suffix {
 		display: flex;
@@ -1329,8 +1662,140 @@
 		transition: opacity 0.15s ease;
 	}
 
-	.task-row:hover .task-suffix {
+	.task-row:hover .task-suffix,
+	.tree-node-row:hover .task-suffix {
 		opacity: 1;
+	}
+
+	/* =========================================================================
+	   TREE VIEW STRUCTURE & STYLES
+	   ========================================================================= */
+	.tree-wrapper {
+		display: flex;
+		flex-direction: column;
+		gap: 0.375rem;
+		position: relative;
+	}
+
+	.tree-node-row {
+		position: relative;
+		display: flex;
+		align-items: center;
+		padding: 0.5rem 0.75rem;
+		background-color: var(--bg-secondary);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-md);
+		transition: border-color 0.15s ease, background-color 0.15s ease;
+		gap: 0.625rem;
+	}
+
+	.tree-node-row:hover {
+		border-color: var(--border-focus);
+	}
+
+	.tree-node-row.selected {
+		border-color: var(--primary);
+		background-color: var(--bg-tertiary);
+	}
+
+	.tree-node-row.completed {
+		opacity: 0.65;
+		background-color: var(--bg-tertiary);
+	}
+
+	.tree-node-row.is-subnode {
+		background-color: color-mix(in srgb, var(--bg-secondary) 96%, var(--bg-primary) 4%);
+	}
+
+	.tree-branch-line {
+		position: absolute;
+		top: -0.375rem;
+		bottom: 50%;
+		width: 1px;
+		background-color: var(--border-subtle);
+		pointer-events: none;
+	}
+
+	.tree-toggle-caret-btn {
+		width: 20px;
+		height: 20px;
+		border-radius: var(--radius-sm);
+		background: transparent;
+		border: none;
+		color: var(--text-secondary);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		padding: 0;
+		flex-shrink: 0;
+		transition: transform 0.2s ease, background-color 0.15s ease, color 0.15s ease;
+	}
+
+	.tree-toggle-caret-btn:hover {
+		background-color: var(--bg-surface);
+		color: var(--text-primary);
+	}
+
+	.tree-toggle-caret-btn.collapsed {
+		transform: rotate(-90deg);
+	}
+
+	.tree-toggle-caret-btn svg {
+		width: 14px;
+		height: 14px;
+	}
+
+	.tree-leaf-spacer {
+		width: 20px;
+		height: 20px;
+		flex-shrink: 0;
+	}
+
+	.subtask-tally-pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		font-size: 0.6875rem;
+		font-weight: 600;
+		color: var(--primary);
+		background-color: var(--bg-tertiary);
+		border: 1px solid var(--border-subtle);
+		padding: 0.0625rem 0.4375rem;
+		border-radius: var(--radius-full);
+	}
+
+	.subtask-tally-pill svg {
+		width: 11px;
+		height: 11px;
+	}
+
+	.tree-node-action-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		height: 24px;
+		padding: 0 0.5rem;
+		font-size: 0.6875rem;
+		font-weight: 500;
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--border-subtle);
+		background-color: var(--bg-tertiary);
+		color: var(--text-secondary);
+		cursor: pointer;
+		transition: all 0.15s ease;
+		white-space: nowrap;
+	}
+
+	.tree-node-action-btn:hover {
+		background-color: var(--primary);
+		border-color: var(--primary);
+		color: var(--primary-foreground);
+	}
+
+	.tree-node-action-btn svg {
+		width: 12px;
+		height: 12px;
 	}
 
 	.delete-btn {

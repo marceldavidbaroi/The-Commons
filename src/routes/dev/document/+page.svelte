@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { marked } from 'marked';
+	import mermaid from 'mermaid';
 	import type { PageData } from './$types';
 	import type { DocItem } from '$lib/server/docs-loader';
 
@@ -33,10 +34,36 @@
 		return data.docs.find((d) => d.id === selectedDocId) || data.docs[0];
 	});
 
+	// Custom marked renderer for mermaid code blocks
+	const renderer = new marked.Renderer();
+	const originalCodeRenderer = renderer.code.bind(renderer);
+	renderer.code = function (token: any) {
+		const lang = (token.lang || '').match(/\S*/)?.[0];
+		if (lang === 'mermaid') {
+			return `<div class="mermaid">${token.text}</div>`;
+		}
+		return originalCodeRenderer(token);
+	};
+
 	// Render markdown HTML
 	let renderedHtml = $derived.by(() => {
 		if (!currentDoc) return '';
-		return marked.parse(currentDoc.content, { async: false }) as string;
+		return marked.parse(currentDoc.content, { async: false, renderer }) as string;
+	});
+
+	// Render mermaid diagrams whenever HTML or activeTab updates
+	$effect(() => {
+		if (activeTab === 'rendered' && renderedHtml) {
+			tick().then(() => {
+				try {
+					mermaid.run({
+						nodes: document.querySelectorAll('.mermaid')
+					});
+				} catch (err) {
+					console.error('Mermaid render error:', err);
+				}
+			});
+		}
 	});
 
 	// Headings for table of contents
@@ -100,6 +127,48 @@
 	}
 
 	onMount(() => {
+		mermaid.initialize({
+			startOnLoad: false,
+			theme: 'base',
+			securityLevel: 'loose',
+			themeVariables: {
+				darkMode: true,
+				background: '#161922',
+				mainBkg: '#1e2230',
+				primaryColor: '#282d3f',
+				primaryTextColor: '#f3f4f6',
+				primaryBorderColor: '#3b82f6',
+				lineColor: '#94a3b8',
+				secondaryColor: '#1e293b',
+				tertiaryColor: '#0f172a',
+				// Entity Relationship Diagram Specific
+				attributeBackgroundColorOdd: '#1e2230',
+				attributeBackgroundColorEven: '#161922',
+				attributeTextColor: '#e2e8f0',
+				entityBorder: '#3b82f6',
+				entityTextColor: '#ffffff',
+				// Sequence Diagram Specific
+				actorBkg: '#1e2230',
+				actorTextColor: '#f8fafc',
+				actorBorder: '#3b82f6',
+				actorLineColor: '#64748b',
+				signalColor: '#e2e8f0',
+				signalTextColor: '#f8fafc',
+				labelBoxBkgColor: '#1e2230',
+				labelBoxBorderColor: '#475569',
+				labelTextColor: '#f8fafc',
+				loopTextColor: '#f8fafc',
+				noteBkgColor: '#2d3748',
+				noteTextColor: '#f8fafc',
+				noteBorderColor: '#4b5563',
+				// Flowchart specific
+				nodeBorder: '#3b82f6',
+				nodeTextColor: '#f8fafc',
+				fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif',
+				fontSize: '13px'
+			}
+		});
+
 		const searchParams = new URLSearchParams(window.location.search);
 		const urlDoc = searchParams.get('doc');
 		if (urlDoc) {
@@ -809,11 +878,20 @@
 
 	.markdown-body :global(code) {
 		font-family: var(--font-mono);
-		background: var(--bg-tertiary);
+		background: rgba(158, 90, 60, 0.08);
+		border: 1px solid rgba(158, 90, 60, 0.18);
 		padding: 0.125rem 0.375rem;
 		border-radius: 4px;
 		font-size: 0.8125rem;
-		color: var(--accent);
+		color: #9E5A3C;
+		font-weight: 500;
+	}
+
+	:root[data-theme="midnight"] .markdown-body :global(code),
+	:root.dark .markdown-body :global(code) {
+		background: rgba(212, 155, 85, 0.15);
+		border-color: rgba(212, 155, 85, 0.3);
+		color: #f6ad55;
 	}
 
 	.markdown-body :global(pre) {
@@ -829,6 +907,53 @@
 		background: transparent;
 		padding: 0;
 		color: var(--text-primary);
+	}
+
+	.markdown-body :global(.mermaid) {
+		display: flex;
+		justify-content: center;
+		background: #11141c;
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-md);
+		padding: 1.75rem 1.25rem;
+		margin: 1.5rem 0;
+		overflow-x: auto;
+	}
+
+	.markdown-body :global(.mermaid svg) {
+		max-width: 100%;
+		height: auto;
+	}
+
+	/* High-contrast crisp diagram text */
+	.markdown-body :global(.mermaid text),
+	.markdown-body :global(.mermaid .node text),
+	.markdown-body :global(.mermaid .messageText),
+	.markdown-body :global(.mermaid .actor text),
+	.markdown-body :global(.mermaid .entity text),
+	.markdown-body :global(.mermaid .labelText) {
+		fill: #f1f5f9 !important;
+		color: #f1f5f9 !important;
+		font-weight: 500;
+		font-family: ui-sans-serif, system-ui, -apple-system, sans-serif !important;
+	}
+
+	.markdown-body :global(.mermaid .row text) {
+		fill: #e2e8f0 !important;
+	}
+
+	.markdown-body :global(.mermaid .relationshipLine) {
+		stroke: #60a5fa !important;
+		stroke-width: 1.5px !important;
+	}
+
+	.markdown-body :global(.mermaid .node rect),
+	.markdown-body :global(.mermaid .node circle),
+	.markdown-body :global(.mermaid .node polygon),
+	.markdown-body :global(.mermaid .actor) {
+		stroke: #3b82f6 !important;
+		stroke-width: 1.5px !important;
+		fill: #1e2433 !important;
 	}
 
 	.markdown-body :global(table) {

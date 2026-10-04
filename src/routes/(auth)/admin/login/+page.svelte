@@ -1,44 +1,43 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { getSupabaseClient } from '$lib/supabase';
-	import { signInWithGoogleMember } from '$lib/services/auth-service';
+	import { signInWithGoogleAdmin } from '$lib/services/auth-service';
 
 	let isLoading = $state(false);
 	let errorMessage = $state<string | null>(null);
 
-	// Check URL query parameters for error flags
+	// Check URL query param for unauthorized error redirect
 	$effect(() => {
 		const errorParam = page.url.searchParams.get('error');
-		if (errorParam === 'not_whitelisted' || errorParam === 'unauthorized') {
-			errorMessage = 'This account has not been granted member access. Please contact an administrator.';
-		} else if (errorParam === 'unauthorized_admin') {
-			errorMessage = 'Administrative privileges required. Please sign in through the admin portal.';
+		if (errorParam === 'unauthorized_admin' || errorParam === 'unauthorized') {
+			errorMessage = 'Access denied. Your account does not have administrative privileges.';
 		}
 	});
 
-	async function handleOAuthLogin() {
+	async function handleAdminOAuthLogin() {
 		errorMessage = null;
 		isLoading = true;
 
 		try {
-			const { error } = await signInWithGoogleMember();
+			const { error } = await signInWithGoogleAdmin();
 			if (error) throw error;
 		} catch (err: any) {
-			errorMessage = err?.message || 'Failed to authenticate with Google';
+			errorMessage = err?.message || 'Failed to authenticate with Google Admin';
 			isLoading = false;
 		}
 	}
 </script>
 
 <svelte:head>
-	<title>Sign In - The Commons</title>
+	<title>Admin Sign In - The Commons</title>
 </svelte:head>
 
 <div class="auth-card-body">
 	<div class="heading-block">
-		<h1 class="auth-title">Sign In</h1>
+		<div class="admin-badge">System Control</div>
+		<h1 class="auth-title">Admin Portal</h1>
 		<p class="auth-description">
-			Sign in with your Google account to continue to your workspace.
+			Sign in with an authorized administrative account to manage members and platform settings.
 		</p>
 	</div>
 
@@ -59,7 +58,7 @@
 		<button
 			type="button"
 			class="oauth-button"
-			onclick={handleOAuthLogin}
+			onclick={handleAdminOAuthLogin}
 			disabled={isLoading}
 		>
 			<svg class="google-icon" viewBox="0 0 24 24" width="18" height="18">
@@ -72,10 +71,14 @@
 				{#if isLoading}
 					Signing in...
 				{:else}
-					Continue with Google
+					Sign In as Admin
 				{/if}
 			</span>
 		</button>
+	</div>
+
+	<div class="footer-block">
+		<a href="/login" class="back-link">← Return to Member Login</a>
 	</div>
 </div>
 
@@ -89,8 +92,24 @@
 	.heading-block {
 		display: flex;
 		flex-direction: column;
+		align-items: center;
 		gap: 0.375rem;
 		text-align: center;
+	}
+
+	.admin-badge {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.2rem 0.5rem;
+		font-size: 0.6875rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		background-color: var(--bg-tertiary);
+		color: var(--text-secondary);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-full);
+		margin-bottom: 0.25rem;
 	}
 
 	.auth-title {
@@ -162,5 +181,23 @@
 
 	.button-label {
 		letter-spacing: -0.01em;
+	}
+
+	.footer-block {
+		display: flex;
+		justify-content: center;
+		margin-top: -0.5rem;
+	}
+
+	.back-link {
+		font-size: 0.8125rem;
+		color: var(--text-secondary);
+		text-decoration: none;
+		transition: color 0.15s ease;
+	}
+
+	.back-link:hover {
+		color: var(--text-primary);
+		text-decoration: underline;
 	}
 </style>

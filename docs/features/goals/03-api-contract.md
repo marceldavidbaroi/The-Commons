@@ -1,8 +1,8 @@
 # API Contract: Goals & Objectives Ledger
 
 ## 1. Overview & Protocol Standards
-- **Data Access Layer**: Direct Supabase client queries with PostgreSQL Row Level Security (RLS) enforcing strict tenant isolation (`auth.uid() = user_id`).
-- **Identifier Strategy**: Goals use **UUIDs (`id`)** generated via `gen_random_uuid()`. Tags use numeric identifiers (`BIGINT` / `number`).
+- **Data Access Layer**: Direct Supabase client queries with PostgreSQL Row Level Security (RLS) enforcing strict tenant isolation (`user_id = (select id from profiles where auth_user_id = auth.uid())`).
+- **Identifier Strategy**: Goals use **Integer IDs (`id: bigint`)**. Tags use numeric identifiers (`BIGINT` / `number`).
 - **Client Cache & State**: Managed exclusively via `@tanstack/react-query` v5 with optimistic updates and selective cache invalidation.
 - **Hierarchy Handling**: Parent-child recursion is modeled via `parent_id REFERENCES goals(id) ON DELETE CASCADE`. Top-level goals have `parent_id IS NULL`.
 
@@ -15,7 +15,7 @@
 | **Fetch Goals Tree / List** | Direct `SELECT` | `goals` joined with `goal_tags(tags)` and child `goals` | User / Filters | Retrieves active goals, optionally filtered by status, priority, type, or parent ID. |
 | **Fetch Goal By ID** | Direct `SELECT` | `goals` joined with `goal_tags(tags)` and recursive sub-goals | User / Goal ID | Retrieves a single goal with full description, audit timestamps, and child sub-goals. |
 | **Create Goal** | Direct `INSERT` | `goals` + `goal_tags` | User | Creates a new root or sub-goal and associates selected tags. |
-| **Update Goal** | Direct `UPDATE` | `goals` | User | Updates title, description, type, priority, or dates by UUID `id`. |
+| **Update Goal** | Direct `UPDATE` | `goals` | User | Updates title, description, type, priority, or dates by integer `id`. |
 | **Update Goal Status** | Direct `UPDATE` | `goals` | User | Transitions status; auto-stamps `achieved_at` or `cancelled_at` & `cancel_reason`. |
 | **Delete Goal** | Direct `DELETE` | `goals` | User | Deletes goal and cascades deletion to child sub-goals and `goal_tags`. |
 | **Sync Goal Tags** | Direct Batch | `goal_tags` | User | Atomically replaces or synchronizes numeric tag IDs assigned to a goal. |
@@ -70,8 +70,8 @@ const { data, error } = await query;
 ```json
 [
   {
-    "id": "e4a3b1c2-d3e4-4f5a-b6c7-d8e9f0a1b2c3",
-    "user_id": "9f26cf9d-25f0-45fa-b6ea-73ecdb3cf286",
+    "id": 101,
+    "user_id": 1,
     "parent_id": null,
     "title": "Establish Archival Library Index",
     "description": "Index all historical broadsides and citizen folios.",
@@ -97,7 +97,7 @@ const { data, error } = await query;
     ],
     "subgoals": [
       {
-        "id": "f5b4c2d3-e4f5-4a6b-c7d8-e9f0a1b2c3d4",
+        "id": 102,
         "title": "Catalogue Volume I",
         "type": "weekly",
         "status": "completed",
@@ -119,7 +119,7 @@ const { data, error } = await query;
 {
   "title": "Draft Constitution Preface",
   "description": "Formulate principles for citizen registry.",
-  "parent_id": "e4a3b1c2-d3e4-4f5a-b6c7-d8e9f0a1b2c3",
+  "parent_id": 101,
   "type": "monthly",
   "status": "draft",
   "priority": "critical",
@@ -129,23 +129,13 @@ const { data, error } = await query;
 }
 ```
 
-#### Execution Steps
-1. Insert record into `public.goals`.
-2. If `tag_ids` present, insert batch records into `public.goal_tags`:
-   ```sql
-   INSERT INTO public.goal_tags (goal_id, tag_id, user_id)
-   VALUES 
-     ('goal-uuid', 101, 'user-uuid'),
-     ('goal-uuid', 104, 'user-uuid');
-   ```
-
 ---
 
 ### 3.3 Status Transition Mutations
 
 ```typescript
 export async function updateGoalStatus(
-  goalId: string,
+  goalId: number,
   status: GoalStatus,
   cancelReason?: string | null
 ): Promise<GoalRow> {
@@ -159,7 +149,6 @@ export async function updateGoalStatus(
     updates.cancelled_at = new Date().toISOString();
     updates.cancel_reason = cancelReason ?? null;
   } else {
-    // Reset terminal timestamps if returned to draft/pending/in_progress/deferred
     updates.achieved_at = null;
     updates.cancelled_at = null;
     updates.cancel_reason = null;
@@ -183,11 +172,14 @@ export async function updateGoalStatus(
 
 ```typescript
 export async function syncGoalTags(
-  goalId: string,
+  goalId: number,
   tagIds: number[]
 ): Promise<void> {
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) throw new Error("Unauthorized");
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .single();
+  if (!profile) throw new Error("Unauthorized");
 
   // 1. Delete existing tags for goal
   const { error: deleteError } = await supabase
@@ -202,7 +194,7 @@ export async function syncGoalTags(
     const rows = tagIds.map((tagId) => ({
       goal_id: goalId,
       tag_id: tagId,
-      user_id: userData.user.id,
+      user_id: profile.id,
     }));
 
     const { error: insertError } = await supabase
