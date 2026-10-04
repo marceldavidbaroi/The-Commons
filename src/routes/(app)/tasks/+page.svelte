@@ -219,7 +219,7 @@
 						status: nextStatus,
 						completed_at: nextCompletedAt
 					})
-					.eq('id', task.id);
+					.eq('id', Number(task.id));
 
 				if (error) {
 					console.error('Failed to update task status:', error);
@@ -252,7 +252,7 @@
 	}) {
 		const taskPayload = {
 			title: newTaskData.title.trim(),
-			parent_id: newTaskData.parent_id || null,
+			parent_id: newTaskData.parent_id ? Number(newTaskData.parent_id) : null,
 			description: newTaskData.description,
 			priority: newTaskData.priority,
 			status: newTaskData.status,
@@ -290,7 +290,7 @@
 			// Mock insert with numeric ID
 			const mockTask: Task = {
 				id: getNextMockNumericId(),
-				user_id: 'mock-user',
+				user_id: 0,
 				parent_id: taskPayload.parent_id,
 				title: taskPayload.title,
 				description: taskPayload.description,
@@ -328,7 +328,7 @@
 		}
 		if (currentUserId && taskId !== undefined && taskId !== null) {
 			try {
-				const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+				const { error } = await supabase.from('tasks').delete().eq('id', Number(taskId));
 				if (error) {
 					console.error('Failed to delete task in database:', error);
 					loadTasks();
@@ -349,7 +349,7 @@
 					.from('tasks')
 					.update({
 						title: updatedTask.title,
-						parent_id: updatedTask.parent_id || null,
+						parent_id: updatedTask.parent_id ? Number(updatedTask.parent_id) : null,
 						description: updatedTask.description,
 						status: updatedTask.status,
 						priority: updatedTask.priority,
@@ -357,7 +357,7 @@
 						due_date: updatedTask.due_date,
 						completed_at: updatedTask.completed_at
 					})
-					.eq('id', updatedTask.id);
+					.eq('id', Number(updatedTask.id));
 
 				if (error) {
 					console.error('Failed to update task:', error);

@@ -1,7 +1,7 @@
 export interface Tag {
-	id: number | string;
-	category_id: number | string;
-	user_id?: string;
+	id: number;
+	category_id: number;
+	user_id?: number | null;
 	name: string;
 	color?: string | null;
 	is_system?: boolean;
@@ -10,8 +10,8 @@ export interface Tag {
 }
 
 export interface TagCategory {
-	id: number | string;
-	user_id?: string;
+	id: number;
+	user_id?: number | null;
 	feature: string;
 	name: string;
 	color: string;

@@ -10,7 +10,106 @@
 	let searchQuery = $state('');
 	let selectedBadgeFilter = $state<string | null>(null);
 	let selectedDocId = $state<string>('');
-	let activeTab = $state<'rendered' | 'raw'>('rendered');
+	let activeTab = $state<'rendered' | 'raw' | 'schema' | 'routes'>('rendered');
+	let schemaSearch = $state('');
+	let routeSearch = $state('');
+	let schemaScope = $state<'feature' | 'all'>('feature');
+	let routeScope = $state<'feature' | 'all'>('feature');
+
+	// Map feature folder names to exact database tables
+	function getFeatureTableNames(featureName?: string): string[] {
+		if (!featureName) return [];
+		const lower = featureName.toLowerCase();
+		if (lower.includes('task')) return ['tasks', 'task_tags'];
+		if (lower.includes('goal')) return ['goals', 'goal_tags'];
+		if (lower.includes('diary') || lower.includes('journal')) return ['diaries', 'diary_entries', 'diary_entry_tags'];
+		if (lower.includes('tag')) return ['tags', 'tag_categories'];
+		if (lower.includes('auth') || lower.includes('access')) return ['allowed_members', 'profiles'];
+		if (lower.includes('passport') || lower.includes('profile')) return ['profiles'];
+		if (lower.includes('homeops') || lower.includes('inventory')) return ['user_items'];
+		return [];
+	}
+
+	// Filtered tables for schema view
+	let featureTables = $derived.by(() => {
+		if (!data.schema?.tables) return [];
+		if (schemaScope === 'all' || !currentDoc?.featureFolder) return data.schema.tables;
+		const tableNames = getFeatureTableNames(currentDoc.featureFolder);
+		if (tableNames.length === 0) return data.schema.tables;
+		return data.schema.tables.filter((t) => tableNames.includes(t.name));
+	});
+
+	let filteredSchemaTables = $derived.by(() => {
+		const q = schemaSearch.toLowerCase().trim();
+		if (!q) return featureTables;
+		return featureTables.filter(
+			(t) =>
+				t.name.toLowerCase().includes(q) ||
+				t.columns.some((c) => c.name.toLowerCase().includes(q) || c.type.toLowerCase().includes(q))
+		);
+	});
+
+	// Map feature folder names to exact route paths
+	function getFeatureRoutePaths(featureName?: string): string[] {
+		if (!featureName) return [];
+		const lower = featureName.toLowerCase();
+		if (lower.includes('task')) return ['/tasks'];
+		if (lower.includes('goal')) return ['/goals'];
+		if (lower.includes('diary') || lower.includes('journal')) return ['/diary', '/diary/[id]'];
+		if (lower.includes('auth') || lower.includes('access')) return ['/login', '/auth/callback', '/admin', '/admin/login'];
+		if (lower.includes('passport') || lower.includes('profile')) return ['/profile'];
+		if (lower.includes('homeops') || lower.includes('inventory')) return ['/homeops'];
+		if (lower.includes('tag')) return [];
+		return [];
+	}
+
+	function getFeatureComponentNames(featureName?: string): string[] {
+		if (!featureName) return [];
+		const lower = featureName.toLowerCase();
+		if (lower.includes('tag')) return ['TagManagementSidePanel.svelte', 'TagPicker.svelte'];
+		if (lower.includes('task')) return ['TaskSidePanel.svelte', 'TagManagementSidePanel.svelte'];
+		return [];
+	}
+
+	// Filtered routes for routes matrix view
+	let featureRoutes = $derived.by(() => {
+		if (!data.routeMatrix?.routes) return [];
+		if (routeScope === 'all' || !currentDoc?.featureFolder) return data.routeMatrix.routes;
+		const paths = getFeatureRoutePaths(currentDoc.featureFolder);
+		if (paths.length === 0) return [];
+		return data.routeMatrix.routes.filter((r) =>
+			paths.some((p) => r.urlPath.toLowerCase() === p.toLowerCase() || r.urlPath.toLowerCase().startsWith(p.toLowerCase() + '/'))
+		);
+	});
+
+	let featureComponents = $derived.by(() => {
+		if (!data.routeMatrix?.components) return [];
+		if (routeScope === 'all' || !currentDoc?.featureFolder) return data.routeMatrix.components;
+		const compNames = getFeatureComponentNames(currentDoc.featureFolder);
+		if (compNames.length === 0) return [];
+		return data.routeMatrix.components.filter((c) => compNames.includes(c.name));
+	});
+
+	let filteredRoutes = $derived.by(() => {
+		const q = routeSearch.toLowerCase().trim();
+		if (!q) return featureRoutes;
+		return featureRoutes.filter(
+			(r) =>
+				r.urlPath.toLowerCase().includes(q) ||
+				(r.group && r.group.toLowerCase().includes(q)) ||
+				r.serverMethods.some((m) => m.toLowerCase().includes(q)) ||
+				(r.files.page && r.files.page.toLowerCase().includes(q)) ||
+				(r.files.server && r.files.server.toLowerCase().includes(q))
+		);
+	});
+
+	let filteredComponents = $derived.by(() => {
+		const q = routeSearch.toLowerCase().trim();
+		if (!q) return featureComponents;
+		return featureComponents.filter(
+			(c) => c.name.toLowerCase().includes(q) || c.relativePath.toLowerCase().includes(q)
+		);
+	});
 	let copiedText = $state<string | null>(null);
 	let isMobileNavOpen = $state(false);
 	let openFolders = $state<Record<string, boolean>>({});
@@ -185,6 +284,8 @@
 
 	function getBadgeClass(badge: string) {
 		switch (badge) {
+			case 'Spec':
+				return 'badge-spec';
 			case 'PRD':
 				return 'badge-prd';
 			case 'TDD':
@@ -206,7 +307,7 @@
 </script>
 
 <svelte:head>
-	<title>{currentDoc ? `${currentDoc.title} | Documentation Codex` : 'Documentation Codex'}</title>
+	<title>{currentDoc ? `${currentDoc.title} | Developer Documentation` : 'Developer Documentation'}</title>
 </svelte:head>
 
 <div class="codex-container">
@@ -217,14 +318,14 @@
 				☰
 			</button>
 			<div class="header-brand">
-				<span class="brand-glyph">🏛️</span>
-				<span class="brand-title">The Commons Codex</span>
-				<span class="brand-tag">v2 Specs</span>
+				<span class="brand-glyph">📚</span>
+				<span class="brand-title">The Commons Docs</span>
+				<span class="brand-tag">Living Specs</span>
 			</div>
 		</div>
 
 		<div class="header-right">
-			<a href="/app" class="back-link">Return to Sanctuary →</a>
+			<a href="/tasks" class="back-link">Return to App →</a>
 		</div>
 	</header>
 
@@ -240,7 +341,7 @@
 				/>
 
 				<div class="badge-filters">
-					{#each ['PRD', 'Schema', 'API Contract', 'TDD', 'Code Stub'] as badge}
+					{#each ['Spec', 'Schema', 'Architecture', 'API Contract', 'PRD'] as badge}
 						<button
 							class="filter-pill"
 							class:active={selectedBadgeFilter === badge}
@@ -382,6 +483,18 @@
 										Docs
 									</button>
 									<button
+										class:active={activeTab === 'routes'}
+										onclick={() => (activeTab = 'routes')}
+									>
+										🌐 Routes ({filteredRoutes.length})
+									</button>
+									<button
+										class:active={activeTab === 'schema'}
+										onclick={() => (activeTab = 'schema')}
+									>
+										⚡ Schema ({filteredSchemaTables.length})
+									</button>
+									<button
 										class:active={activeTab === 'raw'}
 										onclick={() => (activeTab = 'raw')}
 									>
@@ -400,6 +513,215 @@
 
 					{#if activeTab === 'raw'}
 						<pre class="raw-code"><code>{currentDoc.content}</code></pre>
+					{:else if activeTab === 'routes'}
+						<div class="routes-live-container">
+							<div class="schema-banner">
+								<div class="schema-banner-text">
+									<h3>Auto-Generated SvelteKit Route & API Matrix</h3>
+									<p>
+										Showing <strong>{filteredRoutes.length}</strong> {routeScope === 'feature' ? `routes related to ${currentDoc?.featureFolder || 'current doc'}` : 'total routes in app'}.
+									</p>
+								</div>
+								<div class="banner-controls">
+									<div class="scope-toggle">
+										<button
+											class:active={routeScope === 'feature'}
+											onclick={() => (routeScope = 'feature')}
+										>
+											{currentDoc?.featureFolder || 'This Feature'}
+										</button>
+										<button
+											class:active={routeScope === 'all'}
+											onclick={() => (routeScope = 'all')}
+										>
+											All Routes ({data.routeMatrix?.routes?.length || 0})
+										</button>
+									</div>
+									<input
+										type="search"
+										placeholder="Search path, group, method..."
+										bind:value={routeSearch}
+										class="schema-search-input"
+									/>
+								</div>
+							</div>
+
+							{#if filteredRoutes.length === 0 && filteredComponents.length === 0}
+								<div class="empty-state-banner">
+									<p>No dedicated routes or components registered for <strong>{currentDoc?.featureFolder || 'this feature'}</strong> yet.</p>
+									<button class="btn btn-outline" onclick={() => (routeScope = 'all')}>
+										View All Routes ({data.routeMatrix?.routes?.length || 0})
+									</button>
+								</div>
+							{:else}
+								{#if filteredRoutes.length > 0}
+									<div class="routes-table-container">
+										<table class="routes-matrix-table">
+											<thead>
+												<tr>
+													<th>URL Route</th>
+													<th>Layout Group</th>
+													<th>Type</th>
+													<th>Server Handlers</th>
+													<th>Source Files</th>
+												</tr>
+											</thead>
+											<tbody>
+												{#each filteredRoutes as r}
+													<tr>
+														<td class="url-path-cell">
+															<a href={r.urlPath} target="_blank" class="url-link">
+																<code>{r.urlPath}</code>
+															</a>
+														</td>
+														<td>
+															{#if r.group}
+																<span class="group-pill">{r.group}</span>
+															{:else}
+																<span class="group-pill root">root</span>
+															{/if}
+														</td>
+														<td>
+															<div class="type-indicators">
+																{#if r.hasPage}
+																	<span class="route-badge page">Page</span>
+																{/if}
+																{#if r.hasServerEndpoint}
+																	<span class="route-badge api">API</span>
+																{/if}
+																{#if r.hasPageServer}
+																	<span class="route-badge server">Loader</span>
+																{/if}
+															</div>
+														</td>
+														<td>
+															{#if r.serverMethods.length > 0}
+																<div class="method-pills">
+																	{#each r.serverMethods as m}
+																		<span class="method-pill {m.toLowerCase()}">{m}</span>
+																	{/each}
+																</div>
+															{:else}
+																<span class="text-muted-dash">—</span>
+															{/if}
+														</td>
+														<td class="files-cell">
+															{#if r.files.page}
+																<span class="file-tag"><code>{r.files.page}</code></span>
+															{/if}
+															{#if r.files.server}
+																<span class="file-tag server"><code>{r.files.server}</code></span>
+															{/if}
+															{#if r.files.pageServer}
+																<span class="file-tag loader"><code>{r.files.pageServer}</code></span>
+															{/if}
+														</td>
+													</tr>
+												{/each}
+											</tbody>
+										</table>
+									</div>
+								{/if}
+
+								{#if filteredComponents.length > 0}
+									<div class="component-matrix-section">
+										<h4 class="component-section-title">Associated UI Components</h4>
+										<div class="component-grid">
+											{#each filteredComponents as c}
+												<div class="component-card">
+													<div class="comp-icon">🧩</div>
+													<div class="comp-info">
+														<span class="comp-name">{c.name}</span>
+														<span class="comp-path"><code>{c.filePath}</code></span>
+													</div>
+												</div>
+											{/each}
+										</div>
+									</div>
+								{/if}
+							{/if}
+						</div>
+					{:else if activeTab === 'schema'}
+						<div class="schema-live-container">
+							<div class="schema-banner">
+								<div class="schema-banner-text">
+									<h3>Auto-Generated Database Schema</h3>
+									<p>
+										Showing <strong>{filteredSchemaTables.length}</strong> {schemaScope === 'feature' ? `tables related to ${currentDoc?.featureFolder || 'current doc'}` : 'total tables in Postgres'}.
+									</p>
+								</div>
+								<div class="banner-controls">
+									<div class="scope-toggle">
+										<button
+											class:active={schemaScope === 'feature'}
+											onclick={() => (schemaScope = 'feature')}
+										>
+											{currentDoc?.featureFolder || 'This Feature'}
+										</button>
+										<button
+											class:active={schemaScope === 'all'}
+											onclick={() => (schemaScope = 'all')}
+										>
+											All Tables ({data.schema?.tables?.length || 0})
+										</button>
+									</div>
+									<input
+										type="search"
+										placeholder="Filter tables or columns..."
+										bind:value={schemaSearch}
+										class="schema-search-input"
+									/>
+								</div>
+							</div>
+
+							<div class="schema-tables-grid">
+								{#each filteredSchemaTables as table}
+									<div class="schema-table-card">
+										<div class="table-card-header">
+											<span class="table-icon">🗄️</span>
+											<span class="table-name">{table.name}</span>
+											<span class="col-count">{table.columns.length} columns</span>
+										</div>
+
+										<table class="columns-table">
+											<thead>
+												<tr>
+													<th>Column</th>
+													<th>Type</th>
+													<th>Nullable</th>
+												</tr>
+											</thead>
+											<tbody>
+												{#each table.columns as col}
+													<tr>
+														<td class="col-name-cell">
+															<code>{col.name}</code>
+														</td>
+														<td class="col-type-cell">
+															<span class="type-pill">{col.type}</span>
+														</td>
+														<td class="col-null-cell">
+															{col.isNullable ? 'YES' : 'NO'}
+														</td>
+													</tr>
+												{/each}
+											</tbody>
+										</table>
+
+										{#if table.relationships && table.relationships.length > 0}
+											<div class="table-relations">
+												<span class="rel-title">Foreign Keys:</span>
+												{#each table.relationships as rel}
+													<div class="rel-item">
+														<span>↳ <code>{rel.columns.join(', ')}</code> → <code>{rel.referencedRelation}({rel.referencedColumns.join(', ')})</code></span>
+													</div>
+												{/each}
+											</div>
+										{/if}
+									</div>
+								{/each}
+							</div>
+						</div>
 					{:else}
 						<div class="markdown-body">
 							{@html renderedHtml}
@@ -709,6 +1031,7 @@
 		flex-shrink: 0;
 	}
 
+	.badge-spec { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border-color: rgba(59, 130, 246, 0.4); font-weight: 600; }
 	.badge-prd { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-color: rgba(59, 130, 246, 0.3); }
 	.badge-tdd { background: rgba(168, 85, 247, 0.15); color: #c084fc; border-color: rgba(168, 85, 247, 0.3); }
 	.badge-schema { background: rgba(34, 197, 94, 0.15); color: #4ade80; border-color: rgba(34, 197, 94, 0.3); }
@@ -1050,5 +1373,407 @@
 
 	.scroll-top-btn:hover {
 		color: var(--text-primary);
+	}
+
+	/* Live Schema Viewer Styles */
+	.schema-live-container {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+		margin-top: 1rem;
+	}
+
+	.schema-banner {
+		background: var(--bg-surface);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-md);
+		padding: 1rem 1.25rem;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		flex-wrap: wrap;
+	}
+
+	.schema-banner-text h3 {
+		font-size: 0.9375rem;
+		font-weight: 700;
+		color: var(--text-primary);
+		margin: 0 0 0.25rem 0;
+	}
+
+	.schema-banner-text p {
+		font-size: 0.75rem;
+		color: var(--text-secondary);
+		margin: 0;
+	}
+
+	.schema-banner-text code {
+		background: var(--bg-tertiary);
+		padding: 0.125rem 0.375rem;
+		border-radius: var(--radius-sm);
+		font-family: var(--font-mono);
+		font-size: 0.6875rem;
+	}
+
+	.banner-controls {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+	}
+
+	.scope-toggle {
+		display: flex;
+		background: var(--bg-tertiary);
+		padding: 0.1875rem;
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--border-subtle);
+		gap: 0.125rem;
+	}
+
+	.scope-toggle button {
+		background: transparent;
+		border: none;
+		font-size: 0.6875rem;
+		font-weight: 600;
+		color: var(--text-secondary);
+		padding: 0.25rem 0.5rem;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		transition: background 0.15s, color 0.15s;
+	}
+
+	.scope-toggle button.active {
+		background: var(--bg-surface);
+		color: var(--primary);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+	}
+
+	.schema-search-input {
+		background: var(--bg-tertiary);
+		border: 1px solid var(--border-subtle);
+		padding: 0.4375rem 0.75rem;
+		font-size: 0.75rem;
+		color: var(--text-primary);
+		border-radius: var(--radius-sm);
+		outline: none;
+		min-width: 220px;
+	}
+
+	.schema-search-input:focus {
+		border-color: var(--primary);
+	}
+
+	.schema-tables-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+		gap: 1.25rem;
+	}
+
+	.schema-table-card {
+		background: var(--bg-surface);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-md);
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.table-card-header {
+		background: var(--bg-tertiary);
+		border-bottom: 1px solid var(--border-subtle);
+		padding: 0.625rem 0.875rem;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.table-name {
+		font-size: 0.8125rem;
+		font-weight: 700;
+		font-family: var(--font-mono);
+		color: var(--text-primary);
+		flex: 1;
+	}
+
+	.col-count {
+		font-size: 0.6875rem;
+		color: var(--text-muted);
+		font-family: var(--font-mono);
+	}
+
+	.columns-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 0.75rem;
+	}
+
+	.columns-table th {
+		text-align: left;
+		padding: 0.375rem 0.75rem;
+		font-size: 0.625rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		border-bottom: 1px solid var(--border-subtle);
+		background: var(--bg-secondary);
+	}
+
+	.columns-table td {
+		padding: 0.375rem 0.75rem;
+		border-bottom: 1px solid var(--border-subtle);
+	}
+
+	.columns-table tr:last-child td {
+		border-bottom: none;
+	}
+
+	.col-name-cell code {
+		font-family: var(--font-mono);
+		font-weight: 600;
+		color: var(--text-primary);
+	}
+
+	.type-pill {
+		font-family: var(--font-mono);
+		font-size: 0.625rem;
+		padding: 0.0625rem 0.3125rem;
+		border-radius: var(--radius-sm);
+		background: rgba(59, 130, 246, 0.1);
+		color: #60a5fa;
+		border: 1px solid rgba(59, 130, 246, 0.2);
+	}
+
+	.col-null-cell {
+		font-size: 0.625rem;
+		font-family: var(--font-mono);
+		color: var(--text-muted);
+	}
+
+	.table-relations {
+		background: var(--bg-secondary);
+		border-top: 1px solid var(--border-subtle);
+		padding: 0.5rem 0.75rem;
+		font-size: 0.6875rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.rel-title {
+		font-weight: 700;
+		color: var(--text-muted);
+		font-size: 0.625rem;
+		text-transform: uppercase;
+	}
+
+	.rel-item {
+		color: var(--text-secondary);
+		font-family: var(--font-mono);
+		font-size: 0.6875rem;
+	}
+
+	/* Routes Matrix Styles */
+	.routes-live-container {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+		margin-top: 1rem;
+	}
+
+	.routes-table-container {
+		background: var(--bg-surface);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-md);
+		overflow-x: auto;
+	}
+
+	.routes-matrix-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 0.8125rem;
+		text-align: left;
+	}
+
+	.routes-matrix-table th {
+		background: var(--bg-tertiary);
+		padding: 0.625rem 0.875rem;
+		font-size: 0.6875rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		border-bottom: 1px solid var(--border-subtle);
+	}
+
+	.routes-matrix-table td {
+		padding: 0.625rem 0.875rem;
+		border-bottom: 1px solid var(--border-subtle);
+		vertical-align: middle;
+	}
+
+	.routes-matrix-table tr:last-child td {
+		border-bottom: none;
+	}
+
+	.routes-matrix-table tr:hover {
+		background: rgba(255, 255, 255, 0.02);
+	}
+
+	.url-path-cell {
+		font-family: var(--font-mono);
+		font-weight: 600;
+	}
+
+	.url-link {
+		color: var(--primary);
+		text-decoration: none;
+	}
+
+	.url-link:hover {
+		text-decoration: underline;
+	}
+
+	.group-pill {
+		font-family: var(--font-mono);
+		font-size: 0.6875rem;
+		padding: 0.125rem 0.375rem;
+		border-radius: var(--radius-sm);
+		background: rgba(168, 85, 247, 0.1);
+		color: #c084fc;
+		border: 1px solid rgba(168, 85, 247, 0.2);
+	}
+
+	.group-pill.root {
+		background: var(--bg-tertiary);
+		color: var(--text-muted);
+		border-color: transparent;
+	}
+
+	.type-indicators {
+		display: flex;
+		gap: 0.25rem;
+	}
+
+	.route-badge {
+		font-size: 0.625rem;
+		font-family: var(--font-mono);
+		padding: 0.0625rem 0.3125rem;
+		border-radius: var(--radius-sm);
+		font-weight: 600;
+	}
+
+	.route-badge.page { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+	.route-badge.api { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+	.route-badge.server { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+
+	.method-pills {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem;
+	}
+
+	.method-pill {
+		font-family: var(--font-mono);
+		font-size: 0.625rem;
+		font-weight: 700;
+		padding: 0.0625rem 0.3125rem;
+		border-radius: var(--radius-sm);
+		text-transform: uppercase;
+	}
+
+	.method-pill.get { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+	.method-pill.post { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+	.method-pill.delete { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+	.method-pill.put, .method-pill.patch { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+	.method-pill.load { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+	.method-pill.actions { background: rgba(20, 184, 166, 0.15); color: #2dd4bf; }
+
+	.text-muted-dash {
+		color: var(--text-muted);
+	}
+
+	.files-cell {
+		display: flex;
+		flex-direction: column;
+		gap: 0.1875rem;
+	}
+
+	.file-tag {
+		font-size: 0.625rem;
+		font-family: var(--font-mono);
+		color: var(--text-secondary);
+	}
+
+	.file-tag.server { color: #fbbf24; }
+	.file-tag.loader { color: #4ade80; }
+
+	.empty-state-banner {
+		background: var(--bg-surface);
+		border: 1px dashed var(--border-subtle);
+		border-radius: var(--radius-md);
+		padding: 2.5rem 1.5rem;
+		text-align: center;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
+		color: var(--text-secondary);
+		font-size: 0.875rem;
+	}
+
+	.component-matrix-section {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		margin-top: 0.5rem;
+	}
+
+	.component-section-title {
+		font-size: 0.8125rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--text-muted);
+		margin: 0;
+	}
+
+	.component-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: 0.75rem;
+	}
+
+	.component-card {
+		background: var(--bg-surface);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-md);
+		padding: 0.75rem 1rem;
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.comp-icon {
+		font-size: 1.25rem;
+	}
+
+	.comp-info {
+		display: flex;
+		flex-direction: column;
+		gap: 0.125rem;
+		overflow: hidden;
+	}
+
+	.comp-name {
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: var(--text-primary);
+	}
+
+	.comp-path code {
+		font-size: 0.6875rem;
+		font-family: var(--font-mono);
+		color: var(--text-muted);
 	}
 </style>

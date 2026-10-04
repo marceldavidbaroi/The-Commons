@@ -38,31 +38,29 @@
 # State & Data Architecture Guidelines
 
 ## 1. Single Source of Truth
-- **Server State**: Managed exclusively through `@tanstack/react-query` and Supabase.
-- **Client State**: Zustand (`useDiaryStore`, `useUIStore`) is strictly for transient UI state (e.g. search query, active filter tabs, modals, reading density).
-- **Prohibited**: Never cache, duplicate, or mirror database records (`diaries`, `entries`, `profiles`) inside Zustand stores or `localStorage`.
+- **Server State**: Managed through SvelteKit page loaders (`+page.server.ts` / `+page.ts`), form actions, and Supabase client queries.
+- **Client State**: Svelte 5 runes (`$state`, `$derived`, `$props`) or modular Svelte stores for transient UI state (e.g. search query, active filter tabs, modals, drawer toggles).
+- **Prohibited**: Never cache, duplicate, or mirror database records (`diaries`, `tasks`, `profiles`) inside browser `localStorage`.
 
 ## 2. Component Modularity (< 300-400 lines)
 - Keep client page components concise and composable.
-- Extract theme-specific editors into `src/components/diary/theme-*-editor.tsx`.
-- Extract sub-views (Table of Contents, Summary Digest) into `entry-index-view.tsx` and `entry-summary-view.tsx`.
-- Extract custom SVG icons and graphics into `diary-icons.tsx`.
-- Extract live draft and autosave handlers into custom hooks like `useDiaryAutosave`.
+- Extract domain sub-views and reusable panels into `src/lib/components/`.
+- Extract custom SVG icons and graphics into dedicated icon components.
+- Extract complex domain logic and shared helpers into `src/lib/`.
 
 ## 3. Direct Supabase Query Layer
 - Use standard Supabase query builder syntax with relation joins:
   ```ts
   const { data, error } = await supabase
     .from("diaries")
-    .select("*, diary_entries(id, page_number, entry_date)")
+    .select("*, diary_entries(id, entry_date)")
     .eq("user_id", user.id);
   ```
 - Do **NOT** implement dual-track code (calling an RPC then catching an error to fall back to direct table queries). Standard direct queries with RLS are the default.
 
 ## 4. UUID-First Navigation & Lookups
-- Always use database UUID (`entry.id` / `diary.id`) for lookups and App Router navigation.
-- Treat `page_number` purely as a visual UI badge ("Leaf No. 12"). Never use `String(e.pageNumber) === id` for entity identification.
-- Use `router.replace(url, { scroll: false })` or `router.push(url)` for route transitions. Avoid manual `window.history.replaceState` hacks.
+- Always use database UUID (`entry.id` / `task.id`) for lookups and route navigation.
+- Use SvelteKit `goto(url)` for programmatic navigation. Avoid manual `window.history.replaceState` hacks.
 
 # UI Simplicity & Plain Language Rules
 - **No Fantasy Vocabulary**: Avoid grandiose/fantasy copy such as "Citizen Passport", "Sanctuary", "Sacred Codex", "Broadside Inscription", "Sovereign Passport", "Wax Seal", "Colophon". Use clean, direct, standard words: "Account", "Profile", "Settings", "Sign In", "Dashboard", "Notes", "Journals", "Tasks", "Goals".
@@ -71,78 +69,25 @@
   - Keep layouts clean, flat, high-density, and straightforward with subtle borders and clear whitespace.
 
 ## 5. Directory & File Responsibilities Sitemap
-- `src/hooks/queries/`: React Query hooks for fetching, mutating, and cache invalidation.
-- `src/services/`: Direct Supabase database client functions and error normalization.
-- `src/stores/`: Pure transient client UI state (sidebar, filters, search query).
-- `src/components/diary/`: Modular UI pieces (< 300 lines each) for the diary experience.
-- `src/app/`: Next.js App Router route declarations and page layouts.
+- `src/routes/`: SvelteKit routes, pages (`+page.svelte`), and server endpoints (`+server.ts`, `+page.server.ts`).
+- `src/lib/`: Reusable components, utility functions, and Supabase client instances.
+- `src/lib/types/`: TypeScript type definitions (including auto-generated database types).
+- `docs/`: Feature specifications, architecture diagrams, and guides visualized via `/dev/document`.
 
-# Documentation & Specification Standards (4-Document Separation Rule)
+# Pragmatic Feature Documentation & Spec Rules
 
-To prevent AI drift, cross-contamination, and hallucinated logic, all feature specifications and documentation must strictly follow this 4-document separation structure:
+To keep high engineering velocity and prevent documentation drift, avoid fragmented multi-file waterfall specs.
 
----
+### Single Feature Spec (`docs/features/<feature-name>/spec.md`)
+For any new feature or major enhancement, use a **single, high-density spec file** visible in the `/dev/document` viewer:
+1. **User Goal & UX**: What problem does this solve and what is the primary user interaction flow?
+2. **Data & Schema**: Which database tables/columns are added or modified (SQL migration draft).
+3. **Route & Action Matrix**: List of SvelteKit routes (`+page.svelte`), form actions, or API endpoints (`+server.ts`).
+4. **Acceptance Criteria & Invariants**: 3–5 bullet points verifying the feature is functional and secure (RLS/Auth rules).
 
-### `01-prd.md` (Product Requirements Document)
-- **Target**: Business logic, user flows, and acceptance criteria.
-- **Rule**: *Zero technical implementation details* (no database column names, no endpoint paths, no framework libraries).
-- **Structure**:
-  1. **Executive Summary & Goals**: One-paragraph problem statement; explicit success metrics.
-  2. **User Roles & Permissions Matrix**: Target personas; matrix defining who can read, create, modify, or delete features.
-  3. **Feature Scope (In-Scope vs. Out-of-Scope)**:
-     - **In-Scope (v1)**: Strict bulleted list of current sprint deliverables.
-     - **Out-of-Scope**: Explicit list of what the model should **not** build (prevents premature scope bloat).
-  4. **User Stories & Acceptance Criteria**: Written in Gherkin/BDD style:
-     ```markdown
-     Scenario: User invites a duplicate email
-       Given an active team member with email "user@test.com"
-       When an admin invites "user@test.com"
-       Then the system returns a conflict error: "Email already in use"
-     ```
-  5. **Edge Cases & Business Rules**: Token expiration windows, max limits, fallback behaviors.
+### Living Contracts Over Manual Duplication
+- **Database Ground Truth**: Auto-generate types from Supabase (`supabase gen types typescript`) into `src/lib/types/database.types.ts`.
+- **API Matrix**: SvelteKit routes in `src/routes/` are the authoritative route contracts.
+- **Visualizer**: Use `/dev/document` to review architecture and feature specs, and Supabase Studio for schema inspection.
 
----
-
-### `02-data-model.md` (Schema & Persistence)
-- **Target**: Database structure, storage constraints, and relations.
-- **Rule**: Pure SQL DDL, Prisma schema, or TypeORM entity drafts rather than descriptive English.
-- **Structure**:
-  1. **Entity-Relationship Summary**: High-level 1:1, 1:N, and N:M relationships list.
-  2. **Schema Definitions (Code Blocks)**: Exact table/collection names (consistent snake_case or camelCase), column/field names, data types, nullability, defaults, constraints (`PK`, `FK`, unique indices).
-  3. **Indexes & Performance Constraints**: Composite keys and specific lookup indexes (e.g. `idx_orders_tenant_created_at`).
-  4. **Soft Delete & Audit Standards**: Standard timestamps (`created_at`, `updated_at`, `deleted_at`), concurrency tokens/version fields if applicable.
-
----
-
-### `03-api-contract.md` (Transport Layer & Types)
-- **Target**: Network boundary, serialization, and status codes.
-- **Rule**: Written in TypeScript interfaces or OpenAPI/Swagger YAML, not descriptive text.
-- **Structure**:
-  1. **Global Conventions**: Base URL prefixes (e.g. `/api/v1`), standard error response wrapper:
-     ```typescript
-     interface ApiErrorResponse {
-       statusCode: number;
-       errorCode: string;
-       message: string;
-       errors?: Record<string, string[]>;
-     }
-     ```
-     Pagination standard (cursor-based vs. offset `limit`/`page`).
-  2. **Endpoint Specifications (Per Route)**:
-     - **Method & Path**: e.g., `POST /api/v1/workspaces/:id/members`
-     - **Auth & Guards**: Required roles/headers (`Bearer <token>`).
-     - **Request DTO**: URL parameters, query parameters, JSON body schema.
-     - **Response DTO**: Exact HTTP status (`200`, `201`, `204`) and JSON structure.
-     - **Expected HTTP Error Codes**: Explicit mapping of status codes (`400 Bad Request`, `404 Not Found`, `409 Conflict`, etc.).
-
----
-
-### `04-tdd.md` (Test Scenarios & Invariants)
-- **Target**: Concrete assertions, test matrices, and regression barriers.
-- **Rule**: Concrete inputs and expected outputs—no abstract guidelines.
-- **Structure**:
-  1. **Test Setup & Fixtures**: Required mock data or seeded database records; external service mocks.
-  2. **Unit Test Matrix (Services / Core Logic)**: Method signatures to test; input table: `Input arguments` $\to$ `Expected return value` or `Expected exception`.
-  3. **Integration / API Contract Tests**: Happy path; validation failures (`422`/`400`); auth failures (`401`/`403`).
-  4. **State Invariants**: Rules that must never break (e.g., *"A workspace must always have at least one active Admin"*).
 

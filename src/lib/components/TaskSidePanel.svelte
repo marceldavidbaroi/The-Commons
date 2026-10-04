@@ -10,7 +10,7 @@
 
 	export interface Task {
 		id: number | string;
-		user_id: string;
+		user_id: number | string;
 		parent_id?: number | string | null;
 		title: string;
 		description: string | null;

@@ -10,7 +10,7 @@ export interface DocItem {
 	relativePath: string;
 	content: string;
 	excerpt: string;
-	typeBadge: "PRD" | "TDD" | "Schema" | "API Contract" | "Guide" | "Architecture" | "Overview" | "Code Stub" | "Matrix";
+	typeBadge: "Spec" | "PRD" | "TDD" | "Schema" | "API Contract" | "Guide" | "Architecture" | "Overview" | "Code Stub" | "Matrix";
 	wordCount: number;
 	readingTimeMin: number;
 	orderWeight: number;
@@ -31,6 +31,7 @@ export interface DocCategoryGroup {
 
 function determineBadgeType(fileName: string, content: string): DocItem["typeBadge"] {
 	const lowerName = fileName.toLowerCase();
+	if (lowerName.includes("spec") || lowerName.startsWith("spec")) return "Spec";
 	if (lowerName.includes("05-page-to-api-matrix") || lowerName.includes("matrix")) return "Matrix";
 	if (lowerName.includes("01-prd") || content.includes("# PRD:")) return "PRD";
 	if (lowerName.includes("04-tdd") || content.includes("# Technical Design Document")) return "TDD";

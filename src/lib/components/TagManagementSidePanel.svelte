@@ -319,13 +319,13 @@
 						name,
 						color: editCategoryColor
 					})
-					.eq('id', catId);
+					.eq('id', Number(catId));
 
 				if (error) throw error;
 			}
 
 			categories = categories.map((c) =>
-				c.id === catId ? { ...c, name, color: editCategoryColor } : c
+				c.id === Number(catId) ? { ...c, name, color: editCategoryColor } : c
 			);
 
 			editingCategoryId = null;
@@ -337,14 +337,14 @@
 	}
 
 	function requestDeleteCategory(catId: number | string) {
-		const catToDelete = categories.find((c) => c.id === catId);
+		const catToDelete = categories.find((c) => c.id === Number(catId));
 		if (!catToDelete) return;
 
 		const tagCount = catToDelete.tags?.length || 0;
 		deleteConfirmation = {
 			isOpen: true,
 			type: 'category',
-			targetId: catId,
+			targetId: Number(catId),
 			title: `Delete category "${catToDelete.name}"?`,
 			message: tagCount > 0
 				? `This category contains ${tagCount} ${tagCount === 1 ? 'tag' : 'tags'}. Deleting it will permanently remove all associated tags.`
@@ -354,15 +354,15 @@
 	}
 
 	function requestDeleteTag(tagId: number | string, categoryId: number | string) {
-		const targetCat = categories.find((c) => c.id === categoryId);
-		const targetTag = targetCat?.tags?.find((t) => t.id === tagId);
+		const targetCat = categories.find((c) => c.id === Number(categoryId));
+		const targetTag = targetCat?.tags?.find((t) => t.id === Number(tagId));
 		if (!targetTag) return;
 
 		deleteConfirmation = {
 			isOpen: true,
 			type: 'tag',
-			targetId: tagId,
-			categoryId: categoryId,
+			targetId: Number(tagId),
+			categoryId: Number(categoryId),
 			title: `Delete tag "#${targetTag.name}"?`,
 			message: `Are you sure you want to remove the tag "#${targetTag.name}" from ${targetCat?.name || 'this category'}?`,
 			confirmLabel: 'Delete Tag'
@@ -379,27 +379,27 @@
 					const { error } = await supabase
 						.from('tag_categories')
 						.delete()
-						.eq('id', targetId);
+						.eq('id', Number(targetId));
 
 					if (error) throw error;
 				}
 
-				categories = categories.filter((c) => c.id !== targetId);
+				categories = categories.filter((c) => c.id !== Number(targetId));
 			} else if (type === 'tag' && categoryId !== undefined) {
 				if (currentUserId) {
 					const { error } = await supabase
 						.from('tags')
 						.delete()
-						.eq('id', targetId);
+						.eq('id', Number(targetId));
 
 					if (error) throw error;
 				}
 
 				categories = categories.map((c) => {
-					if (c.id === categoryId) {
+					if (c.id === Number(categoryId)) {
 						return {
 							...c,
-							tags: (c.tags || []).filter((t) => t.id !== targetId)
+							tags: (c.tags || []).filter((t) => t.id !== Number(targetId))
 						};
 					}
 					return c;
@@ -439,7 +439,7 @@
 				const { data, error } = await supabase
 					.from('tags')
 					.insert({
-						category_id: categoryId,
+						category_id: Number(categoryId),
 						user_id: currentUserId,
 						name,
 						color: newTagColor || null
@@ -450,10 +450,20 @@
 				if (error) throw error;
 				if (data) {
 					categories = categories.map((c) => {
-						if (c.id === categoryId) {
+						if (c.id === Number(categoryId)) {
+							const newTag: Tag = {
+								id: data.id,
+								category_id: data.category_id,
+								user_id: data.user_id,
+								name: data.name,
+								color: data.color,
+								is_system: data.is_system,
+								created_at: data.created_at,
+								updated_at: data.updated_at
+							};
 							return {
 								...c,
-								tags: [...(c.tags || []), { ...(data as Tag), is_system: false }]
+								tags: [...(c.tags || []), newTag]
 							};
 						}
 						return c;
@@ -466,14 +476,14 @@
 
 				const newTag: Tag = {
 					id: nextTagId,
-					category_id: categoryId,
+					category_id: Number(categoryId),
 					name,
 					color: newTagColor || null,
 					is_system: false
 				};
 
 				categories = categories.map((c) => {
-					if (c.id === categoryId) {
+					if (c.id === Number(categoryId)) {
 						return {
 							...c,
 							tags: [...(c.tags || []), newTag]
@@ -507,17 +517,17 @@
 						name,
 						color: editTagColor || null
 					})
-					.eq('id', tagId);
+					.eq('id', Number(tagId));
 
 				if (error) throw error;
 			}
 
 			categories = categories.map((c) => {
-				if (c.id === categoryId) {
+				if (c.id === Number(categoryId)) {
 					return {
 						...c,
 						tags: (c.tags || []).map((t) =>
-							t.id === tagId ? { ...t, name, color: editTagColor || null } : t
+							t.id === Number(tagId) ? { ...t, name, color: editTagColor || null } : t
 						)
 					};
 				}

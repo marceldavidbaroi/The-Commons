@@ -1,12 +1,14 @@
-import { createBrowserClient, createServerClient, isBrowser } from '@supabase/ssr';
+import { createBrowserClient } from '@supabase/ssr';
+import type { Database } from '$lib/types/database.types';
 import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 
 /**
- * Creates or gets a Supabase client configured for SvelteKit.
+ * Creates or gets a Supabase client configured with auto-generated Database types.
  */
 export function getSupabaseClient() {
-	return createBrowserClient(
+	return createBrowserClient<Database>(
 		PUBLIC_SUPABASE_URL || '',
 		PUBLIC_SUPABASE_ANON_KEY || ''
 	);
 }
+

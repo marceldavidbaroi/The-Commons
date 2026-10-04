@@ -14,7 +14,8 @@
 		"env:prod": "cp .env.local.prod .env.local && echo 'Switched to production environment (.env.local.prod -> .env.local)'",
 		"backend:prod": "pnpm env:prod && node scripts/deploy-migrations.mjs",
 		"frontend:prod": "pnpm env:prod && wrangler login && pnpm build && wrangler pages deploy .svelte-kit/cloudflare --project-name=the-commons --branch=main --commit-dirty=true",
-		"db:seed": "pnpm env:prod && npx supabase db execute --file supabase/seed.sql"
+		"db:seed": "pnpm env:prod && npx supabase db execute --file supabase/seed.sql",
+		"types:db": "npx supabase gen types typescript --project-id rbnbgyytxgkkcrmkgnro > src/lib/types/database.types.ts"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^7.0.1",
