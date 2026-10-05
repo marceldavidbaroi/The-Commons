@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { slide, fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import type { Task } from '$lib/types/tasks';
 
 	let {
@@ -74,7 +76,7 @@
 
 	<!-- Inline Add Subtask Input Form -->
 	{#if isAddingChild}
-		<form class="add-subtask-form" onsubmit={onAddChildSubmit}>
+		<form class="add-subtask-form" onsubmit={onAddChildSubmit} transition:slide={{ duration: 180, easing: cubicOut }}>
 			<input
 				type="text"
 				class="add-subtask-input"

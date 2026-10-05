@@ -36,14 +36,54 @@
 		isOpen = !isOpen;
 	}
 
-	function selectTheme(themeId: ThemePalette) {
-		themeStore.setTheme(themeId);
+	let triggerEl: HTMLButtonElement | null = $state(null);
+
+	function selectTheme(themeId: ThemePalette, event?: MouseEvent) {
+		if (themeId === $themeStore) {
+			isOpen = false;
+			return;
+		}
+
+		const x = event?.clientX ?? triggerEl?.getBoundingClientRect().left ?? window.innerWidth / 2;
+		const y = event?.clientY ?? triggerEl?.getBoundingClientRect().top ?? window.innerHeight / 2;
+
+		const endRadius = Math.hypot(
+			Math.max(x, window.innerWidth - x),
+			Math.max(y, window.innerHeight - y)
+		);
+
+		// Check if View Transitions API is supported
+		if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+			const transition = (document as any).startViewTransition(() => {
+				themeStore.setTheme(themeId);
+			});
+
+			transition.ready.then(() => {
+				document.documentElement.animate(
+					{
+						clipPath: [
+							`circle(0px at ${x}px ${y}px)`,
+							`circle(${endRadius}px at ${x}px ${y}px)`
+						]
+					},
+					{
+						duration: 450,
+						easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+						pseudoElement: '::view-transition-new(root)'
+					}
+				);
+			});
+		} else {
+			themeStore.setTheme(themeId);
+		}
+
 		isOpen = false;
 	}
 </script>
 
 <div class="theme-selector-container">
 	<button
+		bind:this={triggerEl}
 		type="button"
 		class="theme-trigger"
 		class:active={isOpen}
@@ -78,7 +118,7 @@
 						type="button"
 						class="theme-option-btn"
 						class:selected={isSelected}
-						onclick={() => selectTheme(palette.id)}
+						onclick={(e) => selectTheme(palette.id, e)}
 						role="menuitem"
 					>
 						<div class="theme-preview-box" style="background-color: {palette.bgHex};">
@@ -127,8 +167,15 @@
 		cursor: pointer;
 		padding: 0;
 		position: relative;
-		transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+		transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		            background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		            color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		            transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 		user-select: none;
+	}
+
+	.theme-trigger:active {
+		transform: scale(0.92);
 	}
 
 	.theme-trigger:hover,
@@ -146,11 +193,23 @@
 		height: 8px;
 		border-radius: 50%;
 		border: 1.5px solid var(--bg-secondary);
+		transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+		            border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+		            transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+
+	.theme-trigger:hover .theme-color-indicator {
+		transform: scale(1.15);
 	}
 
 	.palette-icon {
 		width: 14px;
 		height: 14px;
+		transition: transform 0.3s ease, color 0.3s ease;
+	}
+
+	.theme-trigger:hover .palette-icon {
+		transform: rotate(15deg);
 	}
 
 	.theme-dropdown {

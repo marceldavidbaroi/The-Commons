@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { fly, fade } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import TagManagementSidePanel from '$lib/components/TagManagementSidePanel.svelte';
 	import TagSelectorPanel from '$lib/components/TagSelectorPanel.svelte';
 	import type { TagCategory } from '$lib/types/tags';
@@ -333,6 +335,7 @@
 		onclick={onClose} 
 		role="presentation"
 		aria-hidden="true"
+		transition:fade={{ duration: 250, easing: cubicOut }}
 	></div>
 
 	<!-- Side Panel drawer -->
@@ -341,6 +344,7 @@
 		class:resizing={isResizing}
 		style="width: {panelWidth}px;"
 		aria-label={mode === 'create' ? 'Create New Task' : 'Task Details'}
+		transition:fly={{ x: panelWidth || 540, duration: 320, opacity: 0.8, easing: cubicOut }}
 	>
 		<!-- Left Border Resize Handle -->
 		<div
@@ -485,16 +489,6 @@
 		inset: 0;
 		background-color: rgba(31, 38, 51, 0.35);
 		z-index: 90;
-		animation: backdropFadeIn 0.15s ease-out;
-	}
-
-	@keyframes backdropFadeIn {
-		from {
-			opacity: 0;
-		}
-		to {
-			opacity: 1;
-		}
 	}
 
 	.task-side-panel {
@@ -509,22 +503,13 @@
 		z-index: 100;
 		display: flex;
 		flex-direction: column;
-		animation: slideInRight 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-		transition: width 0.05s ease-out;
+		transition: width 0.15s cubic-bezier(0.2, 0, 0, 1), background-color 0.3s ease, border-color 0.3s ease;
+		will-change: transform, width, opacity;
 	}
 
 	.task-side-panel.resizing {
 		transition: none;
 		user-select: none;
-	}
-
-	@keyframes slideInRight {
-		from {
-			transform: translateX(100%);
-		}
-		to {
-			transform: translateX(0);
-		}
 	}
 
 	.resize-handle {

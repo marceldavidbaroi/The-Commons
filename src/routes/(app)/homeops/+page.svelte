@@ -295,9 +295,7 @@
 
 <style>
 	.homeops-page {
-		max-width: 1200px;
-		margin: 0 auto;
-		padding: 1.5rem 2rem;
+		width: 100%;
 		display: flex;
 		flex-direction: column;
 		gap: 1.25rem;

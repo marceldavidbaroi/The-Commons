@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import type { Task } from '$lib/types/tasks';
 
 	let {
@@ -107,7 +109,7 @@
 				{#if isParentDropdownOpen}
 					<!-- svelte-ignore a11y_click_events_have_key_events -->
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					<div class="header-dropdown-menu" onclick={(e) => e.stopPropagation()}>
+					<div class="header-dropdown-menu" onclick={(e) => e.stopPropagation()} transition:fly={{ y: -6, duration: 180, easing: cubicOut }}>
 						<div class="dropdown-header-title">Parent Task</div>
 						
 						{#if parentTask}
@@ -213,7 +215,7 @@
 				{#if isChildDropdownOpen}
 					<!-- svelte-ignore a11y_click_events_have_key_events -->
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					<div class="header-dropdown-menu" onclick={(e) => e.stopPropagation()}>
+					<div class="header-dropdown-menu" onclick={(e) => e.stopPropagation()} transition:fly={{ y: -6, duration: 180, easing: cubicOut }}>
 						<div class="dropdown-header-title">Child Subtask</div>
 
 						<button
