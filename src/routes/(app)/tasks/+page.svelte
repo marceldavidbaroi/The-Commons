@@ -4,6 +4,7 @@
 	import { fetchUserProfile } from '$lib/services/member-service';
 	import TaskSidePanel from '$lib/components/TaskSidePanel.svelte';
 	import TagManagementSidePanel from '$lib/components/TagManagementSidePanel.svelte';
+	import TagSelectorPanel from '$lib/components/TagSelectorPanel.svelte';
 	import TaskToolbar from './components/TaskToolbar.svelte';
 	import TaskListView from './components/TaskListView.svelte';
 	import TaskTreeView from './components/TaskTreeView.svelte';
@@ -52,8 +53,9 @@
 	let initialParentId = $state<number | string | null>(null);
 	let isPanelOpen = $state(false);
 
-	// Tag Management Panel state
+	// Tag Management & Selector Panel state
 	let isTagPanelOpen = $state(false);
+	let isTagSelectorOpen = $state(false);
 
 	function openNewTaskPanel(parentId?: number | string | null | Event) {
 		selectedTaskId = null;
@@ -654,6 +656,24 @@
 		onSelectTask={openTaskDetails}
 		onSave={handleUpdateTask}
 		onDelete={handleDeleteTask}
+	/>
+
+	<!-- Feature-Scoped Tag Selector Side Panel (Generic Reusable) -->
+	<TagSelectorPanel
+		feature="tasks"
+		title="Task Tags"
+		description="Select or add tags for this task"
+		isOpen={isTagSelectorOpen}
+		selectedTags={selectedTask?.tags || []}
+		onClose={() => (isTagSelectorOpen = false)}
+		onSave={async (newTags) => {
+			if (selectedTask) {
+				await handleUpdateTask({
+					...selectedTask,
+					tags: newTags
+				});
+			}
+		}}
 	/>
 
 	<!-- Feature-Scoped Tag Management Side Panel -->

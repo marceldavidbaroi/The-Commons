@@ -147,6 +147,7 @@ export type Database = {
           mood: string
           page_number: number
           start_time: string | null
+          tag_ids: number[]
           tags: string[]
           title: string
           updated_at: string
@@ -171,6 +172,7 @@ export type Database = {
           mood?: string
           page_number?: number
           start_time?: string | null
+          tag_ids?: number[]
           tags?: string[]
           title?: string
           updated_at?: string
@@ -195,6 +197,7 @@ export type Database = {
           mood?: string
           page_number?: number
           start_time?: string | null
+          tag_ids?: number[]
           tags?: string[]
           title?: string
           updated_at?: string
@@ -220,128 +223,6 @@ export type Database = {
           },
         ]
       }
-      diary_entry_tags: {
-        Row: {
-          created_at: string
-          entry_id: number
-          tag_id: number
-          user_id: number
-        }
-        Insert: {
-          created_at?: string
-          entry_id: number
-          tag_id: number
-          user_id: number
-        }
-        Update: {
-          created_at?: string
-          entry_id?: number
-          tag_id?: number
-          user_id?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "diary_entry_tags_entry_id_fkey"
-            columns: ["entry_id"]
-            isOneToOne: false
-            referencedRelation: "diary_entries"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "diary_entry_tags_tag_id_fkey"
-            columns: ["tag_id"]
-            isOneToOne: false
-            referencedRelation: "tags"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "diary_entry_tags_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      document_tags: {
-        Row: {
-          created_at: string
-          document_id: number
-          tag_id: number
-          user_id: number
-        }
-        Insert: {
-          created_at?: string
-          document_id: number
-          tag_id: number
-          user_id: number
-        }
-        Update: {
-          created_at?: string
-          document_id?: number
-          tag_id?: number
-          user_id?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "document_tags_tag_id_fkey"
-            columns: ["tag_id"]
-            isOneToOne: false
-            referencedRelation: "tags"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "document_tags_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      goal_tags: {
-        Row: {
-          created_at: string
-          goal_id: number
-          tag_id: number
-          user_id: number
-        }
-        Insert: {
-          created_at?: string
-          goal_id: number
-          tag_id: number
-          user_id: number
-        }
-        Update: {
-          created_at?: string
-          goal_id?: number
-          tag_id?: number
-          user_id?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "goal_tags_goal_id_fkey"
-            columns: ["goal_id"]
-            isOneToOne: false
-            referencedRelation: "goals"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "goal_tags_tag_id_fkey"
-            columns: ["tag_id"]
-            isOneToOne: false
-            referencedRelation: "tags"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "goal_tags_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       goals: {
         Row: {
           achieved_at: string | null
@@ -355,6 +236,7 @@ export type Database = {
           priority: Database["public"]["Enums"]["goal_priority"]
           start_date: string | null
           status: Database["public"]["Enums"]["goal_status"]
+          tag_ids: number[]
           title: string
           type: Database["public"]["Enums"]["goal_type"]
           updated_at: string
@@ -372,6 +254,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["goal_priority"]
           start_date?: string | null
           status?: Database["public"]["Enums"]["goal_status"]
+          tag_ids?: number[]
           title: string
           type?: Database["public"]["Enums"]["goal_type"]
           updated_at?: string
@@ -389,6 +272,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["goal_priority"]
           start_date?: string | null
           status?: Database["public"]["Enums"]["goal_status"]
+          tag_ids?: number[]
           title?: string
           type?: Database["public"]["Enums"]["goal_type"]
           updated_at?: string
@@ -554,49 +438,6 @@ export type Database = {
           },
         ]
       }
-      task_tags: {
-        Row: {
-          created_at: string
-          tag_id: number
-          task_id: number
-          user_id: number
-        }
-        Insert: {
-          created_at?: string
-          tag_id: number
-          task_id: number
-          user_id: number
-        }
-        Update: {
-          created_at?: string
-          tag_id?: number
-          task_id?: number
-          user_id?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "task_tags_tag_id_fkey"
-            columns: ["tag_id"]
-            isOneToOne: false
-            referencedRelation: "tags"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "task_tags_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "tasks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "task_tags_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       tasks: {
         Row: {
           actual_minutes: number | null
@@ -610,6 +451,7 @@ export type Database = {
           scheduled_date: string | null
           sort_order: number
           status: Database["public"]["Enums"]["task_status"]
+          tag_ids: number[]
           time_estimate_minutes: number | null
           title: string
           updated_at: string
@@ -627,6 +469,7 @@ export type Database = {
           scheduled_date?: string | null
           sort_order?: number
           status?: Database["public"]["Enums"]["task_status"]
+          tag_ids?: number[]
           time_estimate_minutes?: number | null
           title: string
           updated_at?: string
@@ -644,6 +487,7 @@ export type Database = {
           scheduled_date?: string | null
           sort_order?: number
           status?: Database["public"]["Enums"]["task_status"]
+          tag_ids?: number[]
           time_estimate_minutes?: number | null
           title?: string
           updated_at?: string
@@ -802,6 +646,10 @@ export type Database = {
             } & "Could not choose the best candidate function between: public.reorder_diaries(p_diary_ids => _int8), public.reorder_diaries(p_diary_ids => _uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
           }
       reorder_user_items: { Args: { p_item_ids: string[] }; Returns: undefined }
+      seed_default_tags_for_user: {
+        Args: { p_user_id: number }
+        Returns: undefined
+      }
       update_citizen_passport: {
         Args: {
           p_avatar_url?: string

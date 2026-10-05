@@ -152,64 +152,91 @@ begin
   -- TASKS FEATURE TAGS
   -- ----------------------------------------------------------------------------
   
-  -- 1. Life Area (Indigo)
+  -- 1. Area of Life Category (Indigo)
   insert into public.tag_categories (user_id, feature, name, color, display_order, is_system)
-  values (p_user_id, 'tasks', 'Life Area', '#6366F1', 1, true)
+  values (p_user_id, 'tasks', 'Area of Life', '#6366F1', 1, true)
   on conflict (user_id, feature, name) do update set color = excluded.color, display_order = excluded.display_order
   returning id into v_cat_id;
 
   if v_cat_id is null then
-    select id into v_cat_id from public.tag_categories where user_id = p_user_id and feature = 'tasks' and name = 'Life Area';
+    select id into v_cat_id from public.tag_categories where user_id = p_user_id and feature = 'tasks' and name = 'Area of Life';
   end if;
 
   if v_cat_id is not null then
-    insert into public.tags (category_id, user_id, name, is_system)
+    insert into public.tags (category_id, user_id, name, color, is_system)
     values 
-      (v_cat_id, p_user_id, 'Projects', true),
-      (v_cat_id, p_user_id, 'Chores', true),
-      (v_cat_id, p_user_id, 'Market & Shopping', true),
-      (v_cat_id, p_user_id, 'Personal Care', true),
-      (v_cat_id, p_user_id, 'Finance & Bills', true)
-    on conflict (category_id, name) do nothing;
+      (v_cat_id, p_user_id, 'Chores', '#F59E0B', true),
+      (v_cat_id, p_user_id, 'Cleaning', '#10B981', true),
+      (v_cat_id, p_user_id, 'Groceries', '#84CC16', true),
+      (v_cat_id, p_user_id, 'Home Maintenance', '#D97706', true),
+      (v_cat_id, p_user_id, 'Workout & Fitness', '#EF4444', true),
+      (v_cat_id, p_user_id, 'Health & Medical', '#EC4899', true),
+      (v_cat_id, p_user_id, 'Hygiene & Self-Care', '#06B6D4', true),
+      (v_cat_id, p_user_id, 'Bills & Finance', '#10B981', true),
+      (v_cat_id, p_user_id, 'Work & Career', '#3B82F6', true),
+      (v_cat_id, p_user_id, 'Learning & Study', '#8B5CF6', true),
+      (v_cat_id, p_user_id, 'Family & Relationships', '#F43F5E', true)
+    on conflict (category_id, name) do update set color = excluded.color;
   end if;
 
-  -- 2. Effort & Pace (Emerald)
+  -- 2. Location & Context Category (Blue / Indigo)
   insert into public.tag_categories (user_id, feature, name, color, display_order, is_system)
-  values (p_user_id, 'tasks', 'Effort & Pace', '#10B981', 2, true)
+  values (p_user_id, 'tasks', 'Location & Context', '#2563EB', 2, true)
   on conflict (user_id, feature, name) do update set color = excluded.color, display_order = excluded.display_order
   returning id into v_cat_id;
 
   if v_cat_id is null then
-    select id into v_cat_id from public.tag_categories where user_id = p_user_id and feature = 'tasks' and name = 'Effort & Pace';
+    select id into v_cat_id from public.tag_categories where user_id = p_user_id and feature = 'tasks' and name = 'Location & Context';
   end if;
 
   if v_cat_id is not null then
-    insert into public.tags (category_id, user_id, name, is_system)
+    insert into public.tags (category_id, user_id, name, color, is_system)
     values 
-      (v_cat_id, p_user_id, 'Quick (<15m)', true),
-      (v_cat_id, p_user_id, 'Deep Focus', true),
-      (v_cat_id, p_user_id, 'Routine / Habit', true)
-    on conflict (category_id, name) do nothing;
+      (v_cat_id, p_user_id, '@home', '#6366F1', true),
+      (v_cat_id, p_user_id, '@desk', '#2563EB', true),
+      (v_cat_id, p_user_id, '@errand', '#F59E0B', true),
+      (v_cat_id, p_user_id, '@outdoors', '#059669', true),
+      (v_cat_id, p_user_id, '@phone', '#8B5CF6', true)
+    on conflict (category_id, name) do update set color = excluded.color;
   end if;
 
-  -- 3. Context / Location (Sky)
+  -- 3. Energy & Focus Category (Amber / Red)
   insert into public.tag_categories (user_id, feature, name, color, display_order, is_system)
-  values (p_user_id, 'tasks', 'Context / Location', '#0EA5E9', 3, true)
+  values (p_user_id, 'tasks', 'Energy & Focus', '#F59E0B', 3, true)
   on conflict (user_id, feature, name) do update set color = excluded.color, display_order = excluded.display_order
   returning id into v_cat_id;
 
   if v_cat_id is null then
-    select id into v_cat_id from public.tag_categories where user_id = p_user_id and feature = 'tasks' and name = 'Context / Location';
+    select id into v_cat_id from public.tag_categories where user_id = p_user_id and feature = 'tasks' and name = 'Energy & Focus';
   end if;
 
   if v_cat_id is not null then
-    insert into public.tags (category_id, user_id, name, is_system)
+    insert into public.tags (category_id, user_id, name, color, is_system)
     values 
-      (v_cat_id, p_user_id, 'Home', true),
-      (v_cat_id, p_user_id, 'Work & Desk', true),
-      (v_cat_id, p_user_id, 'Out & Errands', true),
-      (v_cat_id, p_user_id, 'Online / Calls', true)
-    on conflict (category_id, name) do nothing;
+      (v_cat_id, p_user_id, '⚡ High Focus', '#DC2626', true),
+      (v_cat_id, p_user_id, '⚡ Low Focus', '#3B82F6', true),
+      (v_cat_id, p_user_id, '⚡ Quick Hit (<5m)', '#10B981', true)
+    on conflict (category_id, name) do update set color = excluded.color;
+  end if;
+
+  -- 4. Action Triggers Category (Red)
+  insert into public.tag_categories (user_id, feature, name, color, display_order, is_system)
+  values (p_user_id, 'tasks', 'Action Triggers', '#B91C1C', 4, true)
+  on conflict (user_id, feature, name) do update set color = excluded.color, display_order = excluded.display_order
+  returning id into v_cat_id;
+
+  if v_cat_id is null then
+    select id into v_cat_id from public.tag_categories where user_id = p_user_id and feature = 'tasks' and name = 'Action Triggers';
+  end if;
+
+  if v_cat_id is not null then
+    insert into public.tags (category_id, user_id, name, color, is_system)
+    values 
+      (v_cat_id, p_user_id, 'Today Must', '#B91C1C', true),
+      (v_cat_id, p_user_id, 'This Week', '#D97706', true),
+      (v_cat_id, p_user_id, 'Waiting On', '#6B7280', true),
+      (v_cat_id, p_user_id, 'Someday / Maybe', '#9CA3AF', true)
+    on conflict (category_id, name) do update set color = excluded.color;
   end if;
 
   -- ----------------------------------------------------------------------------

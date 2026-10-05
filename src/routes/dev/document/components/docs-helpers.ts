@@ -25,9 +25,9 @@ export function getBadgeClass(badge: string): string {
 export function getFeatureTableNames(featureName?: string): string[] {
 	if (!featureName) return [];
 	const lower = featureName.toLowerCase();
-	if (lower.includes('task')) return ['tasks', 'task_tags'];
-	if (lower.includes('goal')) return ['goals', 'goal_tags'];
-	if (lower.includes('diary') || lower.includes('journal')) return ['diaries', 'diary_entries', 'diary_entry_tags'];
+	if (lower.includes('task')) return ['tasks'];
+	if (lower.includes('goal')) return ['goals'];
+	if (lower.includes('diary') || lower.includes('journal')) return ['diaries', 'diary_entries'];
 	if (lower.includes('tag')) return ['tags', 'tag_categories'];
 	if (lower.includes('auth') || lower.includes('access')) return ['allowed_members', 'profiles'];
 	if (lower.includes('passport') || lower.includes('profile')) return ['profiles'];

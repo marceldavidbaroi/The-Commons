@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import TagManagementSidePanel from '$lib/components/TagManagementSidePanel.svelte';
+	import TagSelectorPanel from '$lib/components/TagSelectorPanel.svelte';
 	import type { TagCategory } from '$lib/types/tags';
 	import type { Task, TaskStatus, TaskPriority } from '$lib/types/tasks';
 	import {
-		DEFAULT_SUGGESTIONS,
 		MIN_PANEL_WIDTH,
 		MAX_PANEL_WIDTH,
 		DEFAULT_PANEL_WIDTH
@@ -76,18 +76,11 @@
 	let panelWidth = $state(DEFAULT_PANEL_WIDTH);
 	let isResizing = $state(false);
 
-	// Tag Management side panel trigger inside TaskSidePanel
 	let isTagManagementOpen = $state(false);
+	let isTagSelectorOpen = $state(false);
 	let taskCategories = $state<TagCategory[]>([]);
 
 	let headerComponent: TaskPanelHeader | undefined = $state();
-
-	// Derived suggestions list combined from fetched tag categories and defaults
-	const availableSuggestions = $derived.by(() => {
-		const fetchedTagNames = taskCategories.flatMap((c) => (c.tags || []).map((t) => t.name));
-		const combined = Array.from(new Set([...fetchedTagNames, ...DEFAULT_SUGGESTIONS]));
-		return combined.filter((s) => !tags.includes(s));
-	});
 
 	// Sync local state when task or mode changes
 	$effect(() => {
@@ -408,9 +401,9 @@
 			<TaskTagSection
 				bind:tags
 				bind:tagInput
-				{availableSuggestions}
 				onAddTag={addTag}
 				onRemoveTag={removeTag}
+				onOpenTagSelector={() => (isTagSelectorOpen = true)}
 				onOpenTagManagement={() => (isTagManagementOpen = true)}
 			/>
 
@@ -462,6 +455,20 @@
 			onSave={handleSave}
 		/>
 	</aside>
+
+	<!-- Generic Feature Tag Selector Panel -->
+	<TagSelectorPanel
+		feature="tasks"
+		title="Task Tags"
+		description="Select or add tags for this task"
+		isOpen={isTagSelectorOpen}
+		bind:selectedTags={tags}
+		onClose={() => (isTagSelectorOpen = false)}
+		onSave={async (newTags) => {
+			tags = newTags;
+			isDirty = true;
+		}}
+	/>
 
 	<!-- Tag Management Side Panel from inside Task panel -->
 	<TagManagementSidePanel
