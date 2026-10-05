@@ -1,0 +1,182 @@
+{
+  "name": "Personal Care, Health & First Aid",
+  "slug": "personal-care-health-first-aid",
+  "feature": "homeops",
+  "icon": "heart-pulse",
+  "color": "#DC2626",
+  "display_order": 7,
+  "is_system": true,
+  "schema_blueprint": [
+    {
+      "key": "active_ingredient",
+      "label": "Active Ingredient",
+      "type": "text",
+      "placeholder": "e.g. Ibuprofen 200mg, Hydrocortisone"
+    },
+    {
+      "key": "dosage_instructions",
+      "label": "Dosage / Instructions",
+      "type": "text",
+      "placeholder": "e.g. 1 tablet every 6 hours"
+    },
+    {
+      "key": "opened_date",
+      "label": "Date Opened",
+      "type": "date"
+    },
+    {
+      "key": "prescription_for",
+      "label": "Prescribed For",
+      "type": "text",
+      "placeholder": "Family member or Over-The-Counter"
+    }
+  ],
+  "categories": [
+    {
+      "name": "First Aid & Medicine Cabinet",
+      "slug": "first-aid-medicine-cabinet",
+      "color": "#DC2626",
+      "display_order": 24,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Pain Relievers",
+          "slug": "pain-relievers",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Antiseptics",
+          "slug": "antiseptics",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Bandages",
+          "slug": "bandages",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Gauze Pads",
+          "slug": "gauze-pads",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Prescription Meds",
+          "slug": "prescription-meds",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Thermometers",
+          "slug": "thermometers",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Allergy Relief",
+          "slug": "allergy-relief",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Antacids",
+          "slug": "antacids",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Burn Cream",
+          "slug": "burn-cream",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Personal Grooming & Toiletries",
+      "slug": "personal-grooming-toiletries",
+      "color": "#DB2777",
+      "display_order": 25,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Body Wash",
+          "slug": "body-wash",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Bar Soap",
+          "slug": "bar-soap",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Shampoo",
+          "slug": "shampoo",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Conditioner",
+          "slug": "conditioner",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Toothpaste",
+          "slug": "toothpaste",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Toothbrush Heads",
+          "slug": "toothbrush-heads",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Deodorant",
+          "slug": "deodorant",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Razor Blades",
+          "slug": "razor-blades",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Sunscreen",
+          "slug": "sunscreen",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Moisturizer",
+          "slug": "moisturizer",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Coconut Hair Oil",
+          "slug": "coconut-hair-oil",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Talcum Powder",
+          "slug": "talcum-powder",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    }
+  ]
+}

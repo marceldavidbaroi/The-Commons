@@ -15,7 +15,7 @@
 		"backend:prod": "pnpm env:prod && node scripts/deploy-migrations.mjs",
 		"frontend:prod": "pnpm env:prod && wrangler login && pnpm build && wrangler pages deploy .svelte-kit/cloudflare --project-name=the-commons --branch=main --commit-dirty=true",
 		"db:seed": "pnpm env:prod && npx supabase db execute --file supabase/seed.sql",
-		"tag:prod": "pnpm env:prod && node scripts/seed-tags-prod.mjs",
+		"tag:prod": "pnpm env:prod && python3 scripts/seed_tags.py",
 		"types:db": "npx supabase gen types typescript --project-id rbnbgyytxgkkcrmkgnro > src/lib/types/database.types.ts"
 	},
 	"devDependencies": {

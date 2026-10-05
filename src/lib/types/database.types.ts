@@ -598,21 +598,15 @@ export type Database = {
           condition_status: string | null
           created_at: string
           description: string | null
-          expiration_date: string | null
           id: number
           is_archived: boolean
           is_loaned: boolean
-          item_type: string
           loaned_at: string | null
           loaned_to: string | null
           location_id: number | null
           metadata: Json
           name: string
-          quantity: number | null
-          reorder_threshold: number | null
-          tag_ids: number[]
-          tag_slugs: string[]
-          unit_of_measure: string | null
+          tag_slug: string | null
           updated_at: string
           user_id: number
         }
@@ -622,21 +616,15 @@ export type Database = {
           condition_status?: string | null
           created_at?: string
           description?: string | null
-          expiration_date?: string | null
           id?: number
           is_archived?: boolean
           is_loaned?: boolean
-          item_type: string
           loaned_at?: string | null
           loaned_to?: string | null
           location_id?: number | null
           metadata?: Json
           name: string
-          quantity?: number | null
-          reorder_threshold?: number | null
-          tag_ids?: number[]
-          tag_slugs?: string[]
-          unit_of_measure?: string | null
+          tag_slug?: string | null
           updated_at?: string
           user_id: number
         }
@@ -646,21 +634,15 @@ export type Database = {
           condition_status?: string | null
           created_at?: string
           description?: string | null
-          expiration_date?: string | null
           id?: number
           is_archived?: boolean
           is_loaned?: boolean
-          item_type?: string
           loaned_at?: string | null
           loaned_to?: string | null
           location_id?: number | null
           metadata?: Json
           name?: string
-          quantity?: number | null
-          reorder_threshold?: number | null
-          tag_ids?: number[]
-          tag_slugs?: string[]
-          unit_of_measure?: string | null
+          tag_slug?: string | null
           updated_at?: string
           user_id?: number
         }

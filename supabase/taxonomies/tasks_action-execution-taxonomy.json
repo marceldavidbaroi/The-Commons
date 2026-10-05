@@ -1,0 +1,190 @@
+{
+  "name": "Action & Execution Taxonomy",
+  "slug": "action-execution-taxonomy",
+  "feature": "tasks",
+  "icon": "check-square",
+  "color": "#6366F1",
+  "display_order": 1,
+  "is_system": true,
+  "schema_blueprint": [],
+  "categories": [
+    {
+      "name": "Area of Life",
+      "slug": "area-of-life",
+      "color": "#6366F1",
+      "display_order": 1,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Chores",
+          "slug": "chores",
+          "color": "#F59E0B",
+          "is_system": true
+        },
+        {
+          "name": "Cleaning",
+          "slug": "cleaning",
+          "color": "#10B981",
+          "is_system": true
+        },
+        {
+          "name": "Groceries",
+          "slug": "groceries",
+          "color": "#84CC16",
+          "is_system": true
+        },
+        {
+          "name": "Home Maintenance",
+          "slug": "home-maintenance",
+          "color": "#D97706",
+          "is_system": true
+        },
+        {
+          "name": "Workout & Fitness",
+          "slug": "workout-fitness",
+          "color": "#EF4444",
+          "is_system": true
+        },
+        {
+          "name": "Health & Medical",
+          "slug": "health-medical",
+          "color": "#EC4899",
+          "is_system": true
+        },
+        {
+          "name": "Hygiene & Self-Care",
+          "slug": "hygiene-self-care",
+          "color": "#06B6D4",
+          "is_system": true
+        },
+        {
+          "name": "Bills & Finance",
+          "slug": "bills-finance",
+          "color": "#10B981",
+          "is_system": true
+        },
+        {
+          "name": "Work & Career",
+          "slug": "work-career",
+          "color": "#3B82F6",
+          "is_system": true
+        },
+        {
+          "name": "Learning & Study",
+          "slug": "learning-study",
+          "color": "#8B5CF6",
+          "is_system": true
+        },
+        {
+          "name": "Family & Relationships",
+          "slug": "family-relationships",
+          "color": "#F43F5E",
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Location & Context",
+      "slug": "location-context",
+      "color": "#2563EB",
+      "display_order": 2,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "@home",
+          "slug": "home",
+          "color": "#6366F1",
+          "is_system": true
+        },
+        {
+          "name": "@desk",
+          "slug": "desk",
+          "color": "#2563EB",
+          "is_system": true
+        },
+        {
+          "name": "@errand",
+          "slug": "errand",
+          "color": "#F59E0B",
+          "is_system": true
+        },
+        {
+          "name": "@outdoors",
+          "slug": "outdoors",
+          "color": "#059669",
+          "is_system": true
+        },
+        {
+          "name": "@phone",
+          "slug": "phone",
+          "color": "#8B5CF6",
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Energy & Focus",
+      "slug": "energy-focus",
+      "color": "#F59E0B",
+      "display_order": 3,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "⚡ High Focus",
+          "slug": "-high-focus",
+          "color": "#DC2626",
+          "is_system": true
+        },
+        {
+          "name": "⚡ Low Focus",
+          "slug": "-low-focus",
+          "color": "#3B82F6",
+          "is_system": true
+        },
+        {
+          "name": "⚡ Quick Hit (<5m)",
+          "slug": "-quick-hit-5m",
+          "color": "#10B981",
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Action Triggers",
+      "slug": "action-triggers",
+      "color": "#B91C1C",
+      "display_order": 4,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Today Must",
+          "slug": "today-must",
+          "color": "#B91C1C",
+          "is_system": true
+        },
+        {
+          "name": "This Week",
+          "slug": "this-week",
+          "color": "#D97706",
+          "is_system": true
+        },
+        {
+          "name": "Waiting On",
+          "slug": "waiting-on",
+          "color": "#6B7280",
+          "is_system": true
+        },
+        {
+          "name": "Someday / Maybe",
+          "slug": "someday-maybe",
+          "color": "#9CA3AF",
+          "is_system": true
+        }
+      ]
+    }
+  ]
+}

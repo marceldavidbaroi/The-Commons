@@ -1,0 +1,68 @@
+{
+  "name": "Reflections & Vitality",
+  "slug": "reflections-vitality",
+  "feature": "diary",
+  "icon": "book-open",
+  "color": "#3B82F6",
+  "display_order": 1,
+  "is_system": true,
+  "schema_blueprint": [],
+  "categories": [
+    {
+      "name": "Context",
+      "slug": "context",
+      "color": "#3B82F6",
+      "display_order": 1,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Deep Work",
+          "slug": "deep-work",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Reflections",
+          "slug": "reflections",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Planning",
+          "slug": "planning",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Energy Level",
+      "slug": "energy-level",
+      "color": "#10B981",
+      "display_order": 2,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "High Vitality",
+          "slug": "high-vitality",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Medium Vitality",
+          "slug": "medium-vitality",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Rest & Recovery",
+          "slug": "rest-recovery",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    }
+  ]
+}

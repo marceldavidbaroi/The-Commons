@@ -1,0 +1,166 @@
+{
+  "name": "Living Spaces, Linens & Outdoors",
+  "slug": "living-spaces-linens-outdoors",
+  "feature": "homeops",
+  "icon": "compass",
+  "color": "#0284C7",
+  "display_order": 8,
+  "is_system": true,
+  "schema_blueprint": [
+    {
+      "key": "material",
+      "label": "Fabric / Material",
+      "type": "text",
+      "placeholder": "e.g. 100% Linen, Merino Wool, Ripstop Nylon",
+      "filterable": true
+    },
+    {
+      "key": "dimensions",
+      "label": "Dimensions / Size",
+      "type": "text",
+      "placeholder": "e.g. Queen 60x80 in, 2-Person"
+    },
+    {
+      "key": "care_instructions",
+      "label": "Care / Wash Instructions",
+      "type": "text",
+      "placeholder": "e.g. Cold Wash Delicate, Hang Dry"
+    }
+  ],
+  "categories": [
+    {
+      "name": "Home Textiles & Linens",
+      "slug": "home-textiles-linens",
+      "color": "#0284C7",
+      "display_order": 26,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Bed Sheets",
+          "slug": "bed-sheets",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Pillowcases",
+          "slug": "pillowcases",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Blankets",
+          "slug": "blankets",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Duvets",
+          "slug": "duvets",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Bath Towels",
+          "slug": "bath-towels",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Hand Towels",
+          "slug": "hand-towels",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Kitchen Towels",
+          "slug": "kitchen-towels",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Mattress Protectors",
+          "slug": "mattress-protectors",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Mosquito Net",
+          "slug": "mosquito-net",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Gamcha",
+          "slug": "gamcha",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Prayer Mat",
+          "slug": "prayer-mat",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Travel, Camping & Luggage",
+      "slug": "travel-camping-luggage",
+      "color": "#D97706",
+      "display_order": 27,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Suitcases",
+          "slug": "suitcases",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Backpacks",
+          "slug": "backpacks",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Duffle Bags",
+          "slug": "duffle-bags",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Tents",
+          "slug": "tents",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Sleeping Bags",
+          "slug": "sleeping-bags",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Camping Cookware",
+          "slug": "camping-cookware",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Flashlights",
+          "slug": "flashlights",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Dry Bags",
+          "slug": "dry-bags",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    }
+  ]
+}

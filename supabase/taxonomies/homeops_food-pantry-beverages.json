@@ -1,0 +1,525 @@
+{
+  "name": "Food, Pantry & Beverages",
+  "slug": "food-pantry-beverages",
+  "feature": "homeops",
+  "icon": "utensils",
+  "color": "#D97706",
+  "display_order": 1,
+  "is_system": true,
+  "schema_blueprint": [
+    {
+      "key": "brand",
+      "label": "Brand / Producer",
+      "type": "text",
+      "placeholder": "e.g. De Cecco, Heinz",
+      "filterable": true,
+      "sortable": true
+    },
+    {
+      "key": "package_size",
+      "label": "Package Size",
+      "type": "text",
+      "placeholder": "e.g. 500g, 1L, 12pk"
+    },
+    {
+      "key": "dietary",
+      "label": "Dietary / Organic",
+      "type": "select",
+      "options": [
+        "Organic",
+        "Gluten-Free",
+        "Vegan",
+        "Vegetarian",
+        "Dairy-Free",
+        "Standard"
+      ],
+      "filterable": true
+    },
+    {
+      "key": "storage_temp",
+      "label": "Storage Location",
+      "type": "select",
+      "options": [
+        "Pantry Ambient",
+        "Refrigerator",
+        "Freezer",
+        "Wine Cooler",
+        "Root Cellar"
+      ],
+      "filterable": true
+    },
+    {
+      "key": "opened_date",
+      "label": "Date Opened",
+      "type": "date"
+    }
+  ],
+  "categories": [
+    {
+      "name": "Pantry & Dry Goods",
+      "slug": "pantry-dry-goods",
+      "color": "#F59E0B",
+      "display_order": 1,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Grains",
+          "slug": "grains",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Rice",
+          "slug": "rice",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Pasta",
+          "slug": "pasta",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Lentils",
+          "slug": "lentils",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Beans",
+          "slug": "beans",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Flour",
+          "slug": "flour",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Baking Essentials",
+          "slug": "baking-essentials",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Breakfast Cereals",
+          "slug": "breakfast-cereals",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Noodles",
+          "slug": "noodles",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Canned Goods",
+          "slug": "canned-goods",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Vermicelli Shemai",
+          "slug": "vermicelli-shemai",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Puffed Rice Muri",
+          "slug": "puffed-rice-muri",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Flattened Rice Chira",
+          "slug": "flattened-rice-chira",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Oils, Sauces & Condiments",
+      "slug": "oils-sauces-condiments",
+      "color": "#D97706",
+      "display_order": 2,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Cooking Oil",
+          "slug": "cooking-oil",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Vinegar",
+          "slug": "vinegar",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Soy Sauce",
+          "slug": "soy-sauce",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Hot Sauce",
+          "slug": "hot-sauce",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Mustard",
+          "slug": "mustard",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Mayonnaise",
+          "slug": "mayonnaise",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Dressings",
+          "slug": "dressings",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Marinades",
+          "slug": "marinades",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Cooking Paste",
+          "slug": "cooking-paste",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Mustard Oil",
+          "slug": "mustard-oil",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Ghee",
+          "slug": "ghee",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Pickle Achar",
+          "slug": "pickle-achar",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Spices & Seasonings",
+      "slug": "spices-seasonings",
+      "color": "#EA580C",
+      "display_order": 3,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Whole Spices",
+          "slug": "whole-spices",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Ground Spices",
+          "slug": "ground-spices",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Salt",
+          "slug": "salt",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Pepper",
+          "slug": "pepper",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Bouillon Cubes",
+          "slug": "bouillon-cubes",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Extracts",
+          "slug": "extracts",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Spice Blends",
+          "slug": "spice-blends",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Dried Herbs",
+          "slug": "dried-herbs",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Fresh & Perishables",
+      "slug": "fresh-perishables",
+      "color": "#10B981",
+      "display_order": 4,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Dairy",
+          "slug": "dairy",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Milk",
+          "slug": "milk",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Eggs",
+          "slug": "eggs",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Cheese",
+          "slug": "cheese",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Fresh Vegetables",
+          "slug": "fresh-vegetables",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Fruits",
+          "slug": "fruits",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Fresh Herbs",
+          "slug": "fresh-herbs",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Bread",
+          "slug": "bread",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Tofu",
+          "slug": "tofu",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Chilled Sauces",
+          "slug": "chilled-sauces",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Freezer Reserves",
+      "slug": "freezer-reserves",
+      "color": "#06B6D4",
+      "display_order": 5,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Frozen Meat",
+          "slug": "frozen-meat",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Frozen Poultry",
+          "slug": "frozen-poultry",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Frozen Fish",
+          "slug": "frozen-fish",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Batch Meals",
+          "slug": "batch-meals",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Frozen Vegetables",
+          "slug": "frozen-vegetables",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Frozen Dough",
+          "slug": "frozen-dough",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Ice Cream",
+          "slug": "ice-cream",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Beverages & Brew Bar",
+      "slug": "beverages-brew-bar",
+      "color": "#0D9488",
+      "display_order": 6,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Coffee Beans",
+          "slug": "coffee-beans",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Ground Coffee",
+          "slug": "ground-coffee",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Tea Leaves",
+          "slug": "tea-leaves",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Tea Bags",
+          "slug": "tea-bags",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Syrups",
+          "slug": "syrups",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Juices",
+          "slug": "juices",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Soda",
+          "slug": "soda",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Sparkling Water",
+          "slug": "sparkling-water",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Snacks & Confectionery",
+      "slug": "snacks-confectionery",
+      "color": "#F43F5E",
+      "display_order": 7,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Nuts",
+          "slug": "nuts",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Seeds",
+          "slug": "seeds",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Chips",
+          "slug": "chips",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Crackers",
+          "slug": "crackers",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Biscuits",
+          "slug": "biscuits",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Dried Fruits",
+          "slug": "dried-fruits",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Chocolates",
+          "slug": "chocolates",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Popcorn",
+          "slug": "popcorn",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    }
+  ]
+}

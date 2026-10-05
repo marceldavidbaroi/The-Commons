@@ -61,11 +61,6 @@
 			{/if}
 			<h3 class="item-name">{item.name}</h3>
 		</div>
-		{#if item.item_type}
-			<span class="type-pill type-{item.item_type}">
-				{item.item_type}
-			</span>
-		{/if}
 	</div>
 
 	{#if item.description}
@@ -95,18 +90,16 @@
 			</span>
 		{/if}
 
-		{#if item.tags && item.tags.length > 0}
-			{#each item.tags as tag (tag.slug || tag.id || tag.name)}
-				<button
-					type="button"
-					class="capsule tag-capsule"
-					style={tag.color ? `--badge-accent: ${tag.color};` : ''}
-					onclick={(e) => handleTagClick(e, tag.slug || tag.id)}
-				>
-					<span class="tag-hash">#</span>
-					<span class="capsule-label">{tag.name}</span>
-				</button>
-			{/each}
+		{#if item.tag}
+			<button
+				type="button"
+				class="capsule tag-capsule"
+				style={item.tag.color ? `--badge-accent: ${item.tag.color};` : ''}
+				onclick={(e) => handleTagClick(e, item.tag?.slug || item.tag?.id)}
+			>
+				<span class="tag-hash">#</span>
+				<span class="capsule-label">{item.tag.name}</span>
+			</button>
 		{/if}
 	</div>
 </div>
@@ -161,28 +154,6 @@
 		margin: 0;
 		line-height: 1.3;
 		letter-spacing: -0.01em;
-	}
-
-	.type-pill {
-		font-size: 0.6875rem;
-		font-weight: 500;
-		text-transform: capitalize;
-		padding: 0.125rem 0.4375rem;
-		border-radius: var(--radius-full);
-		letter-spacing: 0.02em;
-		flex-shrink: 0;
-	}
-
-	.type-consumable {
-		background: color-mix(in srgb, var(--success, #22c55e) 12%, transparent);
-		color: var(--success, #22c55e);
-		border: 1px solid color-mix(in srgb, var(--success, #22c55e) 25%, transparent);
-	}
-
-	.type-asset {
-		background: color-mix(in srgb, var(--primary) 12%, transparent);
-		color: var(--primary);
-		border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
 	}
 
 	.item-description {

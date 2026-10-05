@@ -1,10 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getSupabaseClient } from '$lib/supabase';
-	import TagSelectorPanel from '$lib/components/TagSelectorPanel.svelte';
-	import TagManagementSidePanel from '$lib/components/TagManagementSidePanel.svelte';
 	import type { Tag, TagCategory, TagGroup, DynamicFieldDefinition } from '$lib/types/tags';
-	import type { UserItem, ItemType } from '$lib/types/homeops';
+	import type { UserItem } from '$lib/types/homeops';
 
 	const MIN_PANEL_WIDTH = 380;
 	const MAX_PANEL_WIDTH = 860;
@@ -39,30 +37,22 @@
 	// Form State
 	let name = $state('');
 	let description = $state('');
-	let itemType = $state<ItemType>('consumable');
 	let selectedGroupId = $state<number | null>(null);
 	let selectedGroupSlug = $state<string | null>(null);
 	let selectedCategoryId = $state<number | null>(null);
 	let selectedCategorySlug = $state<string | null>(null);
 	let selectedCategoryName = $state<string>('');
 	let selectedCategoryColor = $state<string>('#F59E0B');
-	let quantity = $state<number | string>(1);
-	let unitOfMeasure = $state('pcs');
-	let reorderThreshold = $state<number | string>(1);
-	let expirationDate = $state('');
 	let conditionStatus = $state('Good');
 	let isLoaned = $state(false);
 	let loanedTo = $state('');
-	let tags = $state<string[]>([]);
-	let tagInput = $state('');
+	let selectedTag = $state<string | null>(null);
 	let metadata = $state<Record<string, any>>({});
 
 	// UI & Panel state
 	let panelWidth = $state(DEFAULT_PANEL_WIDTH);
 	let isResizing = $state(false);
 	let isSaving = $state(false);
-	let isTagSelectorOpen = $state(false);
-	let isTagManagementOpen = $state(false);
 	let isConfirmingDelete = $state(false);
 
 	// Derived current category object and its available tags
@@ -107,7 +97,7 @@
 		const target = e.target as HTMLSelectElement;
 		const val = target.value;
 		if (val) {
-			handleAddTag(val);
+			handleSetTag(val);
 			target.value = '';
 		}
 	}
@@ -124,50 +114,28 @@
 			if (mode === 'edit' && item) {
 				name = item.name || '';
 				description = item.description || '';
-				itemType = item.item_type || 'consumable';
 				selectedCategoryId = item.category_id || null;
 				selectedCategoryName = item.category_name || '';
 				selectedGroupId = item.group_id || (categories.find((c: any) => c.id === item?.category_id)?.group_id || null);
 				selectedCategoryColor = item.category_color || '#F59E0B';
-				quantity = item.quantity ?? 1;
-				unitOfMeasure = item.unit_of_measure || 'pcs';
-				reorderThreshold = item.reorder_threshold ?? 1;
-				expirationDate = item.expiration_date || '';
 				conditionStatus = item.condition_status || 'Good';
 				isLoaned = item.is_loaned || false;
 				loanedTo = item.loaned_to || '';
-				tags = item.tags ? item.tags.map((t: any) => t.name) : [];
-				tagInput = '';
+				selectedTag = item.tag?.name || (item.tag_slug ? item.tag_slug.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()) : null);
 				metadata = item.metadata ? JSON.parse(JSON.stringify(item.metadata)) : {};
 			} else {
 				// Reset for creation
 				name = '';
 				description = '';
-				itemType = 'consumable';
-				quantity = 1;
-				unitOfMeasure = 'pcs';
-				reorderThreshold = 1;
-				expirationDate = '';
 				conditionStatus = 'Good';
 				isLoaned = false;
 				loanedTo = '';
-				tags = [];
-				tagInput = '';
+				selectedTag = null;
 				metadata = {};
-				if (groups.length > 0) {
-					selectedGroupId = groups[0].id;
-					const groupCats = categories.filter((c: any) => c.group_id === groups[0].id || c.tag_group?.id === groups[0].id);
-					if (groupCats.length > 0) {
-						selectedCategoryId = groupCats[0].id;
-						selectedCategoryName = groupCats[0].name;
-						selectedCategoryColor = groupCats[0].color || '#F59E0B';
-					}
-				} else if (categories.length > 0) {
-					selectedCategoryId = categories[0].id;
-					selectedCategoryName = categories[0].name;
-					selectedCategoryColor = categories[0].color || '#F59E0B';
-					selectedGroupId = categories[0].group_id || null;
-				}
+				selectedGroupId = null;
+				selectedCategoryId = null;
+				selectedCategoryName = '';
+				selectedCategoryColor = '#F59E0B';
 			}
 		}
 	});
@@ -179,66 +147,87 @@
 		}
 	}
 
-	function handleGroupSelect(e: Event) {
-		const target = e.target as HTMLSelectElement;
-		const grpId = target.value ? Number(target.value) : null;
-		selectedGroupId = grpId;
+	// Quick Tag Search State
+	let tagSearchQuery = $state('');
+	let isTagSearchDropdownOpen = $state(false);
 
-		// When group changes, adjust selected category to first category in this group (or null)
-		const groupCats = grpId
-			? categories.filter((c: any) => c.group_id === grpId || c.tag_group?.id === grpId)
-			: categories;
-
-		if (groupCats.length > 0) {
-			const isCurrentInGroup = groupCats.some((c: any) => c.id === selectedCategoryId);
-			if (!isCurrentInGroup) {
-				selectedCategoryId = groupCats[0].id;
-				selectedCategoryName = groupCats[0].name;
-				selectedCategoryColor = groupCats[0].color || '#F59E0B';
-			}
-		} else {
-			selectedCategoryId = null;
-			selectedCategoryName = '';
-		}
+	// All tags across all categories and groups with parent metadata for instant lookup
+	interface FlatTagItem {
+		tag: Tag;
+		category: TagCategory;
+		group?: TagGroup | null;
 	}
 
-	function handleCategorySelect(e: Event) {
-		const target = e.target as HTMLSelectElement;
-		const catId = target.value ? Number(target.value) : null;
-		const found = categories.find((c: any) => c.id === catId);
-		if (found) {
-			selectedCategoryId = found.id;
-			selectedCategoryName = found.name;
-			selectedCategoryColor = found.color || '#F59E0B';
-			// Keep group synced if category has a group
-			if (found.group_id) {
-				selectedGroupId = found.group_id;
+	let allFlatTags = $derived.by<FlatTagItem[]>(() => {
+		const list: FlatTagItem[] = [];
+		for (const cat of categories) {
+			const grp = groups.find((g: any) => g.id === cat.group_id) || (cat as any).tag_group || null;
+			if (cat.tags && cat.tags.length > 0) {
+				for (const t of cat.tags) {
+					list.push({ tag: t, category: cat, group: grp });
+				}
 			}
-		} else {
-			selectedCategoryId = null;
-			selectedCategoryName = '';
 		}
+		return list;
+	});
+
+	let tagSearchResults = $derived.by<FlatTagItem[]>(() => {
+		const q = tagSearchQuery.trim().toLowerCase();
+		if (!q) return [];
+		return allFlatTags
+			.filter(
+				(item) =>
+					item.tag.name.toLowerCase().includes(q) ||
+					item.tag.slug.toLowerCase().includes(q) ||
+					item.category.name.toLowerCase().includes(q) ||
+					(item.group && item.group.name.toLowerCase().includes(q))
+			)
+			.slice(0, 8);
+	});
+
+	function handleSelectSearchTag(item: FlatTagItem) {
+		// 1. Set the single tag
+		selectedTag = item.tag.name;
+
+		// 2. Auto-select category
+		selectedCategoryId = item.category.id;
+		selectedCategoryName = item.category.name;
+		selectedCategoryColor = item.category.color || '#F59E0B';
+
+		// 3. Auto-select group
+		if (item.category.group_id) {
+			selectedGroupId = item.category.group_id;
+		} else if (item.group?.id) {
+			selectedGroupId = item.group.id;
+		}
+
+		// Clear search
+		tagSearchQuery = '';
+		isTagSearchDropdownOpen = false;
 	}
 
-	function handleAddTag(rawTag: string) {
+	function handleSetTag(rawTag: string) {
 		const trimmed = rawTag.trim().replace(/^#/, '');
-		if (trimmed && !tags.includes(trimmed)) {
-			tags = [...tags, trimmed];
+		if (trimmed) {
+			selectedTag = trimmed;
+			// Check if tag matches an existing category
+			for (const cat of categories) {
+				const matched = cat.tags?.find((t: any) => t.name.toLowerCase() === trimmed.toLowerCase() || t.slug === trimmed.toLowerCase());
+				if (matched) {
+					selectedCategoryId = cat.id;
+					selectedCategoryName = cat.name;
+					selectedCategoryColor = cat.color || '#F59E0B';
+					selectedGroupId = cat.group_id || null;
+					break;
+				}
+			}
 		}
-		tagInput = '';
+		tagSearchQuery = '';
+		isTagSearchDropdownOpen = false;
 	}
 
-	function handleRemoveTag(tagToRemove: string) {
-		tags = tags.filter((t) => t !== tagToRemove);
-	}
-
-	function handleTagKeyDown(e: KeyboardEvent) {
-		if (e.key === 'Enter' || e.key === ',') {
-			e.preventDefault();
-			handleAddTag(tagInput);
-		} else if (e.key === 'Backspace' && !tagInput && tags.length > 0) {
-			handleRemoveTag(tags[tags.length - 1]);
-		}
+	function handleRemoveTag() {
+		selectedTag = null;
 	}
 
 	async function handleSubmit(e: SubmitEvent) {
@@ -247,30 +236,20 @@
 
 		isSaving = true;
 		try {
-			// Find tag objects and tag slugs for selected tags
-			const tagObjects: { id?: number; slug?: string; name: string; color?: string | null }[] = [];
-			const tagSlugs: string[] = [];
+			let matchedTag: any = null;
+			let matchedColor = selectedCategoryColor;
+			let tagSlug: string | null = null;
 
-			for (const tName of tags) {
-				let matchedTag: any = null;
-				let matchedColor = selectedCategoryColor;
+			if (selectedTag) {
 				for (const cat of categories) {
-					const found = cat.tags?.find((t: any) => t.name.toLowerCase() === tName.toLowerCase() || t.slug === tName.toLowerCase());
+					const found = cat.tags?.find((t: any) => t.name.toLowerCase() === selectedTag!.toLowerCase() || t.slug === selectedTag!.toLowerCase());
 					if (found) {
 						matchedTag = found;
 						matchedColor = cat.color;
 						break;
 					}
 				}
-
-				const tSlug = matchedTag?.slug || tName.toLowerCase().trim().replace(/[^a-z0-9\s-_]/g, '').replace(/[\s_]+/g, '-');
-				tagSlugs.push(tSlug);
-				tagObjects.push({
-					id: matchedTag?.id,
-					slug: tSlug,
-					name: matchedTag?.name || tName,
-					color: matchedColor
-				});
+				tagSlug = matchedTag?.slug || selectedTag.toLowerCase().trim().replace(/[^a-z0-9\s-_]/g, '').replace(/[\s_]+/g, '-');
 			}
 
 			const catSlug = activeCategory?.slug || selectedCategorySlug || (selectedCategoryName ? selectedCategoryName.toLowerCase().trim().replace(/[^a-z0-9\s-_]/g, '').replace(/[\s_]+/g, '-') : null);
@@ -279,21 +258,20 @@
 			const payload: Partial<UserItem> = {
 				name: name.trim(),
 				description: description.trim() || null,
-				item_type: itemType,
 				category_id: selectedCategoryId,
 				category_slug: catSlug,
 				category_name: selectedCategoryName,
 				category_color: selectedCategoryColor,
-				tag_ids: tagObjects.filter((t) => typeof t.id === 'number').map((t) => t.id as number),
-				tag_slugs: tagSlugs,
-				tags: tagObjects,
-				quantity: itemType === 'consumable' ? Number(quantity) : 1,
-				unit_of_measure: itemType === 'consumable' ? unitOfMeasure : null,
-				reorder_threshold: itemType === 'consumable' ? Number(reorderThreshold) : null,
-				expiration_date: itemType === 'consumable' && expirationDate ? expirationDate : null,
-				condition_status: itemType === 'asset' ? conditionStatus : null,
-				is_loaned: itemType === 'asset' ? isLoaned : false,
-				loaned_to: itemType === 'asset' && isLoaned ? loanedTo : null,
+				tag_slug: tagSlug,
+				tag: selectedTag ? {
+					id: matchedTag?.id,
+					slug: tagSlug || undefined,
+					name: matchedTag?.name || selectedTag,
+					color: matchedColor
+				} : null,
+				condition_status: conditionStatus,
+				is_loaned: isLoaned,
+				loaned_to: isLoaned ? loanedTo : null,
 				group_id: activeGroup?.id || null,
 				group_slug: grpSlug,
 				group_name: activeGroup?.name || null,
@@ -401,171 +379,125 @@
 		<!-- Form Body -->
 		<form class="panel-form" onsubmit={handleSubmit}>
 			<div class="panel-body">
-				<!-- Item Type Selector Tabs -->
-				<div class="field-group">
-					<label class="field-label" for="item-type-segment">Item Type</label>
-					<div id="item-type-segment" class="type-segment">
-						<button
-							type="button"
-							class="segment-btn"
-							class:active={itemType === 'consumable'}
-							onclick={() => (itemType = 'consumable')}
-						>
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-								<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-								<line x1="3" y1="6" x2="21" y2="6" />
-								<path d="M16 10a4 4 0 0 1-8 0" />
-							</svg>
-							Consumable
-						</button>
-						<button
-							type="button"
-							class="segment-btn"
-							class:active={itemType === 'asset'}
-							onclick={() => (itemType = 'asset')}
-						>
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-								<rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-								<path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-							</svg>
-							Durable Asset
-						</button>
-					</div>
-				</div>
-
-				<!-- Step 1: Domain Group Selection -->
-				<div class="field-group">
-					<div class="label-with-action">
-						<label class="field-label" for="item-group">
-							<span class="step-num">1</span> Domain Group <span class="required">*</span>
-						</label>
-						<button
-							type="button"
-							class="text-action-btn"
-							onclick={() => (isTagManagementOpen = true)}
-						>
-							Manage Taxonomy
-						</button>
-					</div>
-					<div class="select-wrapper">
-						<select
-							id="item-group"
-							class="select-input"
-							value={selectedGroupId}
-							onchange={handleGroupSelect}
-						>
-							<option value="">-- Select Domain Group --</option>
-							{#each groups as grp}
-								<option value={grp.id}>{grp.name}</option>
-							{/each}
-						</select>
-						<span class="select-arrow">▾</span>
-					</div>
-				</div>
-
-				<!-- Step 2: Category Selection (Filtered by Group) -->
-				<div class="field-group">
-					<label class="field-label" for="item-category">
-						<span class="step-num">2</span> Tag Category <span class="required">*</span>
+				<!-- Smart Tag & Taxonomy Search Input -->
+				<div class="field-group tag-search-group">
+					<label class="field-label" for="item-smart-tag-search">
+						<span>Quick Tag & Taxonomy Search</span>
 					</label>
-					<div class="select-wrapper">
-						<select
-							id="item-category"
-							class="select-input"
-							value={selectedCategoryId}
-							onchange={handleCategorySelect}
-							disabled={!selectedGroupId || availableGroupCategories.length === 0}
-						>
-							<option value="">
-								{!selectedGroupId
-									? '-- Select a Domain Group first --'
-									: availableGroupCategories.length > 0
-										? `-- Select Category in ${activeGroup?.name || 'group'} --`
-										: 'No categories found for this group'}
-							</option>
-							{#each availableGroupCategories as cat}
-								<option value={cat.id}>{cat.name}</option>
-							{/each}
-						</select>
-						<span class="select-arrow">▾</span>
+					<div class="smart-search-wrapper">
+						<div class="search-input-box">
+							<svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<circle cx="11" cy="11" r="8" />
+								<line x1="21" y1="21" x2="16.65" y2="16.65" />
+							</svg>
+							<input
+								id="item-smart-tag-search"
+								type="text"
+								class="text-input search-input"
+								placeholder="Search any tag (e.g. Olive Oil, Tools, Medicine)..."
+								bind:value={tagSearchQuery}
+								onfocus={() => (isTagSearchDropdownOpen = true)}
+							/>
+							{#if tagSearchQuery}
+								<button
+									type="button"
+									class="clear-search-btn"
+									onclick={() => {
+										tagSearchQuery = '';
+										isTagSearchDropdownOpen = false;
+									}}
+								>
+									✕
+								</button>
+							{/if}
+						</div>
+
+						<!-- Autocomplete Results Dropdown -->
+						{#if isTagSearchDropdownOpen && tagSearchQuery.trim()}
+							<div class="search-dropdown-menu">
+								{#if tagSearchResults.length > 0}
+									{#each tagSearchResults as res}
+										<button
+											type="button"
+											class="search-result-item"
+											onclick={() => handleSelectSearchTag(res)}
+										>
+											<div class="res-tag-info">
+												<span class="res-tag-name">#{res.tag.name}</span>
+												{#if selectedTag === res.tag.name}
+													<span class="res-badge-added">Selected</span>
+												{/if}
+											</div>
+											<div class="res-tag-meta">
+												<span class="res-tag-cat" style="color: {res.category.color || 'var(--text-secondary)'}">
+													{res.category.name}
+												</span>
+												{#if res.group}
+													<span class="res-tag-sep">•</span>
+													<span class="res-tag-group">{res.group.name}</span>
+												{/if}
+											</div>
+										</button>
+									{/each}
+								{:else}
+									<div class="search-no-results">
+										<span>No existing tags found for "{tagSearchQuery}".</span>
+										<button
+											type="button"
+											class="add-custom-tag-btn"
+											onclick={() => {
+												handleSetTag(tagSearchQuery);
+											}}
+										>
+											+ Set as custom tag "#{tagSearchQuery.trim().replace(/^#/, '')}"
+										</button>
+									</div>
+								{/if}
+							</div>
+						{/if}
 					</div>
 				</div>
 
-				<!-- Tags Capsule Section with Category Tag Dropdown -->
+				<!-- Selected Tag Chip Container -->
 				<div class="field-group">
-					<div class="label-with-action">
-						<label class="field-label" for="category-tag-select">
-							<span class="step-num">3</span> Tags ({selectedCategoryName || 'Category'})
-						</label>
-						<button
-							type="button"
-							class="text-action-btn"
-							onclick={() => (isTagSelectorOpen = true)}
-						>
-							Browse All Tags
-						</button>
-					</div>
-
-					<!-- Category-specific Tag Dropdown -->
-					<div class="select-wrapper">
-						<select
-							id="category-tag-select"
-							class="select-input"
-							onchange={handleSelectTagFromDropdown}
-							disabled={!selectedCategoryId || availableCategoryTags.length === 0}
-						>
-							<option value="">
-								{!selectedCategoryId
-									? '-- Select a Category first --'
-									: availableCategoryTags.length > 0
-										? `+ Select a tag from ${selectedCategoryName || 'category'}...`
-										: 'No tags available in this category'}
-							</option>
-							{#each availableCategoryTags as tag}
-								<option value={tag.name} disabled={tags.includes(tag.name)}>
-									{tags.includes(tag.name) ? `✓ ${tag.name} (Added)` : tag.name}
-								</option>
-							{/each}
-						</select>
-						<span class="select-arrow">▾</span>
-					</div>
-
-					<!-- Selected Tag Capsules Container -->
-					<div class="tags-input-container">
-						{#each tags as tag}
+					<label class="field-label" for="item-selected-tag">
+						<span>Tag</span>
+						{#if selectedCategoryName}
+							<span class="category-indicator-badge" style="border-color: {selectedCategoryColor}; color: {selectedCategoryColor}">
+								{activeGroup?.name ? `${activeGroup.name} › ` : ''}{selectedCategoryName}
+							</span>
+						{/if}
+					</label>
+					<div class="tags-input-container" id="item-selected-tag">
+						{#if selectedTag}
 							<span class="tag-capsule">
 								<span class="tag-hash">#</span>
-								<span class="tag-name">{tag}</span>
+								<span class="tag-name">{selectedTag}</span>
 								<button
 									type="button"
 									class="tag-remove"
-									onclick={() => handleRemoveTag(tag)}
-									aria-label={`Remove tag ${tag}`}
+									onclick={handleRemoveTag}
+									aria-label={`Remove tag ${selectedTag}`}
+									title="Remove tag"
 								>
 									✕
 								</button>
 							</span>
-						{/each}
-						<input
-							id="item-tag-input"
-							type="text"
-							class="tag-inline-input"
-							bind:value={tagInput}
-							onkeydown={handleTagKeyDown}
-							placeholder={tags.length === 0 ? 'Or type custom tag and press Enter...' : 'Add another tag...'}
-						/>
+						{:else}
+							<span class="tag-empty-hint">No tag selected. Use search above to select a tag.</span>
+						{/if}
 					</div>
 
 					<!-- Quick Tag Suggestions from Selected Category -->
 					{#if availableCategoryTags.length > 0}
 						<div class="tag-suggestions-row">
-							<span class="suggestions-label">Suggestions:</span>
+							<span class="suggestions-label">{selectedCategoryName || 'Category'} suggestions:</span>
 							{#each availableCategoryTags as catTag}
-								{#if !tags.includes(catTag.name)}
+								{#if selectedTag !== catTag.name}
 									<button
 										type="button"
 										class="suggestion-pill"
-										onclick={() => handleAddTag(catTag.name)}
+										onclick={() => handleSetTag(catTag.name)}
 									>
 										+ {catTag.name}
 									</button>
@@ -575,94 +507,9 @@
 					{/if}
 				</div>
 
-				<!-- Dynamic Fields: Consumable vs Asset -->
-				{#if itemType === 'consumable'}
-					<div class="two-col-grid">
-						<div class="field-group">
-							<label class="field-label" for="item-qty">Quantity</label>
-							<input
-								id="item-qty"
-								type="number"
-								step="any"
-								min="0"
-								class="text-input"
-								bind:value={quantity}
-							/>
-						</div>
-						<div class="field-group">
-							<label class="field-label" for="item-uom">Unit of Measure</label>
-							<input
-								id="item-uom"
-								type="text"
-								class="text-input"
-								bind:value={unitOfMeasure}
-								placeholder="pcs, kg, liters, boxes"
-							/>
-						</div>
-					</div>
 
-					<div class="two-col-grid">
-						<div class="field-group">
-							<label class="field-label" for="item-reorder">Low Stock Alert</label>
-							<input
-								id="item-reorder"
-								type="number"
-								step="any"
-								min="0"
-								class="text-input"
-								bind:value={reorderThreshold}
-								placeholder="Threshold"
-							/>
-						</div>
-						<div class="field-group">
-							<label class="field-label" for="item-expiry">Expiration Date</label>
-							<input
-								id="item-expiry"
-								type="date"
-								class="text-input"
-								bind:value={expirationDate}
-							/>
-						</div>
-					</div>
-				{:else}
-					<!-- Asset Specific Fields -->
-					<div class="two-col-grid">
-						<div class="field-group">
-							<label class="field-label" for="item-condition">Condition</label>
-							<select id="item-condition" class="select-input" bind:value={conditionStatus}>
-								<option value="New">New / Sealed</option>
-								<option value="Excellent">Excellent</option>
-								<option value="Good">Good</option>
-								<option value="Fair">Fair</option>
-								<option value="Needs Maintenance">Needs Maintenance</option>
-							</select>
-						</div>
-						<div class="field-group checkbox-field">
-							<label class="checkbox-label" for="item-loaned">
-								<input
-									id="item-loaned"
-									type="checkbox"
-									class="checkbox-input"
-									bind:checked={isLoaned}
-								/>
-								<span>Currently Lent Out</span>
-							</label>
-						</div>
-					</div>
 
-					{#if isLoaned}
-						<div class="field-group">
-							<label class="field-label" for="item-borrower">Borrower Name / Notes</label>
-							<input
-								id="item-borrower"
-								type="text"
-								class="text-input"
-								bind:value={loanedTo}
-								placeholder="Who has this item?"
-							/>
-						</div>
-					{/if}
-				{/if}
+
 
 				<!-- Dynamic Attributes Section (Based on Group & Category Schema Blueprint) -->
 				{#if dynamicBlueprint.length > 0}
@@ -777,27 +624,7 @@
 		</form>
 	</aside>
 
-	<!-- Tag Selector Modal -->
-	<TagSelectorPanel
-		feature="homeops"
-		isOpen={isTagSelectorOpen}
-		selectedTags={tags}
-		onClose={() => (isTagSelectorOpen = false)}
-		onSave={(newTags) => {
-			tags = newTags;
-			isTagSelectorOpen = false;
-		}}
-	/>
 
-	<!-- Tag Management Drawer -->
-	<TagManagementSidePanel
-		isOpen={isTagManagementOpen}
-		feature="homeops"
-		onClose={() => {
-			isTagManagementOpen = false;
-			handleTaxonomyUpdated();
-		}}
-	/>
 
 	<!-- Delete Confirmation Dialog -->
 	{#if isConfirmingDelete}
@@ -1016,42 +843,7 @@
 		text-decoration: underline;
 	}
 
-	.type-segment {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 0.5rem;
-		background: var(--bg-tertiary);
-		padding: 0.25rem;
-		border-radius: var(--radius-sm);
-		border: 1px solid var(--border-subtle);
-	}
 
-	.segment-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.5rem;
-		padding: 0.5rem;
-		border: none;
-		border-radius: calc(var(--radius-sm) - 2px);
-		background: transparent;
-		font-size: 0.8125rem;
-		font-weight: 500;
-		color: var(--text-secondary);
-		cursor: pointer;
-		transition: all 0.15s ease;
-	}
-
-	.segment-btn svg {
-		width: 16px;
-		height: 16px;
-	}
-
-	.segment-btn.active {
-		background: var(--bg-secondary);
-		color: var(--text-primary);
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-	}
 
 	.text-input,
 	.select-input,
@@ -1170,15 +962,10 @@
 		color: var(--danger, #ef4444);
 	}
 
-	.tag-inline-input {
-		border: none;
-		outline: none;
+	.tag-empty-hint {
 		font-size: 0.8125rem;
-		flex: 1;
-		min-width: 120px;
-		padding: 0.25rem;
-		background: transparent;
-		color: var(--text-primary);
+		color: var(--text-muted);
+		font-style: italic;
 	}
 
 	.tag-suggestions-row {
@@ -1400,25 +1187,181 @@
 		grid-column: span 2;
 	}
 
-	.field-unit {
-		font-size: 0.6875rem;
-		color: var(--text-muted);
-		font-weight: normal;
-		margin-left: 0.25rem;
+	/* Smart Tag Search Styles */
+	.tag-search-group {
+		margin-bottom: 0.25rem;
 	}
 
-	.step-num {
-		display: inline-flex;
+	.smart-search-wrapper {
+		position: relative;
+		width: 100%;
+	}
+
+	.search-input-box {
+		position: relative;
+		display: flex;
 		align-items: center;
-		justify-content: center;
-		width: 17px;
-		height: 17px;
+		width: 100%;
+	}
+
+	.search-icon {
+		position: absolute;
+		left: 0.75rem;
+		width: 15px;
+		height: 15px;
+		color: var(--text-muted);
+		pointer-events: none;
+	}
+
+	.search-input {
+		padding-left: 2.125rem;
+		padding-right: 2rem;
+		background: var(--bg-tertiary);
+		border: 1px solid var(--border-subtle);
+		font-size: 0.8125rem;
+		transition: all 0.15s ease;
+	}
+
+	.search-input:focus {
+		background: var(--bg-secondary);
+		border-color: var(--primary);
+	}
+
+	.clear-search-btn {
+		position: absolute;
+		right: 0.625rem;
+		top: 50%;
+		transform: translateY(-50%);
+		background: none;
+		border: none;
+		color: var(--text-muted);
+		font-size: 0.75rem;
+		cursor: pointer;
+		padding: 0.25rem;
+		line-height: 1;
+		border-radius: var(--radius-full);
+	}
+
+	.clear-search-btn:hover {
+		color: var(--text-primary);
+	}
+
+	.search-dropdown-menu {
+		position: absolute;
+		top: calc(100% + 4px);
+		left: 0;
+		right: 0;
+		background: var(--bg-secondary);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-sm);
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+		z-index: 50;
+		max-height: 240px;
+		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.search-result-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.5rem 0.75rem;
+		background: transparent;
+		border: none;
+		border-bottom: 1px solid var(--border-subtle);
+		text-align: left;
+		cursor: pointer;
+		transition: background 0.1s ease;
+		width: 100%;
+	}
+
+	.search-result-item:last-child {
+		border-bottom: none;
+	}
+
+	.search-result-item:hover {
+		background: var(--bg-tertiary);
+	}
+
+	.res-tag-info {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.res-tag-name {
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: var(--text-primary);
+	}
+
+	.res-badge-added {
+		font-size: 0.625rem;
+		padding: 0.0625rem 0.3125rem;
 		border-radius: var(--radius-full);
 		background: color-mix(in srgb, var(--primary) 15%, transparent);
 		color: var(--primary);
+		font-weight: 600;
+		text-transform: uppercase;
+	}
+
+	.res-tag-meta {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
 		font-size: 0.6875rem;
-		font-weight: 700;
-		line-height: 1;
-		margin-right: 0.25rem;
+	}
+
+	.res-tag-cat {
+		font-weight: 600;
+	}
+
+	.res-tag-sep {
+		color: var(--text-muted);
+	}
+
+	.res-tag-group {
+		color: var(--text-secondary);
+	}
+
+	.search-no-results {
+		padding: 0.75rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.375rem;
+		font-size: 0.75rem;
+		color: var(--text-secondary);
+	}
+
+	.add-custom-tag-btn {
+		background: var(--bg-tertiary);
+		border: 1px dashed var(--border-subtle);
+		border-radius: var(--radius-sm);
+		padding: 0.375rem 0.5rem;
+		color: var(--primary);
+		font-size: 0.75rem;
+		font-weight: 600;
+		cursor: pointer;
+		text-align: left;
+	}
+
+	.add-custom-tag-btn:hover {
+		background: color-mix(in srgb, var(--primary) 10%, transparent);
+		border-color: var(--primary);
+	}
+
+	.category-indicator-badge {
+		margin-left: auto;
+		font-size: 0.6875rem;
+		font-weight: 600;
+		padding: 0.0625rem 0.4375rem;
+		border-radius: var(--radius-full);
+		border: 1px solid currentColor;
+		background: var(--bg-tertiary);
+	}
+
+	.taxonomy-selectors-grid {
+		margin-top: 0.25rem;
 	}
 </style>

@@ -1,0 +1,266 @@
+{
+  "name": "Appliances & Climate Control",
+  "slug": "appliances-climate-control",
+  "feature": "homeops",
+  "icon": "tv",
+  "color": "#0284C7",
+  "display_order": 4,
+  "is_system": true,
+  "schema_blueprint": [
+    {
+      "key": "brand",
+      "label": "Brand / Maker",
+      "type": "text",
+      "placeholder": "e.g. Bosch, Breville, Dyson",
+      "filterable": true
+    },
+    {
+      "key": "model_number",
+      "label": "Model Number",
+      "type": "text",
+      "placeholder": "e.g. B36CL80ENS"
+    },
+    {
+      "key": "purchase_date",
+      "label": "Purchase Date",
+      "type": "date",
+      "filterable": true,
+      "sortable": true
+    },
+    {
+      "key": "warranty_period",
+      "label": "Warranty Period",
+      "type": "text",
+      "placeholder": "e.g. 1 Year, 5 Years, 10 Years Motor"
+    },
+    {
+      "key": "warranty_expires",
+      "label": "Warranty Expiration",
+      "type": "date",
+      "filterable": true,
+      "sortable": true
+    },
+    {
+      "key": "filter_model",
+      "label": "Filter / Consumable Part #",
+      "type": "text",
+      "placeholder": "e.g. Filter Type A, HEPA-13"
+    },
+    {
+      "key": "last_serviced",
+      "label": "Last Cleaned / Serviced",
+      "type": "date"
+    },
+    {
+      "key": "service_interval_months",
+      "label": "Service Interval (Months)",
+      "type": "number",
+      "unit": "months"
+    },
+    {
+      "key": "power_source",
+      "label": "Power Source",
+      "type": "select",
+      "options": [
+        "Corded AC (220V)",
+        "Rechargeable Battery",
+        "Removable AA/AAA Batteries",
+        "LPG Cylinder / Gas",
+        "Manual"
+      ],
+      "filterable": true
+    },
+    {
+      "key": "last_charged_date",
+      "label": "Last Charged Date",
+      "type": "date",
+      "filterable": true,
+      "sortable": true
+    },
+    {
+      "key": "next_charge_due",
+      "label": "Next Charge Due",
+      "type": "date",
+      "filterable": true,
+      "sortable": true
+    }
+  ],
+  "categories": [
+    {
+      "name": "Major Home Appliances",
+      "slug": "major-home-appliances",
+      "color": "#0284C7",
+      "display_order": 16,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Refrigerator",
+          "slug": "refrigerator",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Washing Machine",
+          "slug": "washing-machine",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Microwave Oven",
+          "slug": "microwave-oven",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Convection Oven",
+          "slug": "convection-oven",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Air Conditioner",
+          "slug": "air-conditioner",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Water Purifier",
+          "slug": "water-purifier",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Vacuum Cleaner",
+          "slug": "vacuum-cleaner",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Geyser",
+          "slug": "geyser",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "IPS Inverter",
+          "slug": "ips-inverter",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Voltage Stabilizer",
+          "slug": "voltage-stabilizer",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Ceiling Fan",
+          "slug": "ceiling-fan",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Rechargeable Fan",
+          "slug": "rechargeable-fan",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Deep Freezer",
+          "slug": "deep-freezer",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Small Kitchen Appliances",
+      "slug": "small-kitchen-appliances",
+      "color": "#D97706",
+      "display_order": 17,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Blender",
+          "slug": "blender",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Food Processor",
+          "slug": "food-processor",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Air Fryer",
+          "slug": "air-fryer",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Electric Kettle",
+          "slug": "electric-kettle",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Coffee Grinder",
+          "slug": "coffee-grinder",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Kitchen Scale",
+          "slug": "kitchen-scale",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Digital Weight Machine",
+          "slug": "digital-weight-machine",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Toaster",
+          "slug": "toaster",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Immersion Blender",
+          "slug": "immersion-blender",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Rice Cooker",
+          "slug": "rice-cooker",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Induction Cooker",
+          "slug": "induction-cooker",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Roti Maker",
+          "slug": "roti-maker",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Spice Grinder",
+          "slug": "spice-grinder",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    }
+  ]
+}

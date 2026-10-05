@@ -1,0 +1,355 @@
+{
+  "name": "Electronics, Computing & Smart Tech",
+  "slug": "electronics-computing-smart-tech",
+  "feature": "homeops",
+  "icon": "cpu",
+  "color": "#4F46E5",
+  "display_order": 3,
+  "is_system": true,
+  "schema_blueprint": [
+    {
+      "key": "manufacturer",
+      "label": "Manufacturer / Brand",
+      "type": "text",
+      "placeholder": "e.g. Apple, Sony, Dell",
+      "filterable": true,
+      "sortable": true
+    },
+    {
+      "key": "model_number",
+      "label": "Model / Part #",
+      "type": "text",
+      "placeholder": "e.g. A2485, WH-1000XM5"
+    },
+    {
+      "key": "serial_number",
+      "label": "Serial Number",
+      "type": "text",
+      "placeholder": "S/N for warranty & recovery"
+    },
+    {
+      "key": "purchase_date",
+      "label": "Purchase Date",
+      "type": "date",
+      "filterable": true,
+      "sortable": true
+    },
+    {
+      "key": "warranty_period",
+      "label": "Warranty Period",
+      "type": "text",
+      "placeholder": "e.g. 1 Year, 2 Years, Lifetime"
+    },
+    {
+      "key": "warranty_expires",
+      "label": "Warranty Expiration",
+      "type": "date",
+      "filterable": true,
+      "sortable": true
+    },
+    {
+      "key": "firmware_os",
+      "label": "Firmware / OS",
+      "type": "text",
+      "placeholder": "e.g. macOS Sonoma, v2.1.0"
+    },
+    {
+      "key": "power_specs",
+      "label": "Power & Voltage",
+      "type": "text",
+      "placeholder": "e.g. 65W USB-C PD, 220V"
+    },
+    {
+      "key": "battery_type",
+      "label": "Power / Battery Source",
+      "type": "select",
+      "options": [
+        "Rechargeable (USB/Built-in)",
+        "Removable AA/AAA",
+        "Coin Cell (CR2032)",
+        "Lead Acid / IPS Battery",
+        "Mains Powered (AC 220V)"
+      ],
+      "filterable": true
+    },
+    {
+      "key": "last_charged_date",
+      "label": "Last Charged Date",
+      "type": "date",
+      "filterable": true,
+      "sortable": true
+    },
+    {
+      "key": "next_charge_due",
+      "label": "Next Charge Due",
+      "type": "date",
+      "filterable": true,
+      "sortable": true
+    },
+    {
+      "key": "last_calibrated_date",
+      "label": "Last Calibrated / Zeroed",
+      "type": "date",
+      "filterable": true,
+      "sortable": true
+    }
+  ],
+  "categories": [
+    {
+      "name": "Computing & Workstation",
+      "slug": "computing-workstation",
+      "color": "#4F46E5",
+      "display_order": 13,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Laptops",
+          "slug": "laptops",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Desktop PCs",
+          "slug": "desktop-pcs",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Monitors",
+          "slug": "monitors",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Keyboards",
+          "slug": "keyboards",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Mice",
+          "slug": "mice",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Docking Stations",
+          "slug": "docking-stations",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "UPS Units",
+          "slug": "ups-units",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "External Drives",
+          "slug": "external-drives",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "NAS Storage",
+          "slug": "nas-storage",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Mobile & Personal Gadgets",
+      "slug": "mobile-personal-gadgets",
+      "color": "#7C3AED",
+      "display_order": 14,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Smartphones",
+          "slug": "smartphones",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Tablets",
+          "slug": "tablets",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Smartwatches",
+          "slug": "smartwatches",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "E-Readers",
+          "slug": "e-readers",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Power Banks",
+          "slug": "power-banks",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Wall Chargers",
+          "slug": "wall-chargers",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Charging Cables",
+          "slug": "charging-cables",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Travel Adapters",
+          "slug": "travel-adapters",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Emergency Light",
+          "slug": "emergency-light",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Rechargeable Torch",
+          "slug": "rechargeable-torch",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Multiplug Extension",
+          "slug": "multiplug-extension",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Audio & Entertainment",
+      "slug": "audio-entertainment",
+      "color": "#9333EA",
+      "display_order": 15,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Televisions",
+          "slug": "televisions",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Speakers",
+          "slug": "speakers",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Soundbars",
+          "slug": "soundbars",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Headphones",
+          "slug": "headphones",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "IEMs",
+          "slug": "iems",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Gaming Consoles",
+          "slug": "gaming-consoles",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Streaming Devices",
+          "slug": "streaming-devices",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "DAC Amps",
+          "slug": "dac-amps",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Networking & Smart Home",
+      "slug": "networking-smart-home",
+      "color": "#059669",
+      "display_order": 18,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Wi-Fi Routers",
+          "slug": "wi-fi-routers",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Ethernet Switches",
+          "slug": "ethernet-switches",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Access Points",
+          "slug": "access-points",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Smart Plugs",
+          "slug": "smart-plugs",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Smart Bulbs",
+          "slug": "smart-bulbs",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Zigbee Gateways",
+          "slug": "zigbee-gateways",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Security Cameras",
+          "slug": "security-cameras",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Smart Sensors",
+          "slug": "smart-sensors",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    }
+  ]
+}

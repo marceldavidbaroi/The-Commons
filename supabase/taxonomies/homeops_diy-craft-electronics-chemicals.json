@@ -1,0 +1,153 @@
+{
+  "name": "DIY Craft, Electronics & Chemicals",
+  "slug": "diy-craft-electronics-chemicals",
+  "feature": "homeops",
+  "icon": "zap",
+  "color": "#8B5CF6",
+  "display_order": 6,
+  "is_system": true,
+  "schema_blueprint": [
+    {
+      "key": "hazmat_rating",
+      "label": "Safety / Handling",
+      "type": "select",
+      "options": [
+        "Safe / Non-toxic",
+        "Flammable",
+        "Corrosive",
+        "Ventilation Required",
+        "Wear Gloves"
+      ],
+      "filterable": true
+    },
+    {
+      "key": "cure_time",
+      "label": "Cure / Dry Time",
+      "type": "text",
+      "placeholder": "e.g. 24 hours, 5 mins"
+    },
+    {
+      "key": "expiry_date",
+      "label": "Pot Life / Expiration",
+      "type": "date"
+    }
+  ],
+  "categories": [
+    {
+      "name": "DIY Electronics & Soldering",
+      "slug": "diy-electronics-soldering",
+      "color": "#6366F1",
+      "display_order": 22,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Soldering Iron",
+          "slug": "soldering-iron",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Solder Wire",
+          "slug": "solder-wire",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Flux Paste",
+          "slug": "flux-paste",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Digital Multimeter",
+          "slug": "digital-multimeter",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Desoldering Pump",
+          "slug": "desoldering-pump",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Wire Strippers",
+          "slug": "wire-strippers",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Heat Shrink Tubing",
+          "slug": "heat-shrink-tubing",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Breadboards",
+          "slug": "breadboards",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Adhesives, Lubricants & Chemicals",
+      "slug": "adhesives-lubricants-chemicals",
+      "color": "#E11D48",
+      "display_order": 23,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "WD-40",
+          "slug": "wd-40",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Silicone Sealant",
+          "slug": "silicone-sealant",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Epoxy Resin",
+          "slug": "epoxy-resin",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Super Glue",
+          "slug": "super-glue",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Threadlocker",
+          "slug": "threadlocker",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Isopropyl Alcohol",
+          "slug": "isopropyl-alcohol",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Contact Cleaner",
+          "slug": "contact-cleaner",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Bearing Grease",
+          "slug": "bearing-grease",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    }
+  ]
+}

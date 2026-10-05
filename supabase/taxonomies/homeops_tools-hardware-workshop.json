@@ -1,0 +1,346 @@
+{
+  "name": "Tools, Hardware & Workshop",
+  "slug": "tools-hardware-workshop",
+  "feature": "homeops",
+  "icon": "wrench",
+  "color": "#C2410C",
+  "display_order": 5,
+  "is_system": true,
+  "schema_blueprint": [
+    {
+      "key": "brand",
+      "label": "Brand / Tool Maker",
+      "type": "text",
+      "placeholder": "e.g. DeWalt, Milwaukee, Wera",
+      "filterable": true
+    },
+    {
+      "key": "drive_size",
+      "label": "Drive / Fitting Size",
+      "type": "text",
+      "placeholder": "e.g. 1/4 inch, 1/2 inch, M4, M6"
+    },
+    {
+      "key": "purchase_date",
+      "label": "Purchase Date",
+      "type": "date",
+      "filterable": true,
+      "sortable": true
+    },
+    {
+      "key": "warranty_period",
+      "label": "Warranty Period",
+      "type": "text",
+      "placeholder": "e.g. 1 Year, 3 Years, Lifetime"
+    },
+    {
+      "key": "warranty_expires",
+      "label": "Warranty Expiration",
+      "type": "date",
+      "filterable": true,
+      "sortable": true
+    },
+    {
+      "key": "power_source",
+      "label": "Power Source",
+      "type": "select",
+      "options": [
+        "Manual / Hand",
+        "Cordless Battery (12V/18V/20V)",
+        "Corded AC (220V)",
+        "Pneumatic / Air"
+      ],
+      "filterable": true
+    },
+    {
+      "key": "last_charged_date",
+      "label": "Last Charged Date",
+      "type": "date",
+      "filterable": true,
+      "sortable": true
+    },
+    {
+      "key": "next_charge_due",
+      "label": "Next Charge Due",
+      "type": "date",
+      "filterable": true,
+      "sortable": true
+    },
+    {
+      "key": "storage_box",
+      "label": "Toolbox / Bin Location",
+      "type": "text",
+      "placeholder": "e.g. Workshop Rack 2, Drawer A"
+    }
+  ],
+  "categories": [
+    {
+      "name": "Home Hardware & Utility Spares",
+      "slug": "home-hardware-utility-spares",
+      "color": "#71717A",
+      "display_order": 12,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Light Bulbs",
+          "slug": "light-bulbs",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "AA Batteries",
+          "slug": "aa-batteries",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "AAA Batteries",
+          "slug": "aaa-batteries",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "9V Batteries",
+          "slug": "9v-batteries",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Coin Cells",
+          "slug": "coin-cells",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Command Strips",
+          "slug": "command-strips",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Utility Fuses",
+          "slug": "utility-fuses",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Plumbing Washers",
+          "slug": "plumbing-washers",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Cable Clips",
+          "slug": "cable-clips",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Teflon Tape",
+          "slug": "teflon-tape",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Gas Pipe Regulator",
+          "slug": "gas-pipe-regulator",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Cable Ties",
+          "slug": "cable-ties",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Hand Tools",
+      "slug": "hand-tools",
+      "color": "#B45309",
+      "display_order": 19,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Screwdrivers",
+          "slug": "screwdrivers",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Pliers",
+          "slug": "pliers",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Socket Sets",
+          "slug": "socket-sets",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Hammers",
+          "slug": "hammers",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Utility Knives",
+          "slug": "utility-knives",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Tape Measures",
+          "slug": "tape-measures",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Hex Keys",
+          "slug": "hex-keys",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Adjustable Wrenches",
+          "slug": "adjustable-wrenches",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Spirit Levels",
+          "slug": "spirit-levels",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Power Tools & Accessories",
+      "slug": "power-tools-accessories",
+      "color": "#C2410C",
+      "display_order": 20,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Cordless Drills",
+          "slug": "cordless-drills",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Rotary Tools",
+          "slug": "rotary-tools",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Heat Guns",
+          "slug": "heat-guns",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Drill Bits",
+          "slug": "drill-bits",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Driver Bits",
+          "slug": "driver-bits",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Sanding Pads",
+          "slug": "sanding-pads",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Tool Batteries",
+          "slug": "tool-batteries",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Battery Chargers",
+          "slug": "battery-chargers",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Fixings & Fasteners",
+      "slug": "fixings-fasteners",
+      "color": "#52525B",
+      "display_order": 21,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Wood Screws",
+          "slug": "wood-screws",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Machine Screws",
+          "slug": "machine-screws",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Wall Anchors",
+          "slug": "wall-anchors",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Bolts",
+          "slug": "bolts",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Nuts",
+          "slug": "nuts",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Washers",
+          "slug": "washers",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Cable Ties",
+          "slug": "cable-ties",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Nails",
+          "slug": "nails",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Rivets",
+          "slug": "rivets",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    }
+  ]
+}

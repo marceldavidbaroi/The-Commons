@@ -1,0 +1,297 @@
+{
+  "name": "Household & Cleaning Supplies",
+  "slug": "household-cleaning-supplies",
+  "feature": "homeops",
+  "icon": "sparkles",
+  "color": "#059669",
+  "display_order": 2,
+  "is_system": true,
+  "schema_blueprint": [
+    {
+      "key": "brand",
+      "label": "Brand / Manufacturer",
+      "type": "text",
+      "placeholder": "e.g. Seventh Generation, Dawn",
+      "filterable": true
+    },
+    {
+      "key": "surface_type",
+      "label": "Target Surface",
+      "type": "select",
+      "options": [
+        "Multi-Surface",
+        "Glass / Mirror",
+        "Wood",
+        "Stainless Steel",
+        "Bathroom / Tile",
+        "Laundry Fabric"
+      ],
+      "filterable": true
+    },
+    {
+      "key": "scent",
+      "label": "Scent / Formula",
+      "type": "text",
+      "placeholder": "e.g. Lavender, Fragrance-Free"
+    },
+    {
+      "key": "refillable",
+      "label": "Refillable Bottle",
+      "type": "boolean",
+      "description": "Is this a reusable container with bulk refills?",
+      "filterable": true
+    }
+  ],
+  "categories": [
+    {
+      "name": "Kitchen Cleaning & Disposables",
+      "slug": "kitchen-cleaning-disposables",
+      "color": "#059669",
+      "display_order": 8,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Dish Soap",
+          "slug": "dish-soap",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Scrub Pads",
+          "slug": "scrub-pads",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Sponges",
+          "slug": "sponges",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Dishwasher Pods",
+          "slug": "dishwasher-pods",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Trash Bags",
+          "slug": "trash-bags",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Aluminum Foil",
+          "slug": "aluminum-foil",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Parchment Paper",
+          "slug": "parchment-paper",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Cling Wrap",
+          "slug": "cling-wrap",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Ziploc Bags",
+          "slug": "ziploc-bags",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Laundry & Fabric Care",
+      "slug": "laundry-fabric-care",
+      "color": "#2563EB",
+      "display_order": 9,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Laundry Detergent",
+          "slug": "laundry-detergent",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Liquid Detergent",
+          "slug": "liquid-detergent",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Stain Remover",
+          "slug": "stain-remover",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Fabric Softener",
+          "slug": "fabric-softener",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Bleach",
+          "slug": "bleach",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Dryer Sheets",
+          "slug": "dryer-sheets",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Lint Roller",
+          "slug": "lint-roller",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Washing Machine Cleaner",
+          "slug": "washing-machine-cleaner",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Surface & Bath Sanitation",
+      "slug": "surface-bath-sanitation",
+      "color": "#0891B2",
+      "display_order": 10,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Floor Cleaner",
+          "slug": "floor-cleaner",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Disinfectant Spray",
+          "slug": "disinfectant-spray",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Bathroom Cleaner",
+          "slug": "bathroom-cleaner",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Toilet Cleaner",
+          "slug": "toilet-cleaner",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Glass Cleaner",
+          "slug": "glass-cleaner",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Microfiber Cloths",
+          "slug": "microfiber-cloths",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Descalers",
+          "slug": "descalers",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Mop Refills",
+          "slug": "mop-refills",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Mosquito Coil",
+          "slug": "mosquito-coil",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Insect Aerosol Spray",
+          "slug": "insect-aerosol-spray",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Naphthalene Balls",
+          "slug": "naphthalene-balls",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Paper & Sanitary Goods",
+      "slug": "paper-sanitary-goods",
+      "color": "#64748B",
+      "display_order": 11,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Toilet Paper",
+          "slug": "toilet-paper",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Paper Towels",
+          "slug": "paper-towels",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Facial Tissues",
+          "slug": "facial-tissues",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Wet Wipes",
+          "slug": "wet-wipes",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Table Napkins",
+          "slug": "table-napkins",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Cotton Swabs",
+          "slug": "cotton-swabs",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Sanitary Pads",
+          "slug": "sanitary-pads",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    }
+  ]
+}

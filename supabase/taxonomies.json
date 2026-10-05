@@ -1,0 +1,2905 @@
+{
+  "version": "1.0.0",
+  "description": "The Commons \u2014 System Taxonomies, Tag Groups, Categories, and Tags",
+  "groups": [
+    {
+      "name": "Food, Pantry & Beverages",
+      "slug": "food-pantry-beverages",
+      "feature": "homeops",
+      "icon": "utensils",
+      "color": "#D97706",
+      "display_order": 1,
+      "is_system": true,
+      "schema_blueprint": [
+        {
+          "key": "brand",
+          "label": "Brand / Producer",
+          "type": "text",
+          "placeholder": "e.g. De Cecco, Heinz",
+          "filterable": true,
+          "sortable": true
+        },
+        {
+          "key": "package_size",
+          "label": "Package Size",
+          "type": "text",
+          "placeholder": "e.g. 500g, 1L, 12pk"
+        },
+        {
+          "key": "dietary",
+          "label": "Dietary / Organic",
+          "type": "select",
+          "options": [
+            "Organic",
+            "Gluten-Free",
+            "Vegan",
+            "Vegetarian",
+            "Dairy-Free",
+            "Standard"
+          ],
+          "filterable": true
+        },
+        {
+          "key": "storage_temp",
+          "label": "Storage Location",
+          "type": "select",
+          "options": [
+            "Pantry Ambient",
+            "Refrigerator",
+            "Freezer",
+            "Wine Cooler",
+            "Root Cellar"
+          ],
+          "filterable": true
+        },
+        {
+          "key": "opened_date",
+          "label": "Date Opened",
+          "type": "date"
+        }
+      ],
+      "categories": [
+        {
+          "name": "Pantry & Dry Goods",
+          "slug": "pantry-dry-goods",
+          "color": "#F59E0B",
+          "display_order": 1,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Grains",
+              "slug": "grains",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Rice",
+              "slug": "rice",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Pasta",
+              "slug": "pasta",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Lentils",
+              "slug": "lentils",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Beans",
+              "slug": "beans",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Flour",
+              "slug": "flour",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Baking Essentials",
+              "slug": "baking-essentials",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Breakfast Cereals",
+              "slug": "breakfast-cereals",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Noodles",
+              "slug": "noodles",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Canned Goods",
+              "slug": "canned-goods",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Vermicelli Shemai",
+              "slug": "vermicelli-shemai",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Puffed Rice Muri",
+              "slug": "puffed-rice-muri",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Flattened Rice Chira",
+              "slug": "flattened-rice-chira",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Oils, Sauces & Condiments",
+          "slug": "oils-sauces-condiments",
+          "color": "#D97706",
+          "display_order": 2,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Cooking Oil",
+              "slug": "cooking-oil",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Vinegar",
+              "slug": "vinegar",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Soy Sauce",
+              "slug": "soy-sauce",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Hot Sauce",
+              "slug": "hot-sauce",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Mustard",
+              "slug": "mustard",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Mayonnaise",
+              "slug": "mayonnaise",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Dressings",
+              "slug": "dressings",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Marinades",
+              "slug": "marinades",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Cooking Paste",
+              "slug": "cooking-paste",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Mustard Oil",
+              "slug": "mustard-oil",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Ghee",
+              "slug": "ghee",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Pickle Achar",
+              "slug": "pickle-achar",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Spices & Seasonings",
+          "slug": "spices-seasonings",
+          "color": "#EA580C",
+          "display_order": 3,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Whole Spices",
+              "slug": "whole-spices",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Ground Spices",
+              "slug": "ground-spices",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Salt",
+              "slug": "salt",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Pepper",
+              "slug": "pepper",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Bouillon Cubes",
+              "slug": "bouillon-cubes",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Extracts",
+              "slug": "extracts",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Spice Blends",
+              "slug": "spice-blends",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Dried Herbs",
+              "slug": "dried-herbs",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Fresh & Perishables",
+          "slug": "fresh-perishables",
+          "color": "#10B981",
+          "display_order": 4,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Dairy",
+              "slug": "dairy",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Milk",
+              "slug": "milk",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Eggs",
+              "slug": "eggs",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Cheese",
+              "slug": "cheese",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Fresh Vegetables",
+              "slug": "fresh-vegetables",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Fruits",
+              "slug": "fruits",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Fresh Herbs",
+              "slug": "fresh-herbs",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Bread",
+              "slug": "bread",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Tofu",
+              "slug": "tofu",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Chilled Sauces",
+              "slug": "chilled-sauces",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Freezer Reserves",
+          "slug": "freezer-reserves",
+          "color": "#06B6D4",
+          "display_order": 5,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Frozen Meat",
+              "slug": "frozen-meat",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Frozen Poultry",
+              "slug": "frozen-poultry",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Frozen Fish",
+              "slug": "frozen-fish",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Batch Meals",
+              "slug": "batch-meals",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Frozen Vegetables",
+              "slug": "frozen-vegetables",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Frozen Dough",
+              "slug": "frozen-dough",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Ice Cream",
+              "slug": "ice-cream",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Beverages & Brew Bar",
+          "slug": "beverages-brew-bar",
+          "color": "#0D9488",
+          "display_order": 6,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Coffee Beans",
+              "slug": "coffee-beans",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Ground Coffee",
+              "slug": "ground-coffee",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Tea Leaves",
+              "slug": "tea-leaves",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Tea Bags",
+              "slug": "tea-bags",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Syrups",
+              "slug": "syrups",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Juices",
+              "slug": "juices",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Soda",
+              "slug": "soda",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Sparkling Water",
+              "slug": "sparkling-water",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Snacks & Confectionery",
+          "slug": "snacks-confectionery",
+          "color": "#F43F5E",
+          "display_order": 7,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Nuts",
+              "slug": "nuts",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Seeds",
+              "slug": "seeds",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Chips",
+              "slug": "chips",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Crackers",
+              "slug": "crackers",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Biscuits",
+              "slug": "biscuits",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Dried Fruits",
+              "slug": "dried-fruits",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Chocolates",
+              "slug": "chocolates",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Popcorn",
+              "slug": "popcorn",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Household & Cleaning Supplies",
+      "slug": "household-cleaning-supplies",
+      "feature": "homeops",
+      "icon": "sparkles",
+      "color": "#059669",
+      "display_order": 2,
+      "is_system": true,
+      "schema_blueprint": [
+        {
+          "key": "brand",
+          "label": "Brand / Manufacturer",
+          "type": "text",
+          "placeholder": "e.g. Seventh Generation, Dawn",
+          "filterable": true
+        },
+        {
+          "key": "surface_type",
+          "label": "Target Surface",
+          "type": "select",
+          "options": [
+            "Multi-Surface",
+            "Glass / Mirror",
+            "Wood",
+            "Stainless Steel",
+            "Bathroom / Tile",
+            "Laundry Fabric"
+          ],
+          "filterable": true
+        },
+        {
+          "key": "scent",
+          "label": "Scent / Formula",
+          "type": "text",
+          "placeholder": "e.g. Lavender, Fragrance-Free"
+        },
+        {
+          "key": "refillable",
+          "label": "Refillable Bottle",
+          "type": "boolean",
+          "description": "Is this a reusable container with bulk refills?",
+          "filterable": true
+        }
+      ],
+      "categories": [
+        {
+          "name": "Kitchen Cleaning & Disposables",
+          "slug": "kitchen-cleaning-disposables",
+          "color": "#059669",
+          "display_order": 8,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Dish Soap",
+              "slug": "dish-soap",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Scrub Pads",
+              "slug": "scrub-pads",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Sponges",
+              "slug": "sponges",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Dishwasher Pods",
+              "slug": "dishwasher-pods",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Trash Bags",
+              "slug": "trash-bags",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Aluminum Foil",
+              "slug": "aluminum-foil",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Parchment Paper",
+              "slug": "parchment-paper",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Cling Wrap",
+              "slug": "cling-wrap",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Ziploc Bags",
+              "slug": "ziploc-bags",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Laundry & Fabric Care",
+          "slug": "laundry-fabric-care",
+          "color": "#2563EB",
+          "display_order": 9,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Laundry Detergent",
+              "slug": "laundry-detergent",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Liquid Detergent",
+              "slug": "liquid-detergent",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Stain Remover",
+              "slug": "stain-remover",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Fabric Softener",
+              "slug": "fabric-softener",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Bleach",
+              "slug": "bleach",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Dryer Sheets",
+              "slug": "dryer-sheets",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Lint Roller",
+              "slug": "lint-roller",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Washing Machine Cleaner",
+              "slug": "washing-machine-cleaner",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Surface & Bath Sanitation",
+          "slug": "surface-bath-sanitation",
+          "color": "#0891B2",
+          "display_order": 10,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Floor Cleaner",
+              "slug": "floor-cleaner",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Disinfectant Spray",
+              "slug": "disinfectant-spray",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Bathroom Cleaner",
+              "slug": "bathroom-cleaner",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Toilet Cleaner",
+              "slug": "toilet-cleaner",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Glass Cleaner",
+              "slug": "glass-cleaner",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Microfiber Cloths",
+              "slug": "microfiber-cloths",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Descalers",
+              "slug": "descalers",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Mop Refills",
+              "slug": "mop-refills",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Mosquito Coil",
+              "slug": "mosquito-coil",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Insect Aerosol Spray",
+              "slug": "insect-aerosol-spray",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Naphthalene Balls",
+              "slug": "naphthalene-balls",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Paper & Sanitary Goods",
+          "slug": "paper-sanitary-goods",
+          "color": "#64748B",
+          "display_order": 11,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Toilet Paper",
+              "slug": "toilet-paper",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Paper Towels",
+              "slug": "paper-towels",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Facial Tissues",
+              "slug": "facial-tissues",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Wet Wipes",
+              "slug": "wet-wipes",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Table Napkins",
+              "slug": "table-napkins",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Cotton Swabs",
+              "slug": "cotton-swabs",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Sanitary Pads",
+              "slug": "sanitary-pads",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Electronics, Computing & Smart Tech",
+      "slug": "electronics-computing-smart-tech",
+      "feature": "homeops",
+      "icon": "cpu",
+      "color": "#4F46E5",
+      "display_order": 3,
+      "is_system": true,
+      "schema_blueprint": [
+        {
+          "key": "manufacturer",
+          "label": "Manufacturer / Brand",
+          "type": "text",
+          "placeholder": "e.g. Apple, Sony, Dell",
+          "filterable": true,
+          "sortable": true
+        },
+        {
+          "key": "model_number",
+          "label": "Model / Part #",
+          "type": "text",
+          "placeholder": "e.g. A2485, WH-1000XM5"
+        },
+        {
+          "key": "serial_number",
+          "label": "Serial Number",
+          "type": "text",
+          "placeholder": "S/N for warranty & recovery"
+        },
+        {
+          "key": "purchase_date",
+          "label": "Purchase Date",
+          "type": "date",
+          "filterable": true,
+          "sortable": true
+        },
+        {
+          "key": "warranty_period",
+          "label": "Warranty Period",
+          "type": "text",
+          "placeholder": "e.g. 1 Year, 2 Years, Lifetime"
+        },
+        {
+          "key": "warranty_expires",
+          "label": "Warranty Expiration",
+          "type": "date",
+          "filterable": true,
+          "sortable": true
+        },
+        {
+          "key": "firmware_os",
+          "label": "Firmware / OS",
+          "type": "text",
+          "placeholder": "e.g. macOS Sonoma, v2.1.0"
+        },
+        {
+          "key": "power_specs",
+          "label": "Power & Voltage",
+          "type": "text",
+          "placeholder": "e.g. 65W USB-C PD, 220V"
+        },
+        {
+          "key": "battery_type",
+          "label": "Power / Battery Source",
+          "type": "select",
+          "options": [
+            "Rechargeable (USB/Built-in)",
+            "Removable AA/AAA",
+            "Coin Cell (CR2032)",
+            "Lead Acid / IPS Battery",
+            "Mains Powered (AC 220V)"
+          ],
+          "filterable": true
+        },
+        {
+          "key": "last_charged_date",
+          "label": "Last Charged Date",
+          "type": "date",
+          "filterable": true,
+          "sortable": true
+        },
+        {
+          "key": "next_charge_due",
+          "label": "Next Charge Due",
+          "type": "date",
+          "filterable": true,
+          "sortable": true
+        },
+        {
+          "key": "last_calibrated_date",
+          "label": "Last Calibrated / Zeroed",
+          "type": "date",
+          "filterable": true,
+          "sortable": true
+        }
+      ],
+      "categories": [
+        {
+          "name": "Computing & Workstation",
+          "slug": "computing-workstation",
+          "color": "#4F46E5",
+          "display_order": 13,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Laptops",
+              "slug": "laptops",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Desktop PCs",
+              "slug": "desktop-pcs",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Monitors",
+              "slug": "monitors",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Keyboards",
+              "slug": "keyboards",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Mice",
+              "slug": "mice",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Docking Stations",
+              "slug": "docking-stations",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "UPS Units",
+              "slug": "ups-units",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "External Drives",
+              "slug": "external-drives",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "NAS Storage",
+              "slug": "nas-storage",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Mobile & Personal Gadgets",
+          "slug": "mobile-personal-gadgets",
+          "color": "#7C3AED",
+          "display_order": 14,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Smartphones",
+              "slug": "smartphones",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Tablets",
+              "slug": "tablets",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Smartwatches",
+              "slug": "smartwatches",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "E-Readers",
+              "slug": "e-readers",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Power Banks",
+              "slug": "power-banks",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Wall Chargers",
+              "slug": "wall-chargers",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Charging Cables",
+              "slug": "charging-cables",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Travel Adapters",
+              "slug": "travel-adapters",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Emergency Light",
+              "slug": "emergency-light",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Rechargeable Torch",
+              "slug": "rechargeable-torch",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Multiplug Extension",
+              "slug": "multiplug-extension",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Audio & Entertainment",
+          "slug": "audio-entertainment",
+          "color": "#9333EA",
+          "display_order": 15,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Televisions",
+              "slug": "televisions",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Speakers",
+              "slug": "speakers",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Soundbars",
+              "slug": "soundbars",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Headphones",
+              "slug": "headphones",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "IEMs",
+              "slug": "iems",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Gaming Consoles",
+              "slug": "gaming-consoles",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Streaming Devices",
+              "slug": "streaming-devices",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "DAC Amps",
+              "slug": "dac-amps",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Networking & Smart Home",
+          "slug": "networking-smart-home",
+          "color": "#059669",
+          "display_order": 18,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Wi-Fi Routers",
+              "slug": "wi-fi-routers",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Ethernet Switches",
+              "slug": "ethernet-switches",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Access Points",
+              "slug": "access-points",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Smart Plugs",
+              "slug": "smart-plugs",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Smart Bulbs",
+              "slug": "smart-bulbs",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Zigbee Gateways",
+              "slug": "zigbee-gateways",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Security Cameras",
+              "slug": "security-cameras",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Smart Sensors",
+              "slug": "smart-sensors",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Appliances & Climate Control",
+      "slug": "appliances-climate-control",
+      "feature": "homeops",
+      "icon": "tv",
+      "color": "#0284C7",
+      "display_order": 4,
+      "is_system": true,
+      "schema_blueprint": [
+        {
+          "key": "brand",
+          "label": "Brand / Maker",
+          "type": "text",
+          "placeholder": "e.g. Bosch, Breville, Dyson",
+          "filterable": true
+        },
+        {
+          "key": "model_number",
+          "label": "Model Number",
+          "type": "text",
+          "placeholder": "e.g. B36CL80ENS"
+        },
+        {
+          "key": "purchase_date",
+          "label": "Purchase Date",
+          "type": "date",
+          "filterable": true,
+          "sortable": true
+        },
+        {
+          "key": "warranty_period",
+          "label": "Warranty Period",
+          "type": "text",
+          "placeholder": "e.g. 1 Year, 5 Years, 10 Years Motor"
+        },
+        {
+          "key": "warranty_expires",
+          "label": "Warranty Expiration",
+          "type": "date",
+          "filterable": true,
+          "sortable": true
+        },
+        {
+          "key": "filter_model",
+          "label": "Filter / Consumable Part #",
+          "type": "text",
+          "placeholder": "e.g. Filter Type A, HEPA-13"
+        },
+        {
+          "key": "last_serviced",
+          "label": "Last Cleaned / Serviced",
+          "type": "date"
+        },
+        {
+          "key": "service_interval_months",
+          "label": "Service Interval (Months)",
+          "type": "number",
+          "unit": "months"
+        },
+        {
+          "key": "power_source",
+          "label": "Power Source",
+          "type": "select",
+          "options": [
+            "Corded AC (220V)",
+            "Rechargeable Battery",
+            "Removable AA/AAA Batteries",
+            "LPG Cylinder / Gas",
+            "Manual"
+          ],
+          "filterable": true
+        },
+        {
+          "key": "last_charged_date",
+          "label": "Last Charged Date",
+          "type": "date",
+          "filterable": true,
+          "sortable": true
+        },
+        {
+          "key": "next_charge_due",
+          "label": "Next Charge Due",
+          "type": "date",
+          "filterable": true,
+          "sortable": true
+        }
+      ],
+      "categories": [
+        {
+          "name": "Major Home Appliances",
+          "slug": "major-home-appliances",
+          "color": "#0284C7",
+          "display_order": 16,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Refrigerator",
+              "slug": "refrigerator",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Washing Machine",
+              "slug": "washing-machine",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Microwave Oven",
+              "slug": "microwave-oven",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Convection Oven",
+              "slug": "convection-oven",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Air Conditioner",
+              "slug": "air-conditioner",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Water Purifier",
+              "slug": "water-purifier",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Vacuum Cleaner",
+              "slug": "vacuum-cleaner",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Geyser",
+              "slug": "geyser",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "IPS Inverter",
+              "slug": "ips-inverter",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Voltage Stabilizer",
+              "slug": "voltage-stabilizer",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Ceiling Fan",
+              "slug": "ceiling-fan",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Rechargeable Fan",
+              "slug": "rechargeable-fan",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Deep Freezer",
+              "slug": "deep-freezer",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Small Kitchen Appliances",
+          "slug": "small-kitchen-appliances",
+          "color": "#D97706",
+          "display_order": 17,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Blender",
+              "slug": "blender",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Food Processor",
+              "slug": "food-processor",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Air Fryer",
+              "slug": "air-fryer",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Electric Kettle",
+              "slug": "electric-kettle",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Coffee Grinder",
+              "slug": "coffee-grinder",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Kitchen Scale",
+              "slug": "kitchen-scale",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Digital Weight Machine",
+              "slug": "digital-weight-machine",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Toaster",
+              "slug": "toaster",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Immersion Blender",
+              "slug": "immersion-blender",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Rice Cooker",
+              "slug": "rice-cooker",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Induction Cooker",
+              "slug": "induction-cooker",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Roti Maker",
+              "slug": "roti-maker",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Spice Grinder",
+              "slug": "spice-grinder",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tools, Hardware & Workshop",
+      "slug": "tools-hardware-workshop",
+      "feature": "homeops",
+      "icon": "wrench",
+      "color": "#C2410C",
+      "display_order": 5,
+      "is_system": true,
+      "schema_blueprint": [
+        {
+          "key": "brand",
+          "label": "Brand / Tool Maker",
+          "type": "text",
+          "placeholder": "e.g. DeWalt, Milwaukee, Wera",
+          "filterable": true
+        },
+        {
+          "key": "drive_size",
+          "label": "Drive / Fitting Size",
+          "type": "text",
+          "placeholder": "e.g. 1/4 inch, 1/2 inch, M4, M6"
+        },
+        {
+          "key": "purchase_date",
+          "label": "Purchase Date",
+          "type": "date",
+          "filterable": true,
+          "sortable": true
+        },
+        {
+          "key": "warranty_period",
+          "label": "Warranty Period",
+          "type": "text",
+          "placeholder": "e.g. 1 Year, 3 Years, Lifetime"
+        },
+        {
+          "key": "warranty_expires",
+          "label": "Warranty Expiration",
+          "type": "date",
+          "filterable": true,
+          "sortable": true
+        },
+        {
+          "key": "power_source",
+          "label": "Power Source",
+          "type": "select",
+          "options": [
+            "Manual / Hand",
+            "Cordless Battery (12V/18V/20V)",
+            "Corded AC (220V)",
+            "Pneumatic / Air"
+          ],
+          "filterable": true
+        },
+        {
+          "key": "last_charged_date",
+          "label": "Last Charged Date",
+          "type": "date",
+          "filterable": true,
+          "sortable": true
+        },
+        {
+          "key": "next_charge_due",
+          "label": "Next Charge Due",
+          "type": "date",
+          "filterable": true,
+          "sortable": true
+        },
+        {
+          "key": "storage_box",
+          "label": "Toolbox / Bin Location",
+          "type": "text",
+          "placeholder": "e.g. Workshop Rack 2, Drawer A"
+        }
+      ],
+      "categories": [
+        {
+          "name": "Home Hardware & Utility Spares",
+          "slug": "home-hardware-utility-spares",
+          "color": "#71717A",
+          "display_order": 12,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Light Bulbs",
+              "slug": "light-bulbs",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "AA Batteries",
+              "slug": "aa-batteries",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "AAA Batteries",
+              "slug": "aaa-batteries",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "9V Batteries",
+              "slug": "9v-batteries",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Coin Cells",
+              "slug": "coin-cells",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Command Strips",
+              "slug": "command-strips",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Utility Fuses",
+              "slug": "utility-fuses",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Plumbing Washers",
+              "slug": "plumbing-washers",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Cable Clips",
+              "slug": "cable-clips",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Teflon Tape",
+              "slug": "teflon-tape",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Gas Pipe Regulator",
+              "slug": "gas-pipe-regulator",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Cable Ties",
+              "slug": "cable-ties",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Hand Tools",
+          "slug": "hand-tools",
+          "color": "#B45309",
+          "display_order": 19,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Screwdrivers",
+              "slug": "screwdrivers",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Pliers",
+              "slug": "pliers",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Socket Sets",
+              "slug": "socket-sets",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Hammers",
+              "slug": "hammers",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Utility Knives",
+              "slug": "utility-knives",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Tape Measures",
+              "slug": "tape-measures",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Hex Keys",
+              "slug": "hex-keys",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Adjustable Wrenches",
+              "slug": "adjustable-wrenches",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Spirit Levels",
+              "slug": "spirit-levels",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Power Tools & Accessories",
+          "slug": "power-tools-accessories",
+          "color": "#C2410C",
+          "display_order": 20,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Cordless Drills",
+              "slug": "cordless-drills",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Rotary Tools",
+              "slug": "rotary-tools",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Heat Guns",
+              "slug": "heat-guns",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Drill Bits",
+              "slug": "drill-bits",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Driver Bits",
+              "slug": "driver-bits",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Sanding Pads",
+              "slug": "sanding-pads",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Tool Batteries",
+              "slug": "tool-batteries",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Battery Chargers",
+              "slug": "battery-chargers",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Fixings & Fasteners",
+          "slug": "fixings-fasteners",
+          "color": "#52525B",
+          "display_order": 21,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Wood Screws",
+              "slug": "wood-screws",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Machine Screws",
+              "slug": "machine-screws",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Wall Anchors",
+              "slug": "wall-anchors",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Bolts",
+              "slug": "bolts",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Nuts",
+              "slug": "nuts",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Washers",
+              "slug": "washers",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Cable Ties",
+              "slug": "cable-ties",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Nails",
+              "slug": "nails",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Rivets",
+              "slug": "rivets",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DIY Craft, Electronics & Chemicals",
+      "slug": "diy-craft-electronics-chemicals",
+      "feature": "homeops",
+      "icon": "zap",
+      "color": "#8B5CF6",
+      "display_order": 6,
+      "is_system": true,
+      "schema_blueprint": [
+        {
+          "key": "hazmat_rating",
+          "label": "Safety / Handling",
+          "type": "select",
+          "options": [
+            "Safe / Non-toxic",
+            "Flammable",
+            "Corrosive",
+            "Ventilation Required",
+            "Wear Gloves"
+          ],
+          "filterable": true
+        },
+        {
+          "key": "cure_time",
+          "label": "Cure / Dry Time",
+          "type": "text",
+          "placeholder": "e.g. 24 hours, 5 mins"
+        },
+        {
+          "key": "expiry_date",
+          "label": "Pot Life / Expiration",
+          "type": "date"
+        }
+      ],
+      "categories": [
+        {
+          "name": "DIY Electronics & Soldering",
+          "slug": "diy-electronics-soldering",
+          "color": "#6366F1",
+          "display_order": 22,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Soldering Iron",
+              "slug": "soldering-iron",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Solder Wire",
+              "slug": "solder-wire",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Flux Paste",
+              "slug": "flux-paste",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Digital Multimeter",
+              "slug": "digital-multimeter",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Desoldering Pump",
+              "slug": "desoldering-pump",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Wire Strippers",
+              "slug": "wire-strippers",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Heat Shrink Tubing",
+              "slug": "heat-shrink-tubing",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Breadboards",
+              "slug": "breadboards",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Adhesives, Lubricants & Chemicals",
+          "slug": "adhesives-lubricants-chemicals",
+          "color": "#E11D48",
+          "display_order": 23,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "WD-40",
+              "slug": "wd-40",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Silicone Sealant",
+              "slug": "silicone-sealant",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Epoxy Resin",
+              "slug": "epoxy-resin",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Super Glue",
+              "slug": "super-glue",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Threadlocker",
+              "slug": "threadlocker",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Isopropyl Alcohol",
+              "slug": "isopropyl-alcohol",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Contact Cleaner",
+              "slug": "contact-cleaner",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Bearing Grease",
+              "slug": "bearing-grease",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Personal Care, Health & First Aid",
+      "slug": "personal-care-health-first-aid",
+      "feature": "homeops",
+      "icon": "heart-pulse",
+      "color": "#DC2626",
+      "display_order": 7,
+      "is_system": true,
+      "schema_blueprint": [
+        {
+          "key": "active_ingredient",
+          "label": "Active Ingredient",
+          "type": "text",
+          "placeholder": "e.g. Ibuprofen 200mg, Hydrocortisone"
+        },
+        {
+          "key": "dosage_instructions",
+          "label": "Dosage / Instructions",
+          "type": "text",
+          "placeholder": "e.g. 1 tablet every 6 hours"
+        },
+        {
+          "key": "opened_date",
+          "label": "Date Opened",
+          "type": "date"
+        },
+        {
+          "key": "prescription_for",
+          "label": "Prescribed For",
+          "type": "text",
+          "placeholder": "Family member or Over-The-Counter"
+        }
+      ],
+      "categories": [
+        {
+          "name": "First Aid & Medicine Cabinet",
+          "slug": "first-aid-medicine-cabinet",
+          "color": "#DC2626",
+          "display_order": 24,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Pain Relievers",
+              "slug": "pain-relievers",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Antiseptics",
+              "slug": "antiseptics",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Bandages",
+              "slug": "bandages",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Gauze Pads",
+              "slug": "gauze-pads",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Prescription Meds",
+              "slug": "prescription-meds",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Thermometers",
+              "slug": "thermometers",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Allergy Relief",
+              "slug": "allergy-relief",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Antacids",
+              "slug": "antacids",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Burn Cream",
+              "slug": "burn-cream",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Personal Grooming & Toiletries",
+          "slug": "personal-grooming-toiletries",
+          "color": "#DB2777",
+          "display_order": 25,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Body Wash",
+              "slug": "body-wash",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Bar Soap",
+              "slug": "bar-soap",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Shampoo",
+              "slug": "shampoo",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Conditioner",
+              "slug": "conditioner",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Toothpaste",
+              "slug": "toothpaste",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Toothbrush Heads",
+              "slug": "toothbrush-heads",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Deodorant",
+              "slug": "deodorant",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Razor Blades",
+              "slug": "razor-blades",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Sunscreen",
+              "slug": "sunscreen",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Moisturizer",
+              "slug": "moisturizer",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Coconut Hair Oil",
+              "slug": "coconut-hair-oil",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Talcum Powder",
+              "slug": "talcum-powder",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Living Spaces, Linens & Outdoors",
+      "slug": "living-spaces-linens-outdoors",
+      "feature": "homeops",
+      "icon": "compass",
+      "color": "#0284C7",
+      "display_order": 8,
+      "is_system": true,
+      "schema_blueprint": [
+        {
+          "key": "material",
+          "label": "Fabric / Material",
+          "type": "text",
+          "placeholder": "e.g. 100% Linen, Merino Wool, Ripstop Nylon",
+          "filterable": true
+        },
+        {
+          "key": "dimensions",
+          "label": "Dimensions / Size",
+          "type": "text",
+          "placeholder": "e.g. Queen 60x80 in, 2-Person"
+        },
+        {
+          "key": "care_instructions",
+          "label": "Care / Wash Instructions",
+          "type": "text",
+          "placeholder": "e.g. Cold Wash Delicate, Hang Dry"
+        }
+      ],
+      "categories": [
+        {
+          "name": "Home Textiles & Linens",
+          "slug": "home-textiles-linens",
+          "color": "#0284C7",
+          "display_order": 26,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Bed Sheets",
+              "slug": "bed-sheets",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Pillowcases",
+              "slug": "pillowcases",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Blankets",
+              "slug": "blankets",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Duvets",
+              "slug": "duvets",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Bath Towels",
+              "slug": "bath-towels",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Hand Towels",
+              "slug": "hand-towels",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Kitchen Towels",
+              "slug": "kitchen-towels",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Mattress Protectors",
+              "slug": "mattress-protectors",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Mosquito Net",
+              "slug": "mosquito-net",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Gamcha",
+              "slug": "gamcha",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Prayer Mat",
+              "slug": "prayer-mat",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Travel, Camping & Luggage",
+          "slug": "travel-camping-luggage",
+          "color": "#D97706",
+          "display_order": 27,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Suitcases",
+              "slug": "suitcases",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Backpacks",
+              "slug": "backpacks",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Duffle Bags",
+              "slug": "duffle-bags",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Tents",
+              "slug": "tents",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Sleeping Bags",
+              "slug": "sleeping-bags",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Camping Cookware",
+              "slug": "camping-cookware",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Flashlights",
+              "slug": "flashlights",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Dry Bags",
+              "slug": "dry-bags",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Documents, Archive & Media",
+      "slug": "documents-archive-media",
+      "feature": "homeops",
+      "icon": "archive",
+      "color": "#475569",
+      "display_order": 9,
+      "is_system": true,
+      "schema_blueprint": [
+        {
+          "key": "doc_type",
+          "label": "Document Type",
+          "type": "select",
+          "options": [
+            "Receipt / Proof of Purchase",
+            "User Manual",
+            "Warranty Certificate",
+            "Property Title",
+            "Insurance Policy",
+            "Tax Record"
+          ],
+          "filterable": true
+        },
+        {
+          "key": "issued_date",
+          "label": "Issue / Signed Date",
+          "type": "date"
+        },
+        {
+          "key": "retention_years",
+          "label": "Retention Period",
+          "type": "select",
+          "options": [
+            "1 Year",
+            "3 Years",
+            "7 Years (Tax)",
+            "Permanent / Indefinite"
+          ]
+        },
+        {
+          "key": "physical_binder",
+          "label": "Physical Archive Location",
+          "type": "text",
+          "placeholder": "e.g. Fireproof Safe, Red Binder 2"
+        }
+      ],
+      "categories": [
+        {
+          "name": "Documents & Archival Media",
+          "slug": "documents-archival-media",
+          "color": "#475569",
+          "display_order": 28,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Passports",
+              "slug": "passports",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "National IDs",
+              "slug": "national-ids",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Property Deeds",
+              "slug": "property-deeds",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Tax Returns",
+              "slug": "tax-returns",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Vehicle Papers",
+              "slug": "vehicle-papers",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Appliance Receipts",
+              "slug": "appliance-receipts",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Backup Drives",
+              "slug": "backup-drives",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "M-DISC Media",
+              "slug": "m-disc-media",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Action & Execution Taxonomy",
+      "slug": "action-execution-taxonomy",
+      "feature": "tasks",
+      "icon": "check-square",
+      "color": "#6366F1",
+      "display_order": 1,
+      "is_system": true,
+      "schema_blueprint": [],
+      "categories": [
+        {
+          "name": "Area of Life",
+          "slug": "area-of-life",
+          "color": "#6366F1",
+          "display_order": 1,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Chores",
+              "slug": "chores",
+              "color": "#F59E0B",
+              "is_system": true
+            },
+            {
+              "name": "Cleaning",
+              "slug": "cleaning",
+              "color": "#10B981",
+              "is_system": true
+            },
+            {
+              "name": "Groceries",
+              "slug": "groceries",
+              "color": "#84CC16",
+              "is_system": true
+            },
+            {
+              "name": "Home Maintenance",
+              "slug": "home-maintenance",
+              "color": "#D97706",
+              "is_system": true
+            },
+            {
+              "name": "Workout & Fitness",
+              "slug": "workout-fitness",
+              "color": "#EF4444",
+              "is_system": true
+            },
+            {
+              "name": "Health & Medical",
+              "slug": "health-medical",
+              "color": "#EC4899",
+              "is_system": true
+            },
+            {
+              "name": "Hygiene & Self-Care",
+              "slug": "hygiene-self-care",
+              "color": "#06B6D4",
+              "is_system": true
+            },
+            {
+              "name": "Bills & Finance",
+              "slug": "bills-finance",
+              "color": "#10B981",
+              "is_system": true
+            },
+            {
+              "name": "Work & Career",
+              "slug": "work-career",
+              "color": "#3B82F6",
+              "is_system": true
+            },
+            {
+              "name": "Learning & Study",
+              "slug": "learning-study",
+              "color": "#8B5CF6",
+              "is_system": true
+            },
+            {
+              "name": "Family & Relationships",
+              "slug": "family-relationships",
+              "color": "#F43F5E",
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Location & Context",
+          "slug": "location-context",
+          "color": "#2563EB",
+          "display_order": 2,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "@home",
+              "slug": "home",
+              "color": "#6366F1",
+              "is_system": true
+            },
+            {
+              "name": "@desk",
+              "slug": "desk",
+              "color": "#2563EB",
+              "is_system": true
+            },
+            {
+              "name": "@errand",
+              "slug": "errand",
+              "color": "#F59E0B",
+              "is_system": true
+            },
+            {
+              "name": "@outdoors",
+              "slug": "outdoors",
+              "color": "#059669",
+              "is_system": true
+            },
+            {
+              "name": "@phone",
+              "slug": "phone",
+              "color": "#8B5CF6",
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Energy & Focus",
+          "slug": "energy-focus",
+          "color": "#F59E0B",
+          "display_order": 3,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "\u26a1 High Focus",
+              "slug": "-high-focus",
+              "color": "#DC2626",
+              "is_system": true
+            },
+            {
+              "name": "\u26a1 Low Focus",
+              "slug": "-low-focus",
+              "color": "#3B82F6",
+              "is_system": true
+            },
+            {
+              "name": "\u26a1 Quick Hit (<5m)",
+              "slug": "-quick-hit-5m",
+              "color": "#10B981",
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Action Triggers",
+          "slug": "action-triggers",
+          "color": "#B91C1C",
+          "display_order": 4,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Today Must",
+              "slug": "today-must",
+              "color": "#B91C1C",
+              "is_system": true
+            },
+            {
+              "name": "This Week",
+              "slug": "this-week",
+              "color": "#D97706",
+              "is_system": true
+            },
+            {
+              "name": "Waiting On",
+              "slug": "waiting-on",
+              "color": "#6B7280",
+              "is_system": true
+            },
+            {
+              "name": "Someday / Maybe",
+              "slug": "someday-maybe",
+              "color": "#9CA3AF",
+              "is_system": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Strategic Horizons & Domains",
+      "slug": "strategic-horizons-domains",
+      "feature": "goals",
+      "icon": "target",
+      "color": "#6366F1",
+      "display_order": 1,
+      "is_system": true,
+      "schema_blueprint": [],
+      "categories": [
+        {
+          "name": "Domain",
+          "slug": "domain",
+          "color": "#6366F1",
+          "display_order": 1,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Civic & Guild",
+              "slug": "civic-guild",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Knowledge & Craft",
+              "slug": "knowledge-craft",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Health & Vitality",
+              "slug": "health-vitality",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Finance & Capital",
+              "slug": "finance-capital",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Home & Hearth",
+              "slug": "home-hearth",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Creative & Venture",
+              "slug": "creative-venture",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Energy & Bandwidth",
+          "slug": "energy-bandwidth",
+          "color": "#10B981",
+          "display_order": 2,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Deep Focus",
+              "slug": "deep-focus",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Quick Win",
+              "slug": "quick-win",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Administrative",
+              "slug": "administrative",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Collaborative",
+              "slug": "collaborative",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Impact & Leverage",
+          "slug": "impact-leverage",
+          "color": "#F59E0B",
+          "display_order": 3,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "High Leverage",
+              "slug": "high-leverage",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Foundational / Enabler",
+              "slug": "foundational-enabler",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Maintenance",
+              "slug": "maintenance",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Horizon & Cycle",
+          "slug": "horizon-cycle",
+          "color": "#0EA5E9",
+          "display_order": 4,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Immediate Focus",
+              "slug": "immediate-focus",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Quarterly Milestone",
+              "slug": "quarterly-milestone",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Long-term Horizon",
+              "slug": "long-term-horizon",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Execution Archetype",
+          "slug": "execution-archetype",
+          "color": "#8B5CF6",
+          "display_order": 5,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Project Deliverable",
+              "slug": "project-deliverable",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Ritual & Habit",
+              "slug": "ritual-habit",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Research & Discovery",
+              "slug": "research-discovery",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Reflections & Vitality",
+      "slug": "reflections-vitality",
+      "feature": "diary",
+      "icon": "book-open",
+      "color": "#3B82F6",
+      "display_order": 1,
+      "is_system": true,
+      "schema_blueprint": [],
+      "categories": [
+        {
+          "name": "Context",
+          "slug": "context",
+          "color": "#3B82F6",
+          "display_order": 1,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Deep Work",
+              "slug": "deep-work",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Reflections",
+              "slug": "reflections",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Planning",
+              "slug": "planning",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Energy Level",
+          "slug": "energy-level",
+          "color": "#10B981",
+          "display_order": 2,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "High Vitality",
+              "slug": "high-vitality",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Medium Vitality",
+              "slug": "medium-vitality",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Rest & Recovery",
+              "slug": "rest-recovery",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Codex & Registry Index",
+      "slug": "codex-registry-index",
+      "feature": "document",
+      "icon": "file-text",
+      "color": "#8B5CF6",
+      "display_order": 1,
+      "is_system": true,
+      "schema_blueprint": [],
+      "categories": [
+        {
+          "name": "Department",
+          "slug": "department",
+          "color": "#8B5CF6",
+          "display_order": 1,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Engineering",
+              "slug": "engineering",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Research",
+              "slug": "research",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Governance",
+              "slug": "governance",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        },
+        {
+          "name": "Document Type",
+          "slug": "document-type",
+          "color": "#F59E0B",
+          "display_order": 2,
+          "is_system": true,
+          "schema_blueprint": [],
+          "tags": [
+            {
+              "name": "Report",
+              "slug": "report",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Charter",
+              "slug": "charter",
+              "color": null,
+              "is_system": true
+            },
+            {
+              "name": "Dispatch",
+              "slug": "dispatch",
+              "color": null,
+              "is_system": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

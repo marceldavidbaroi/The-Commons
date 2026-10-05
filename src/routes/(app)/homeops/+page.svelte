@@ -20,7 +20,6 @@
 
 	// Filter & Search state
 	let searchQuery = $state('');
-	let typeFilter = $state<'all' | 'consumable' | 'asset'>('all');
 	let selectedTagFilter = $state<number | string | null>(null);
 	let selectedGroupFilter = $state<string | null>(null);
 	let groups = $state<TagGroup[]>([]);
@@ -45,20 +44,16 @@
 				matchesSearch = inName || inDesc || inCat || inGroup || inMeta;
 			}
 
-			const matchesType = typeFilter === 'all' || item.item_type === typeFilter;
 			const matchesGroup = !selectedGroupFilter || item.group_name === selectedGroupFilter;
 			const matchesTag =
 				!selectedTagFilter ||
-				(item.tags &&
-					item.tags.some(
-						(t) =>
-							t.slug === selectedTagFilter ||
-							t.id === selectedTagFilter ||
-							t.name.toLowerCase() === String(selectedTagFilter).toLowerCase()
-					)) ||
-				(item.tag_slugs && item.tag_slugs.includes(String(selectedTagFilter)));
+				item.tag_slug === selectedTagFilter ||
+				(item.tag &&
+					(item.tag.slug === selectedTagFilter ||
+						item.tag.id === selectedTagFilter ||
+						item.tag.name.toLowerCase() === String(selectedTagFilter).toLowerCase()));
 
-			return matchesSearch && matchesType && matchesGroup && matchesTag;
+			return matchesSearch && matchesGroup && matchesTag;
 		})
 	);
 
@@ -89,24 +84,21 @@
 			if (currentUserId) {
 				const dbItems = await fetchUserItems(currentUserId);
 				if (dbItems.length > 0) {
-					// Hydrate tag objects from loaded taxonomy
+					// Hydrate tag object from loaded taxonomy
 					items = dbItems.map((item) => {
 						const cat = categories.find((c) => (item.category_slug && c.slug === item.category_slug) || c.id === item.category_id);
 						const allTags = cat?.tags || categories.flatMap((c) => c.tags || []);
 						
-						let tagObjs: Array<{ id?: number; slug?: string; name: string; color?: string | null }> = [];
-						if (item.tag_slugs && item.tag_slugs.length > 0) {
-							tagObjs = item.tag_slugs.map((slug) => {
-								const matchedTag = allTags.find((t) => t.slug === slug);
-								return matchedTag || { slug, name: slug.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()), color: cat?.color || '#F59E0B' };
-							});
-						} else if (item.tag_ids && item.tag_ids.length > 0) {
-							tagObjs = item.tag_ids.map((tId) => {
-								const matchedTag = allTags.find((t) => t.id === tId);
-								return matchedTag || { id: tId, name: `Tag #${tId}`, color: cat?.color || '#F59E0B' };
-							});
+						let tagObj: { id?: number; slug?: string; name: string; color?: string | null } | null = null;
+						if (item.tag_slug) {
+							const matchedTag = allTags.find((t) => t.slug === item.tag_slug);
+							tagObj = matchedTag || {
+								slug: item.tag_slug,
+								name: item.tag_slug.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+								color: cat?.color || '#F59E0B'
+							};
 						}
-						return { ...item, tags: tagObjs };
+						return { ...item, tag: tagObj };
 					});
 				}
 			}
@@ -204,32 +196,7 @@
 			{/if}
 		</div>
 
-		<div class="filter-pills">
-			<button
-				type="button"
-				class="filter-pill"
-				class:active={typeFilter === 'all'}
-				onclick={() => (typeFilter = 'all')}
-			>
-				All ({items.length})
-			</button>
-			<button
-				type="button"
-				class="filter-pill"
-				class:active={typeFilter === 'consumable'}
-				onclick={() => (typeFilter = 'consumable')}
-			>
-				Consumables ({items.filter((i) => i.item_type === 'consumable').length})
-			</button>
-			<button
-				type="button"
-				class="filter-pill"
-				class:active={typeFilter === 'asset'}
-				onclick={() => (typeFilter = 'asset')}
-			>
-				Assets ({items.filter((i) => i.item_type === 'asset').length})
-			</button>
-		</div>
+
 
 		<!-- Domain Group Filter Selector -->
 		<div class="group-select-wrapper">
@@ -443,34 +410,6 @@
 		cursor: pointer;
 		font-size: 0.75rem;
 		padding: 0.25rem;
-	}
-
-	.filter-pills {
-		display: flex;
-		align-items: center;
-		gap: 0.25rem;
-		background: var(--bg-tertiary);
-		padding: 0.1875rem;
-		border-radius: var(--radius-sm);
-		border: 1px solid var(--border-subtle);
-	}
-
-	.filter-pill {
-		border: none;
-		background: transparent;
-		padding: 0.25rem 0.625rem;
-		border-radius: calc(var(--radius-sm) - 2px);
-		font-size: 0.75rem;
-		font-weight: 500;
-		color: var(--text-secondary);
-		cursor: pointer;
-		transition: all 0.15s ease;
-	}
-
-	.filter-pill.active {
-		background: var(--bg-secondary);
-		color: var(--text-primary);
-		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 	}
 
 	.active-tag-filter {

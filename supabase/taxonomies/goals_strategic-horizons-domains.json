@@ -1,0 +1,176 @@
+{
+  "name": "Strategic Horizons & Domains",
+  "slug": "strategic-horizons-domains",
+  "feature": "goals",
+  "icon": "target",
+  "color": "#6366F1",
+  "display_order": 1,
+  "is_system": true,
+  "schema_blueprint": [],
+  "categories": [
+    {
+      "name": "Domain",
+      "slug": "domain",
+      "color": "#6366F1",
+      "display_order": 1,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Civic & Guild",
+          "slug": "civic-guild",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Knowledge & Craft",
+          "slug": "knowledge-craft",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Health & Vitality",
+          "slug": "health-vitality",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Finance & Capital",
+          "slug": "finance-capital",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Home & Hearth",
+          "slug": "home-hearth",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Creative & Venture",
+          "slug": "creative-venture",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Energy & Bandwidth",
+      "slug": "energy-bandwidth",
+      "color": "#10B981",
+      "display_order": 2,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Deep Focus",
+          "slug": "deep-focus",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Quick Win",
+          "slug": "quick-win",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Administrative",
+          "slug": "administrative",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Collaborative",
+          "slug": "collaborative",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Impact & Leverage",
+      "slug": "impact-leverage",
+      "color": "#F59E0B",
+      "display_order": 3,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "High Leverage",
+          "slug": "high-leverage",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Foundational / Enabler",
+          "slug": "foundational-enabler",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Maintenance",
+          "slug": "maintenance",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Horizon & Cycle",
+      "slug": "horizon-cycle",
+      "color": "#0EA5E9",
+      "display_order": 4,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Immediate Focus",
+          "slug": "immediate-focus",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Quarterly Milestone",
+          "slug": "quarterly-milestone",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Long-term Horizon",
+          "slug": "long-term-horizon",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Execution Archetype",
+      "slug": "execution-archetype",
+      "color": "#8B5CF6",
+      "display_order": 5,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Project Deliverable",
+          "slug": "project-deliverable",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Ritual & Habit",
+          "slug": "ritual-habit",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Research & Discovery",
+          "slug": "research-discovery",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    }
+  ]
+}

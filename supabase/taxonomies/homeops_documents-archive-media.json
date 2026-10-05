@@ -1,0 +1,107 @@
+{
+  "name": "Documents, Archive & Media",
+  "slug": "documents-archive-media",
+  "feature": "homeops",
+  "icon": "archive",
+  "color": "#475569",
+  "display_order": 9,
+  "is_system": true,
+  "schema_blueprint": [
+    {
+      "key": "doc_type",
+      "label": "Document Type",
+      "type": "select",
+      "options": [
+        "Receipt / Proof of Purchase",
+        "User Manual",
+        "Warranty Certificate",
+        "Property Title",
+        "Insurance Policy",
+        "Tax Record"
+      ],
+      "filterable": true
+    },
+    {
+      "key": "issued_date",
+      "label": "Issue / Signed Date",
+      "type": "date"
+    },
+    {
+      "key": "retention_years",
+      "label": "Retention Period",
+      "type": "select",
+      "options": [
+        "1 Year",
+        "3 Years",
+        "7 Years (Tax)",
+        "Permanent / Indefinite"
+      ]
+    },
+    {
+      "key": "physical_binder",
+      "label": "Physical Archive Location",
+      "type": "text",
+      "placeholder": "e.g. Fireproof Safe, Red Binder 2"
+    }
+  ],
+  "categories": [
+    {
+      "name": "Documents & Archival Media",
+      "slug": "documents-archival-media",
+      "color": "#475569",
+      "display_order": 28,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Passports",
+          "slug": "passports",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "National IDs",
+          "slug": "national-ids",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Property Deeds",
+          "slug": "property-deeds",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Tax Returns",
+          "slug": "tax-returns",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Vehicle Papers",
+          "slug": "vehicle-papers",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Appliance Receipts",
+          "slug": "appliance-receipts",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Backup Drives",
+          "slug": "backup-drives",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "M-DISC Media",
+          "slug": "m-disc-media",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    }
+  ]
+}

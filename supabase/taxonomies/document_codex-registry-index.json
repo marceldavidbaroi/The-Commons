@@ -1,0 +1,68 @@
+{
+  "name": "Codex & Registry Index",
+  "slug": "codex-registry-index",
+  "feature": "document",
+  "icon": "file-text",
+  "color": "#8B5CF6",
+  "display_order": 1,
+  "is_system": true,
+  "schema_blueprint": [],
+  "categories": [
+    {
+      "name": "Department",
+      "slug": "department",
+      "color": "#8B5CF6",
+      "display_order": 1,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Engineering",
+          "slug": "engineering",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Research",
+          "slug": "research",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Governance",
+          "slug": "governance",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    },
+    {
+      "name": "Document Type",
+      "slug": "document-type",
+      "color": "#F59E0B",
+      "display_order": 2,
+      "is_system": true,
+      "schema_blueprint": [],
+      "tags": [
+        {
+          "name": "Report",
+          "slug": "report",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Charter",
+          "slug": "charter",
+          "color": null,
+          "is_system": true
+        },
+        {
+          "name": "Dispatch",
+          "slug": "dispatch",
+          "color": null,
+          "is_system": true
+        }
+      ]
+    }
+  ]
+}
