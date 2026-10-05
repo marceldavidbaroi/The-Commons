@@ -6,6 +6,7 @@ export interface SchemaColumn {
 	type: string;
 	isNullable: boolean;
 	isOptionalInsert: boolean;
+	isPrimaryKey?: boolean;
 }
 
 export interface SchemaRelationship {
@@ -31,6 +32,29 @@ export interface SchemaMetadata {
 	tables: SchemaTable[];
 	enums: SchemaEnum[];
 	lastUpdated: string;
+}
+
+export function formatConcisePostgresType(colName: string, rawType: string): string {
+	const clean = rawType.replace(/\s*\|\s*null/g, '').trim();
+	if (colName === 'id' || colName.endsWith('_id') || colName === 'user_id' || colName === 'added_by') {
+		if (clean === 'number') return 'int8';
+		if (clean.includes('string') && colName.includes('uuid')) return 'uuid';
+	}
+	if (colName === 'auth_user_id') return 'uuid';
+	if (colName.includes('date') || colName.endsWith('_at')) {
+		if (clean === 'string') return 'timestamptz';
+	}
+	if (clean === 'number') {
+		if (colName.includes('count') || colName.includes('order') || colName.includes('minutes') || colName.includes('level')) {
+			return 'int4';
+		}
+		return 'int8';
+	}
+	if (clean === 'boolean') return 'bool';
+	if (clean === 'string[]') return '_text';
+	if (clean === 'string') return 'text';
+	if (clean === 'Json' || clean.includes('Json') || clean.includes('{')) return 'jsonb';
+	return clean.toLowerCase();
 }
 
 /**
@@ -122,11 +146,13 @@ export function getDatabaseSchemaMetadata(): SchemaMetadata {
 					const isNullable = colType.includes('null');
 
 					currentTable.columns = currentTable.columns || [];
+					const isPrimaryKey = colName === 'id';
 					currentTable.columns.push({
 						name: colName,
-						type: colType,
+						type: formatConcisePostgresType(colName, colType),
 						isNullable,
-						isOptionalInsert: false
+						isOptionalInsert: false,
+						isPrimaryKey
 					});
 				}
 			}

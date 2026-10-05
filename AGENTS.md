@@ -58,7 +58,23 @@
   ```
 - Do **NOT** implement dual-track code (calling an RPC then catching an error to fall back to direct table queries). Standard direct queries with RLS are the default.
 
-## 4. UUID-First Navigation & Lookups
+## 4. Mutation & State Synchronization (No Redundant Re-fetching)
+- **Use Returned Mutation Data**: Whenever creating, updating, or deleting via Supabase or SvelteKit form actions/endpoints, use `.select()` on inserts/updates to return the mutated record immediately:
+  ```ts
+  const { data: updatedItem, error } = await supabase
+    .from("items")
+    .update(payload)
+    .eq("id", id)
+    .select()
+    .single();
+  ```
+- **Local State Updates**: Update client state directly using the returned record instead of triggering a full secondary GET/list re-fetch:
+  - **Insert**: Prepend/append `updatedItem` to the local list state: `items = [newItem, ...items]`.
+  - **Update**: Replace in-place: `items = items.map(i => i.id === id ? updatedItem : i)`.
+  - **Delete**: Filter locally: `items = items.filter(i => i.id !== id)`.
+- **Prohibited**: Do NOT execute a write operation and immediately fire a separate `fetchList()` or `load()` query unless complex server-computed aggregates require recalculation.
+
+## 5. UUID-First Navigation & Lookups
 - Always use database UUID (`entry.id` / `task.id`) for lookups and route navigation.
 - Use SvelteKit `goto(url)` for programmatic navigation. Avoid manual `window.history.replaceState` hacks.
 
@@ -89,5 +105,8 @@ For any new feature or major enhancement, use a **single, high-density spec file
 - **Database Ground Truth**: Auto-generate types from Supabase (`supabase gen types typescript`) into `src/lib/types/database.types.ts`.
 - **API Matrix**: SvelteKit routes in `src/routes/` are the authoritative route contracts.
 - **Visualizer**: Use `/dev/document` to review architecture and feature specs, and Supabase Studio for schema inspection.
+- **Migration Immutability (Token & State Safety)**:
+  - **NEVER modify or rewrite past/applied migration files** in `supabase/migrations/`. Applied migrations are immutable history. Always write a new incremental migration file (`<timestamp>_*.sql`) for any schema changes.
+  - **Avoid reading past migration history**: Do NOT sweep or read through dozens of legacy migration files to understand the current database schema. Check generated types (`src/lib/types/database.types.ts`) or active schema definitions directly to conserve tokens.
 
 

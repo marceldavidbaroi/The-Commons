@@ -3,6 +3,10 @@
 	import { getSupabaseClient } from '$lib/supabase';
 	import { fetchUserProfile } from '$lib/services/member-service';
 	import type { Tag, TagCategory } from '$lib/types/tags';
+	import { PRESET_COLORS, DEFAULT_TAXONOMY, type DeleteConfirmation } from './tag-management/constants';
+	import TagCategoryItem from './tag-management/TagCategoryItem.svelte';
+	import AddCategoryForm from './tag-management/AddCategoryForm.svelte';
+	import TagDeleteModal from './tag-management/TagDeleteModal.svelte';
 
 	let {
 		feature = 'tasks',
@@ -58,99 +62,7 @@
 	let tagSearchQuery = $state('');
 
 	// Custom confirmation dialog state
-	let deleteConfirmation = $state<{
-		isOpen: boolean;
-		title: string;
-		message: string;
-		confirmLabel: string;
-		type: 'category' | 'tag';
-		targetId: number | string;
-		categoryId?: number | string;
-	} | null>(null);
-
-	const PRESET_COLORS = [
-		'#6366F1', // Indigo
-		'#10B981', // Emerald
-		'#0EA5E9', // Sky
-		'#F59E0B', // Amber
-		'#8B5CF6', // Violet
-		'#EC4899', // Pink
-		'#EF4444', // Red
-		'#6B7280', // Slate/Gray
-		'#14B8A6'  // Teal
-	];
-
-	// Default fallback taxonomy per feature when offline or mock mode
-	const DEFAULT_TAXONOMY: Record<string, { name: string; color: string; tags: string[] }[]> = {
-		tasks: [
-			{
-				name: 'Life Area',
-				color: '#6366F1',
-				tags: ['Projects', 'Chores', 'Market & Shopping', 'Personal Care', 'Finance & Bills']
-			},
-			{
-				name: 'Effort & Pace',
-				color: '#10B981',
-				tags: ['Quick (<15m)', 'Deep Focus', 'Routine / Habit']
-			},
-			{
-				name: 'Context / Location',
-				color: '#0EA5E9',
-				tags: ['Home', 'Work & Desk', 'Out & Errands', 'Online / Calls']
-			}
-		],
-		goals: [
-			{
-				name: 'Domain',
-				color: '#6366F1',
-				tags: ['Civic & Guild', 'Knowledge & Craft', 'Health & Vitality', 'Finance & Capital', 'Home & Hearth', 'Creative & Venture']
-			},
-			{
-				name: 'Energy & Bandwidth',
-				color: '#10B981',
-				tags: ['Deep Focus', 'Quick Win', 'Administrative', 'Collaborative']
-			},
-			{
-				name: 'Impact & Leverage',
-				color: '#F59E0B',
-				tags: ['High Leverage', 'Foundational / Enabler', 'Maintenance']
-			},
-			{
-				name: 'Horizon & Cycle',
-				color: '#0EA5E9',
-				tags: ['Immediate Focus', 'Quarterly Milestone', 'Long-term Horizon']
-			},
-			{
-				name: 'Execution Archetype',
-				color: '#8B5CF6',
-				tags: ['Project Deliverable', 'Ritual & Habit', 'Research & Discovery']
-			}
-		],
-		diary: [
-			{
-				name: 'Context',
-				color: '#3B82F6',
-				tags: ['Deep Work', 'Reflections', 'Planning']
-			},
-			{
-				name: 'Energy Level',
-				color: '#10B981',
-				tags: ['High Vitality', 'Medium Vitality', 'Rest & Recovery']
-			}
-		],
-		document: [
-			{
-				name: 'Department',
-				color: '#8B5CF6',
-				tags: ['Engineering', 'Research', 'Governance']
-			},
-			{
-				name: 'Document Type',
-				color: '#F59E0B',
-				tags: ['Report', 'Charter', 'Dispatch']
-			}
-		]
-	};
+	let deleteConfirmation = $state<DeleteConfirmation | null>(null);
 
 	async function loadCategoriesAndTags() {
 		isLoading = true;
@@ -282,7 +194,6 @@
 					categories = [...categories, { ...(data as TagCategory), tags: [] }];
 				}
 			} else {
-				// Mock Insert
 				const nextId = categories.length > 0 ? Math.max(...categories.map((c) => Number(c.id))) + 1 : 1;
 				const newCat: TagCategory = {
 					id: nextId,
@@ -470,7 +381,6 @@
 					});
 				}
 			} else {
-				// Mock Tag Insert
 				const allTags = categories.flatMap((c) => c.tags || []);
 				const nextTagId = allTags.length > 0 ? Math.max(...allTags.map((t) => Number(t.id))) + 1 : 101;
 
@@ -729,77 +639,16 @@
 				</div>
 			{/if}
 
-			<!-- Add Category Card / Drawer Form -->
+			<!-- Add Category Card Form -->
 			{#if isAddingCategory}
-				<div class="category-form-card">
-					<div class="form-header">
-						<span class="form-title">New Category for {feature}</span>
-						<button
-							type="button"
-							class="icon-btn-subtle"
-							onclick={() => (isAddingCategory = false)}
-							aria-label="Cancel adding category"
-						>
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-								<line x1="18" y1="6" x2="6" y2="18" />
-								<line x1="6" y1="6" x2="18" y2="18" />
-							</svg>
-						</button>
-					</div>
-
-					<div class="form-field">
-						<label for="new-category-name" class="field-label">Category Name</label>
-						<input
-							id="new-category-name"
-							type="text"
-							class="text-input"
-							bind:value={newCategoryName}
-							placeholder="e.g. Life Area, Priority, Context..."
-							autofocus
-							onkeydown={(e) => e.key === 'Enter' && handleCreateCategory()}
-						/>
-					</div>
-
-					<div class="form-field">
-						<label class="field-label">Accent Color</label>
-						<div class="color-palette-picker">
-							{#each PRESET_COLORS as color}
-								<button
-									type="button"
-									class="color-dot"
-									class:selected={newCategoryColor === color}
-									style="background-color: {color};"
-									onclick={() => (newCategoryColor = color)}
-									aria-label="Select color {color}"
-								>
-									{#if newCategoryColor === color}
-										<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
-											<polyline points="20 6 9 17 4 12" />
-										</svg>
-									{/if}
-								</button>
-							{/each}
-						</div>
-					</div>
-
-					<div class="form-actions">
-						<button
-							type="button"
-							class="btn btn-secondary compact"
-							onclick={() => (isAddingCategory = false)}
-						>
-							Cancel
-						</button>
-						<button
-							type="button"
-							class="btn btn-primary compact"
-							disabled={!newCategoryName.trim() || isSavingCategory}
-							onclick={handleCreateCategory}
-						>
-							{isSavingCategory ? 'Creating...' : 'Create Category'}
-						</button>
-					</div>
-				</div>
+				<AddCategoryForm
+					{feature}
+					bind:newCategoryName
+					bind:newCategoryColor
+					{isSavingCategory}
+					onCancel={() => (isAddingCategory = false)}
+					onCreate={handleCreateCategory}
+				/>
 			{/if}
 
 			{#if isLoading}
@@ -837,263 +686,42 @@
 					{/if}
 				</div>
 			{:else}
-				<!-- Categories List Accordion / Sections -->
 				<div class="categories-container">
 					{#each filteredCategories as category (category.id)}
-						{@const isEditingCat = editingCategoryId === category.id}
-						{@const isAddingTag = activeAddTagCategoryId === category.id}
-						{@const catColor = category.color || '#6366F1'}
-
-						<div class="category-block">
-							<!-- Category Header Card -->
-							<div class="category-header">
-								{#if isEditingCat}
-									<!-- Inline Category Edit Form -->
-									<div class="inline-edit-category">
-										<input
-											type="text"
-											class="text-input compact"
-											bind:value={editCategoryName}
-											placeholder="Category name"
-											autofocus
-											onkeydown={(e) => e.key === 'Enter' && handleUpdateCategory(category.id)}
-										/>
-										<div class="color-palette-picker mini">
-											{#each PRESET_COLORS as color}
-												<button
-													type="button"
-													class="color-dot mini"
-													class:selected={editCategoryColor === color}
-													style="background-color: {color};"
-													onclick={() => (editCategoryColor = color)}
-													aria-label="Select color {color}"
-												></button>
-											{/each}
-										</div>
-										<div class="inline-edit-actions">
-											<button
-												type="button"
-												class="btn btn-secondary compact mini-btn"
-												onclick={() => (editingCategoryId = null)}
-											>
-												Cancel
-											</button>
-											<button
-												type="button"
-												class="btn btn-primary compact mini-btn"
-												onclick={() => handleUpdateCategory(category.id)}
-												disabled={!editCategoryName.trim()}
-											>
-												Save
-											</button>
-										</div>
-									</div>
-								{:else}
-									<div class="category-info">
-										<span class="category-color-bar" style="background-color: {catColor};"></span>
-										<div class="category-name-group">
-											<span class="category-name">{category.name}</span>
-											{#if category.is_system}
-												<span class="system-badge" title="Default System Category">System</span>
-											{/if}
-											<span class="category-count">
-												{(category.tags || []).length} {(category.tags || []).length === 1 ? 'tag' : 'tags'}
-											</span>
-										</div>
-									</div>
-
-									<div class="category-actions">
-										<button
-											type="button"
-											class="cat-action-btn"
-											onclick={() => {
-												activeAddTagCategoryId = category.id;
-												newTagName = '';
-												newTagColor = '';
-											}}
-											title="Add tag to {category.name}"
-										>
-											<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-												<line x1="12" y1="5" x2="12" y2="19" />
-												<line x1="5" y1="12" x2="19" y2="12" />
-											</svg>
-											<span>Tag</span>
-										</button>
-
-										{#if !category.is_system}
-											<button
-												type="button"
-												class="icon-action-btn"
-												onclick={() => {
-													editingCategoryId = category.id;
-													editCategoryName = category.name;
-													editCategoryColor = category.color || '#6366F1';
-												}}
-												title="Edit category"
-												aria-label="Edit category {category.name}"
-											>
-												<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-													<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-													<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-												</svg>
-											</button>
-
-											<button
-												type="button"
-												class="icon-action-btn delete-btn"
-												onclick={() => requestDeleteCategory(category.id)}
-												title="Delete category"
-												aria-label="Delete category {category.name}"
-											>
-												<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-													<polyline points="3 6 5 6 21 6" />
-													<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-												</svg>
-											</button>
-										{/if}
-									</div>
-								{/if}
-							</div>
-
-							<!-- Tags Pool for this Category -->
-							<div class="tags-pool">
-								{#if (category.tags || []).length === 0 && !isAddingTag}
-									<div class="no-tags-hint">
-										<span>No tags in this category.</span>
-										<button
-											type="button"
-											class="link-btn"
-											onclick={() => {
-												activeAddTagCategoryId = category.id;
-												newTagName = '';
-											}}
-										>
-											+ Add a tag
-										</button>
-									</div>
-								{:else}
-									<div class="tags-chip-list">
-										{#each category.tags || [] as tag (tag.id)}
-											{@const isEditingThisTag = editingTagId === tag.id}
-											{@const tagPillColor = tag.color || catColor}
-											{@const isSystemTag = Boolean(tag.is_system)}
-
-											{#if isEditingThisTag}
-												<div class="tag-edit-inline">
-													<input
-														type="text"
-														class="tag-inline-input"
-														bind:value={editTagName}
-														autofocus
-														onkeydown={(e) => {
-															if (e.key === 'Enter') handleUpdateTag(tag.id, category.id);
-															if (e.key === 'Escape') editingTagId = null;
-														}}
-													/>
-													<button
-														type="button"
-														class="tag-pill-action"
-														onclick={() => handleUpdateTag(tag.id, category.id)}
-														title="Save tag"
-													>
-														✓
-													</button>
-													<button
-														type="button"
-														class="tag-pill-action"
-														onclick={() => (editingTagId = null)}
-														title="Cancel"
-													>
-														✕
-													</button>
-												</div>
-											{:else}
-												<div
-													class="tag-chip"
-													class:system-tag-chip={isSystemTag}
-													style="--tag-accent: {tagPillColor};"
-												>
-													<span class="tag-hash">#</span>
-													<span class="tag-title">{tag.name}</span>
-
-													<!-- Only user-created tags have edit and delete actions -->
-													{#if !isSystemTag}
-														<div class="tag-chip-actions">
-															<button
-																type="button"
-																class="chip-mini-btn"
-																onclick={() => {
-																	editingTagId = tag.id;
-																	editTagName = tag.name;
-																	editTagColor = tag.color || '';
-																}}
-																title="Edit tag"
-																aria-label="Edit {tag.name}"
-															>
-																<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-																	<path d="M12 20h9" />
-																	<path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-																</svg>
-															</button>
-															<button
-																type="button"
-																class="chip-mini-btn delete"
-																onclick={() => requestDeleteTag(tag.id, category.id)}
-																title="Delete tag"
-																aria-label="Delete {tag.name}"
-															>
-																<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-																	<line x1="18" y1="6" x2="6" y2="18" />
-																	<line x1="6" y1="6" x2="18" y2="18" />
-																</svg>
-															</button>
-														</div>
-													{/if}
-												</div>
-											{/if}
-										{/each}
-									</div>
-								{/if}
-
-								<!-- Inline Add Tag Form for this category -->
-								{#if isAddingTag}
-									<div class="add-tag-box">
-										<div class="add-tag-input-row">
-											<span class="add-tag-prefix">#</span>
-											<input
-												type="text"
-												class="add-tag-input"
-												bind:value={newTagName}
-												placeholder="Tag name (e.g. Deep Focus, Urgent)..."
-												autofocus
-												onkeydown={(e) => {
-													if (e.key === 'Enter') handleCreateTag(category.id);
-													if (e.key === 'Escape') activeAddTagCategoryId = null;
-												}}
-											/>
-										</div>
-
-										<div class="add-tag-actions">
-											<button
-												type="button"
-												class="btn btn-secondary compact mini-btn"
-												onclick={() => (activeAddTagCategoryId = null)}
-											>
-												Cancel
-											</button>
-											<button
-												type="button"
-												class="btn btn-primary compact mini-btn"
-												disabled={!newTagName.trim() || isSavingTag}
-												onclick={() => handleCreateTag(category.id)}
-											>
-												{isSavingTag ? 'Adding...' : 'Add Tag'}
-											</button>
-										</div>
-									</div>
-								{/if}
-							</div>
-						</div>
+						<TagCategoryItem
+							{category}
+							{editingCategoryId}
+							bind:editCategoryName
+							bind:editCategoryColor
+							{editingTagId}
+							bind:editTagName
+							isAddingTag={activeAddTagCategoryId === category.id}
+							bind:newTagName
+							{isSavingTag}
+							onStartEditCategory={(cat) => {
+								editingCategoryId = cat.id;
+								editCategoryName = cat.name;
+								editCategoryColor = cat.color || '#6366F1';
+							}}
+							onCancelEditCategory={() => (editingCategoryId = null)}
+							onSaveCategory={handleUpdateCategory}
+							onDeleteCategory={requestDeleteCategory}
+							onStartAddTag={(catId) => {
+								activeAddTagCategoryId = catId;
+								newTagName = '';
+								newTagColor = '';
+							}}
+							onCancelAddTag={() => (activeAddTagCategoryId = null)}
+							onCreateTag={handleCreateTag}
+							onStartEditTag={(tag) => {
+								editingTagId = tag.id;
+								editTagName = tag.name;
+								editTagColor = tag.color || '';
+							}}
+							onCancelEditTag={() => (editingTagId = null)}
+							onSaveTag={handleUpdateTag}
+							onDeleteTag={requestDeleteTag}
+						/>
 					{/each}
 				</div>
 			{/if}
@@ -1128,49 +756,16 @@
 
 		<!-- Custom Delete Confirmation Dialog Modal -->
 		{#if deleteConfirmation && deleteConfirmation.isOpen}
-			<div
-				class="modal-backdrop"
-				onclick={() => (deleteConfirmation = null)}
-				role="presentation"
-				aria-hidden="true"
-			></div>
-
-			<div class="modal-dialog" role="dialog" aria-labelledby="modal-title" aria-modal="true">
-				<div class="modal-header">
-					<div class="modal-danger-icon">
-						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<polyline points="3 6 5 6 21 6" />
-							<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-						</svg>
-					</div>
-					<h3 id="modal-title" class="modal-title">{deleteConfirmation.title}</h3>
-				</div>
-
-				<p class="modal-message">{deleteConfirmation.message}</p>
-
-				<div class="modal-actions">
-					<button
-						type="button"
-						class="btn btn-secondary compact"
-						onclick={() => (deleteConfirmation = null)}
-					>
-						Cancel
-					</button>
-					<button
-						type="button"
-						class="btn btn-danger compact"
-						onclick={executeConfirmDelete}
-					>
-						{deleteConfirmation.confirmLabel}
-					</button>
-				</div>
-			</div>
+			<TagDeleteModal
+				confirmation={deleteConfirmation}
+				onCancel={() => (deleteConfirmation = null)}
+				onConfirm={executeConfirmDelete}
+			/>
 		{/if}
 	</aside>
 {/if}
 
 <style>
-	/* Solid backdrop without blur */
 	.panel-backdrop {
 		position: fixed;
 		inset: 0;
@@ -1216,7 +811,6 @@
 		}
 	}
 
-	/* Resize Handle */
 	.resize-handle {
 		position: absolute;
 		left: -4px;
@@ -1245,7 +839,6 @@
 		background-color: var(--primary);
 	}
 
-	/* Sticky Header */
 	.panel-header {
 		padding: 1rem 1.25rem 0.875rem;
 		background-color: var(--bg-secondary);
@@ -1325,7 +918,6 @@
 		height: 16px;
 	}
 
-	/* Search Bar */
 	.panel-search-bar {
 		padding: 0.625rem 1.25rem;
 		background-color: var(--bg-secondary);
@@ -1383,7 +975,6 @@
 		height: 12px;
 	}
 
-	/* Scrollable Body */
 	.panel-body {
 		flex: 1;
 		overflow-y: auto;
@@ -1393,7 +984,6 @@
 		gap: 1rem;
 	}
 
-	/* Alerts */
 	.alert {
 		padding: 0.625rem 0.875rem;
 		border-radius: var(--radius-sm);
@@ -1418,459 +1008,12 @@
 		cursor: pointer;
 	}
 
-	/* Category Form Card */
-	.category-form-card {
-		background-color: var(--bg-secondary);
-		border: 1px solid var(--border-subtle);
-		border-radius: var(--radius-md);
-		padding: 1rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-		animation: fadeIn 0.15s ease-out;
-	}
-
-	@keyframes fadeIn {
-		from {
-			opacity: 0;
-			transform: translateY(-4px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-
-	.form-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-	}
-
-	.form-title {
-		font-size: 0.875rem;
-		font-weight: 600;
-		color: var(--text-primary);
-	}
-
-	.form-field {
-		display: flex;
-		flex-direction: column;
-		gap: 0.375rem;
-	}
-
-	.field-label {
-		font-size: 0.75rem;
-		font-weight: 500;
-		color: var(--text-secondary);
-	}
-
-	.text-input {
-		padding: 0.4375rem 0.625rem;
-		font-size: 0.8125rem;
-		background-color: var(--bg-primary);
-		border: 1px solid var(--border-subtle);
-		border-radius: var(--radius-sm);
-		color: var(--text-primary);
-		outline: none;
-		transition: border-color 0.15s ease;
-	}
-
-	.text-input:focus {
-		border-color: var(--primary);
-	}
-
-	.text-input.compact {
-		padding: 0.25rem 0.5rem;
-		font-size: 0.8125rem;
-	}
-
-	.color-palette-picker {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		flex-wrap: wrap;
-	}
-
-	.color-palette-picker.mini {
-		gap: 0.25rem;
-	}
-
-	.color-dot {
-		width: 22px;
-		height: 22px;
-		border-radius: 50%;
-		border: 2px solid transparent;
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 0;
-		transition: transform 0.1s ease, border-color 0.1s ease;
-	}
-
-	.color-dot:hover {
-		transform: scale(1.15);
-	}
-
-	.color-dot.selected {
-		border-color: var(--text-primary);
-	}
-
-	.color-dot.mini {
-		width: 16px;
-		height: 16px;
-	}
-
-	.color-dot svg {
-		width: 12px;
-		height: 12px;
-	}
-
-	.form-actions {
-		display: flex;
-		align-items: center;
-		justify-content: flex-end;
-		gap: 0.5rem;
-		margin-top: 0.25rem;
-	}
-
-	/* Category Block */
 	.categories-container {
 		display: flex;
 		flex-direction: column;
 		gap: 0.875rem;
 	}
 
-	.category-block {
-		background-color: var(--bg-secondary);
-		border: 1px solid var(--border-subtle);
-		border-radius: var(--radius-md);
-		overflow: hidden;
-		transition: border-color 0.15s ease;
-	}
-
-	.category-block:hover {
-		border-color: var(--border-focus);
-	}
-
-	.category-header {
-		padding: 0.625rem 0.875rem;
-		background-color: var(--bg-tertiary);
-		border-bottom: 1px solid var(--border-subtle);
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.5rem;
-	}
-
-	.category-info {
-		display: flex;
-		align-items: center;
-		gap: 0.625rem;
-		min-width: 0;
-	}
-
-	.category-color-bar {
-		width: 4px;
-		height: 16px;
-		border-radius: 2px;
-		flex-shrink: 0;
-	}
-
-	.category-name-group {
-		display: flex;
-		align-items: baseline;
-		gap: 0.5rem;
-		min-width: 0;
-	}
-
-	.category-name {
-		font-size: 0.875rem;
-		font-weight: 600;
-		color: var(--text-primary);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	.system-badge {
-		font-size: 0.625rem;
-		text-transform: uppercase;
-		font-weight: 600;
-		letter-spacing: 0.04em;
-		background-color: var(--bg-surface);
-		color: var(--text-secondary);
-		padding: 0.0625rem 0.3125rem;
-		border-radius: var(--radius-sm);
-		line-height: 1.2;
-		border: 1px solid var(--border-subtle);
-	}
-
-	.category-count {
-		font-size: 0.6875rem;
-		color: var(--text-muted);
-		white-space: nowrap;
-	}
-
-	.category-actions {
-		display: flex;
-		align-items: center;
-		gap: 0.25rem;
-	}
-
-	.cat-action-btn {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.25rem;
-		font-size: 0.6875rem;
-		font-weight: 600;
-		color: var(--primary);
-		background-color: var(--bg-primary);
-		border: 1px solid var(--border-subtle);
-		padding: 0.1875rem 0.4375rem;
-		border-radius: var(--radius-sm);
-		cursor: pointer;
-		transition: background-color 0.15s ease, border-color 0.15s ease;
-	}
-
-	.cat-action-btn:hover {
-		background-color: var(--bg-surface);
-		border-color: var(--primary);
-	}
-
-	.cat-action-btn svg {
-		width: 11px;
-		height: 11px;
-	}
-
-	.icon-action-btn {
-		width: 24px;
-		height: 24px;
-		border-radius: 4px;
-		border: none;
-		background: transparent;
-		color: var(--text-secondary);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		cursor: pointer;
-		transition: background-color 0.15s ease, color 0.15s ease;
-		padding: 0;
-	}
-
-	.icon-action-btn:hover {
-		background-color: var(--bg-primary);
-		color: var(--text-primary);
-	}
-
-	.icon-action-btn.delete-btn:hover {
-		color: var(--danger);
-		background-color: #fee2e2;
-	}
-
-	.icon-action-btn svg {
-		width: 13px;
-		height: 13px;
-	}
-
-	/* Inline Category Edit */
-	.inline-edit-category {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		width: 100%;
-	}
-
-	.inline-edit-actions {
-		display: flex;
-		align-items: center;
-		gap: 0.25rem;
-		margin-left: auto;
-	}
-
-	/* Tags Pool */
-	.tags-pool {
-		padding: 0.75rem 0.875rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.625rem;
-	}
-
-	.no-tags-hint {
-		font-size: 0.75rem;
-		color: var(--text-muted);
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.link-btn {
-		background: none;
-		border: none;
-		color: var(--primary);
-		font-weight: 500;
-		cursor: pointer;
-		padding: 0;
-	}
-
-	.link-btn:hover {
-		text-decoration: underline;
-	}
-
-	.tags-chip-list {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.375rem;
-	}
-
-	/* Tag Chip */
-	.tag-chip {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.25rem;
-		padding: 0.25rem 0.5rem;
-		background-color: var(--bg-primary);
-		border: 1px solid var(--border-subtle);
-		border-left: 3px solid var(--tag-accent, var(--primary));
-		border-radius: var(--radius-sm);
-		font-size: 0.75rem;
-		color: var(--text-primary);
-		transition: border-color 0.15s ease, background-color 0.15s ease;
-	}
-
-	.tag-chip:hover {
-		border-color: var(--tag-accent, var(--primary));
-		background-color: var(--bg-surface);
-	}
-
-	.tag-hash {
-		font-size: 0.6875rem;
-		color: var(--tag-accent, var(--text-muted));
-		font-weight: 600;
-	}
-
-	.tag-title {
-		font-weight: 500;
-	}
-
-	.tag-chip-actions {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.125rem;
-		margin-left: 0.25rem;
-		opacity: 0.7;
-	}
-
-	.tag-chip:hover .tag-chip-actions {
-		opacity: 1;
-	}
-
-	.chip-mini-btn {
-		width: 16px;
-		height: 16px;
-		border-radius: 3px;
-		border: none;
-		background: transparent;
-		color: var(--text-secondary);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		cursor: pointer;
-		padding: 0;
-		transition: background-color 0.1s ease, color 0.1s ease;
-	}
-
-	.chip-mini-btn:hover {
-		background-color: var(--bg-tertiary);
-		color: var(--text-primary);
-	}
-
-	.chip-mini-btn.delete:hover {
-		color: var(--danger);
-		background-color: #fee2e2;
-	}
-
-	.chip-mini-btn svg {
-		width: 10px;
-		height: 10px;
-	}
-
-	/* Inline Tag Edit / Add Box */
-	.tag-edit-inline {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.25rem;
-		background-color: var(--bg-secondary);
-		border: 1px solid var(--primary);
-		border-radius: var(--radius-sm);
-		padding: 0.125rem 0.25rem;
-	}
-
-	.tag-inline-input {
-		border: none;
-		background: transparent;
-		font-size: 0.75rem;
-		color: var(--text-primary);
-		outline: none;
-		width: 80px;
-	}
-
-	.tag-pill-action {
-		background: none;
-		border: none;
-		font-size: 0.75rem;
-		cursor: pointer;
-		color: var(--text-secondary);
-		padding: 0 0.125rem;
-	}
-
-	.tag-pill-action:hover {
-		color: var(--primary);
-	}
-
-	.add-tag-box {
-		background-color: var(--bg-primary);
-		border: 1px dashed var(--border-subtle);
-		border-radius: var(--radius-sm);
-		padding: 0.5rem;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.5rem;
-		animation: fadeIn 0.12s ease-out;
-	}
-
-	.add-tag-input-row {
-		display: flex;
-		align-items: center;
-		gap: 0.25rem;
-		flex: 1;
-	}
-
-	.add-tag-prefix {
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: var(--text-muted);
-	}
-
-	.add-tag-input {
-		width: 100%;
-		border: none;
-		background: transparent;
-		font-size: 0.8125rem;
-		color: var(--text-primary);
-		outline: none;
-	}
-
-	.add-tag-actions {
-		display: flex;
-		align-items: center;
-		gap: 0.25rem;
-	}
-
-	/* Footer */
 	.panel-footer {
 		padding: 0.875rem 1.25rem;
 		background-color: var(--bg-secondary);
@@ -1882,7 +1025,6 @@
 		flex-shrink: 0;
 	}
 
-	/* Shared UI Components */
 	.btn {
 		display: inline-flex;
 		align-items: center;
@@ -1899,19 +1041,9 @@
 		white-space: nowrap;
 	}
 
-	.btn:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
-
 	.btn.compact {
 		padding: 0.3125rem 0.625rem;
 		font-size: 0.75rem;
-	}
-
-	.btn.mini-btn {
-		padding: 0.1875rem 0.4375rem;
-		font-size: 0.6875rem;
 	}
 
 	.btn-primary {
@@ -1920,7 +1052,7 @@
 		border-color: var(--primary);
 	}
 
-	.btn-primary:hover:not(:disabled) {
+	.btn-primary:hover {
 		background-color: var(--primary-hover);
 		border-color: var(--primary-hover);
 	}
@@ -1931,28 +1063,12 @@
 		border-color: var(--border-subtle);
 	}
 
-	.btn-secondary:hover:not(:disabled) {
+	.btn-secondary:hover {
 		background-color: var(--bg-surface);
 		border-color: var(--text-muted);
 	}
 
 	.btn-icon {
-		width: 14px;
-		height: 14px;
-	}
-
-	.icon-btn-subtle {
-		background: none;
-		border: none;
-		color: var(--text-muted);
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 0.25rem;
-	}
-
-	.icon-btn-subtle svg {
 		width: 14px;
 		height: 14px;
 	}
@@ -2001,99 +1117,5 @@
 		color: var(--text-secondary);
 		max-width: 260px;
 		margin-bottom: 0.5rem;
-	}
-
-	.btn-danger {
-		background-color: var(--danger);
-		color: #ffffff;
-		border-color: var(--danger);
-	}
-
-	.btn-danger:hover:not(:disabled) {
-		background-color: #b91c1c;
-		border-color: #b91c1c;
-	}
-
-	/* Custom Confirmation Modal Dialog */
-	.modal-backdrop {
-		position: fixed;
-		inset: 0;
-		background-color: rgba(31, 38, 51, 0.45);
-		z-index: 120;
-		animation: backdropFadeIn 0.12s ease-out;
-	}
-
-	.modal-dialog {
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		transform: translate(-50%, -50%);
-		width: calc(100% - 2.5rem);
-		max-width: 380px;
-		background-color: var(--bg-secondary);
-		border: 1px solid var(--border-subtle);
-		border-radius: var(--radius-md);
-		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.08);
-		padding: 1.25rem;
-		z-index: 130;
-		display: flex;
-		flex-direction: column;
-		gap: 0.875rem;
-		animation: modalZoomIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-	}
-
-	@keyframes modalZoomIn {
-		from {
-			opacity: 0;
-			transform: translate(-50%, -46%) scale(0.96);
-		}
-		to {
-			opacity: 1;
-			transform: translate(-50%, -50%) scale(1);
-		}
-	}
-
-	.modal-header {
-		display: flex;
-		align-items: center;
-		gap: 0.625rem;
-	}
-
-	.modal-danger-icon {
-		width: 32px;
-		height: 32px;
-		border-radius: 50%;
-		background-color: #fee2e2;
-		color: var(--danger);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-	}
-
-	.modal-danger-icon svg {
-		width: 16px;
-		height: 16px;
-	}
-
-	.modal-title {
-		font-size: 0.9375rem;
-		font-weight: 600;
-		color: var(--text-primary);
-		line-height: 1.3;
-	}
-
-	.modal-message {
-		font-size: 0.8125rem;
-		color: var(--text-secondary);
-		line-height: 1.45;
-	}
-
-	.modal-actions {
-		display: flex;
-		align-items: center;
-		justify-content: flex-end;
-		gap: 0.5rem;
-		margin-top: 0.375rem;
 	}
 </style>
