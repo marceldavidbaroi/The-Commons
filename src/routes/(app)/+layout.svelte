@@ -18,6 +18,7 @@
 		{ path: '/diaries', label: 'Journals' },
 		{ path: '/goals', label: 'Goals' },
 		{ path: '/tasks', label: 'Tasks' },
+		{ path: '/homeops', label: 'HomeOps' },
 		{ path: '/settings', label: 'Settings' }
 	];
 

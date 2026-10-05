@@ -2,7 +2,8 @@
 	import { onMount } from 'svelte';
 	import { getSupabaseClient } from '$lib/supabase';
 	import { fetchUserProfile } from '$lib/services/member-service';
-	import type { Tag, TagCategory } from '$lib/types/tags';
+	import { appState } from '$lib/state/app.svelte';
+	import { slugifyTag, type Tag, type TagCategory } from '$lib/types/tags';
 	import { PRESET_COLORS, DEFAULT_TAXONOMY, type DeleteConfirmation } from './tag-management/constants';
 	import TagCategoryItem from './tag-management/TagCategoryItem.svelte';
 	import AddCategoryForm from './tag-management/AddCategoryForm.svelte';
@@ -64,56 +65,15 @@
 	// Custom confirmation dialog state
 	let deleteConfirmation = $state<DeleteConfirmation | null>(null);
 
-	async function loadCategoriesAndTags() {
+	async function loadCategoriesAndTags(forceRefresh = false) {
 		isLoading = true;
 		categoryError = null;
 		try {
 			const profile = await fetchUserProfile();
 			if (profile) {
 				currentUserId = profile.id;
-
-				// Provision default categories if not already provisioned
-				try {
-					await supabase.rpc('provision_feature_tag_categories', {
-						p_feature: feature
-					});
-				} catch (rpcErr) {
-					console.warn('RPC provision_feature_tag_categories skipped:', rpcErr);
-				}
-
-				// Direct query fetching categories and their tags for this feature
-				const { data, error } = await supabase
-					.from('tag_categories')
-					.select('*, tags(*)')
-					.eq('user_id', profile.id)
-					.eq('feature', feature)
-					.order('display_order', { ascending: true })
-					.order('name', { foreignTable: 'tags', ascending: true });
-
-				if (error) throw error;
-				categories = (data as TagCategory[]) || [];
-			} else {
-				// Local / Mock initialization with defaults
-				const featureDefaults = DEFAULT_TAXONOMY[feature] || [
-					{ name: 'General', color: '#6366F1', tags: ['Default'] }
-				];
-
-				categories = featureDefaults.map((cat, idx) => ({
-					id: idx + 1,
-					feature,
-					name: cat.name,
-					color: cat.color,
-					display_order: idx + 1,
-					is_system: true,
-					tags: cat.tags.map((tName, tIdx) => ({
-						id: (idx + 1) * 100 + tIdx + 1,
-						category_id: idx + 1,
-						name: tName,
-						color: null,
-						is_system: true
-					}))
-				}));
 			}
+			categories = await appState.getFeatureTaxonomy(feature, forceRefresh);
 
 			if (onTagsChange) {
 				onTagsChange(categories);
@@ -174,6 +134,7 @@
 			}
 
 			const displayOrder = categories.length + 1;
+			const slug = slugifyTag(name);
 
 			if (currentUserId) {
 				const { data, error } = await supabase
@@ -182,6 +143,7 @@
 						user_id: currentUserId,
 						feature,
 						name,
+						slug,
 						color: newCategoryColor,
 						display_order: displayOrder,
 						is_system: false
@@ -192,11 +154,13 @@
 				if (error) throw error;
 				if (data) {
 					categories = [...categories, { ...(data as TagCategory), tags: [] }];
+					appState.setFeatureCategories(feature, categories);
 				}
 			} else {
 				const nextId = categories.length > 0 ? Math.max(...categories.map((c) => Number(c.id))) + 1 : 1;
 				const newCat: TagCategory = {
 					id: nextId,
+					slug,
 					feature,
 					name,
 					color: newCategoryColor,
@@ -205,6 +169,7 @@
 					tags: []
 				};
 				categories = [...categories, newCat];
+				appState.setFeatureCategories(feature, categories);
 			}
 
 			newCategoryName = '';
@@ -347,12 +312,14 @@
 
 		try {
 			if (currentUserId) {
+				const slug = slugifyTag(name);
 				const { data, error } = await supabase
 					.from('tags')
 					.insert({
 						category_id: Number(categoryId),
 						user_id: currentUserId,
 						name,
+						slug,
 						color: newTagColor || null
 					})
 					.select()
@@ -367,6 +334,7 @@
 								category_id: data.category_id,
 								user_id: data.user_id,
 								name: data.name,
+								slug: data.slug,
 								color: data.color,
 								is_system: data.is_system,
 								created_at: data.created_at,
@@ -379,6 +347,7 @@
 						}
 						return c;
 					});
+					appState.setFeatureCategories(feature, categories);
 				}
 			} else {
 				const allTags = categories.flatMap((c) => c.tags || []);
@@ -388,6 +357,7 @@
 					id: nextTagId,
 					category_id: Number(categoryId),
 					name,
+					slug: slugifyTag(name),
 					color: newTagColor || null,
 					is_system: false
 				};
@@ -401,6 +371,7 @@
 					}
 					return c;
 				});
+				appState.setFeatureCategories(feature, categories);
 			}
 
 			newTagName = '';

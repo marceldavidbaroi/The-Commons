@@ -24,22 +24,23 @@ export async function checkIsWhitelisted(email: string): Promise<boolean> {
 	return !!data;
 }
 
+import { appState } from '$lib/state/app.svelte';
+
 /**
- * Fetches the user profile by numeric ID or current auth session.
+ * Fetches the user profile by numeric ID or current auth session (cached in appState).
  */
 export async function fetchUserProfile(userId?: number): Promise<ProfileRow | null> {
-	const supabase = getSupabaseClient();
-
-	let query = supabase.from('profiles').select('*');
-	if (userId) {
-		query = query.eq('id', userId);
-	} else {
-		const { data: userData } = await supabase.auth.getUser();
-		if (!userData?.user) return null;
-		query = query.eq('auth_user_id', userData.user.id);
+	if (!userId) {
+		return await appState.getProfile();
 	}
 
-	const { data, error } = await query.maybeSingle();
+	const supabase = getSupabaseClient();
+	const { data, error } = await supabase
+		.from('profiles')
+		.select('*')
+		.eq('id', userId)
+		.maybeSingle();
+
 	if (error) {
 		console.error('Error fetching user profile:', error);
 		return null;

@@ -148,6 +148,7 @@ export type Database = {
           page_number: number
           start_time: string | null
           tag_ids: number[]
+          tag_slugs: string[]
           tags: string[]
           title: string
           updated_at: string
@@ -173,6 +174,7 @@ export type Database = {
           page_number?: number
           start_time?: string | null
           tag_ids?: number[]
+          tag_slugs?: string[]
           tags?: string[]
           title?: string
           updated_at?: string
@@ -198,6 +200,7 @@ export type Database = {
           page_number?: number
           start_time?: string | null
           tag_ids?: number[]
+          tag_slugs?: string[]
           tags?: string[]
           title?: string
           updated_at?: string
@@ -237,6 +240,7 @@ export type Database = {
           start_date: string | null
           status: Database["public"]["Enums"]["goal_status"]
           tag_ids: number[]
+          tag_slugs: string[]
           title: string
           type: Database["public"]["Enums"]["goal_type"]
           updated_at: string
@@ -255,6 +259,7 @@ export type Database = {
           start_date?: string | null
           status?: Database["public"]["Enums"]["goal_status"]
           tag_ids?: number[]
+          tag_slugs?: string[]
           title: string
           type?: Database["public"]["Enums"]["goal_type"]
           updated_at?: string
@@ -273,6 +278,7 @@ export type Database = {
           start_date?: string | null
           status?: Database["public"]["Enums"]["goal_status"]
           tag_ids?: number[]
+          tag_slugs?: string[]
           title?: string
           type?: Database["public"]["Enums"]["goal_type"]
           updated_at?: string
@@ -346,15 +352,18 @@ export type Database = {
         }
         Relationships: []
       }
-      tag_categories: {
+      tag_groups: {
         Row: {
           color: string
           created_at: string
           display_order: number
           feature: string
+          icon: string
           id: number
           is_system: boolean
           name: string
+          schema_blueprint: Json
+          slug: string
           updated_at: string
           user_id: number
         }
@@ -363,9 +372,12 @@ export type Database = {
           created_at?: string
           display_order?: number
           feature?: string
+          icon?: string
           id?: number
           is_system?: boolean
           name: string
+          schema_blueprint?: Json
+          slug: string
           updated_at?: string
           user_id: number
         }
@@ -374,13 +386,76 @@ export type Database = {
           created_at?: string
           display_order?: number
           feature?: string
+          icon?: string
           id?: number
           is_system?: boolean
           name?: string
+          schema_blueprint?: Json
+          slug?: string
           updated_at?: string
           user_id?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "tag_groups_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tag_categories: {
+        Row: {
+          color: string
+          created_at: string
+          display_order: number
+          feature: string
+          group_id: number | null
+          id: number
+          is_system: boolean
+          name: string
+          schema_blueprint: Json
+          slug: string
+          updated_at: string
+          user_id: number
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          feature?: string
+          group_id?: number | null
+          id?: number
+          is_system?: boolean
+          name: string
+          schema_blueprint?: Json
+          slug: string
+          updated_at?: string
+          user_id: number
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          feature?: string
+          group_id?: number | null
+          id?: number
+          is_system?: boolean
+          name?: string
+          schema_blueprint?: Json
+          slug?: string
+          updated_at?: string
+          user_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tag_categories_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "tag_groups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tag_categories_user_id_fkey"
             columns: ["user_id"]
@@ -398,6 +473,7 @@ export type Database = {
           id: number
           is_system: boolean
           name: string
+          slug: string
           updated_at: string
           user_id: number
         }
@@ -408,6 +484,7 @@ export type Database = {
           id?: number
           is_system?: boolean
           name: string
+          slug: string
           updated_at?: string
           user_id: number
         }
@@ -418,6 +495,7 @@ export type Database = {
           id?: number
           is_system?: boolean
           name?: string
+          slug?: string
           updated_at?: string
           user_id?: number
         }
@@ -452,6 +530,7 @@ export type Database = {
           sort_order: number
           status: Database["public"]["Enums"]["task_status"]
           tag_ids: number[]
+          tag_slugs: string[]
           time_estimate_minutes: number | null
           title: string
           updated_at: string
@@ -470,6 +549,7 @@ export type Database = {
           sort_order?: number
           status?: Database["public"]["Enums"]["task_status"]
           tag_ids?: number[]
+          tag_slugs?: string[]
           time_estimate_minutes?: number | null
           title: string
           updated_at?: string
@@ -488,6 +568,7 @@ export type Database = {
           sort_order?: number
           status?: Database["public"]["Enums"]["task_status"]
           tag_ids?: number[]
+          tag_slugs?: string[]
           time_estimate_minutes?: number | null
           title?: string
           updated_at?: string
@@ -512,51 +593,85 @@ export type Database = {
       }
       user_items: {
         Row: {
-          category: string | null
+          category_id: number | null
+          category_slug: string | null
+          condition_status: string | null
           created_at: string
           description: string | null
+          expiration_date: string | null
           id: number
-          is_favorite: boolean
-          is_pinned: boolean
+          is_archived: boolean
+          is_loaned: boolean
+          item_type: string
+          loaned_at: string | null
+          loaned_to: string | null
+          location_id: number | null
           metadata: Json
-          sort_order: number
-          status: string
-          tags: string[]
-          title: string
+          name: string
+          quantity: number | null
+          reorder_threshold: number | null
+          tag_ids: number[]
+          tag_slugs: string[]
+          unit_of_measure: string | null
           updated_at: string
           user_id: number
         }
         Insert: {
-          category?: string | null
+          category_id?: number | null
+          category_slug?: string | null
+          condition_status?: string | null
           created_at?: string
           description?: string | null
+          expiration_date?: string | null
           id?: number
-          is_favorite?: boolean
-          is_pinned?: boolean
+          is_archived?: boolean
+          is_loaned?: boolean
+          item_type: string
+          loaned_at?: string | null
+          loaned_to?: string | null
+          location_id?: number | null
           metadata?: Json
-          sort_order?: number
-          status?: string
-          tags?: string[]
-          title: string
+          name: string
+          quantity?: number | null
+          reorder_threshold?: number | null
+          tag_ids?: number[]
+          tag_slugs?: string[]
+          unit_of_measure?: string | null
           updated_at?: string
           user_id: number
         }
         Update: {
-          category?: string | null
+          category_id?: number | null
+          category_slug?: string | null
+          condition_status?: string | null
           created_at?: string
           description?: string | null
+          expiration_date?: string | null
           id?: number
-          is_favorite?: boolean
-          is_pinned?: boolean
+          is_archived?: boolean
+          is_loaned?: boolean
+          item_type?: string
+          loaned_at?: string | null
+          loaned_to?: string | null
+          location_id?: number | null
           metadata?: Json
-          sort_order?: number
-          status?: string
-          tags?: string[]
-          title?: string
+          name?: string
+          quantity?: number | null
+          reorder_threshold?: number | null
+          tag_ids?: number[]
+          tag_slugs?: string[]
+          unit_of_measure?: string | null
           updated_at?: string
           user_id?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "user_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "tag_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "user_items_user_id_fkey"
             columns: ["user_id"]

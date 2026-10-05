@@ -7,6 +7,7 @@ export interface Task {
 	status: TaskStatus;
 	priority: TaskPriority;
 	tags?: string[];
+	tag_slugs?: string[];
 	scheduled_date: string | null;
 	due_date: string | null;
 	completed_at: string | null;
