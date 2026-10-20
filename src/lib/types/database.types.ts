@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   graphql_public: {
     Tables: {
@@ -301,6 +301,51 @@ export type Database = {
           },
         ]
       }
+      locations: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: number
+          name: string
+          parent_id: number | null
+          updated_at: string
+          user_id: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: number
+          name: string
+          parent_id?: number | null
+          updated_at?: string
+          user_id: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: number
+          name?: string
+          parent_id?: number | null
+          updated_at?: string
+          user_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           auth_user_id: string | null
@@ -351,59 +396,6 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
-      }
-      tag_groups: {
-        Row: {
-          color: string
-          created_at: string
-          display_order: number
-          feature: string
-          icon: string
-          id: number
-          is_system: boolean
-          name: string
-          schema_blueprint: Json
-          slug: string
-          updated_at: string
-          user_id: number
-        }
-        Insert: {
-          color?: string
-          created_at?: string
-          display_order?: number
-          feature?: string
-          icon?: string
-          id?: number
-          is_system?: boolean
-          name: string
-          schema_blueprint?: Json
-          slug: string
-          updated_at?: string
-          user_id: number
-        }
-        Update: {
-          color?: string
-          created_at?: string
-          display_order?: number
-          feature?: string
-          icon?: string
-          id?: number
-          is_system?: boolean
-          name?: string
-          schema_blueprint?: Json
-          slug?: string
-          updated_at?: string
-          user_id?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tag_groups_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       tag_categories: {
         Row: {
@@ -458,6 +450,59 @@ export type Database = {
           },
           {
             foreignKeyName: "tag_categories_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tag_groups: {
+        Row: {
+          color: string
+          created_at: string
+          display_order: number
+          feature: string
+          icon: string
+          id: number
+          is_system: boolean
+          name: string
+          schema_blueprint: Json
+          slug: string
+          updated_at: string
+          user_id: number
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          feature?: string
+          icon?: string
+          id?: number
+          is_system?: boolean
+          name: string
+          schema_blueprint?: Json
+          slug: string
+          updated_at?: string
+          user_id: number
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          feature?: string
+          icon?: string
+          id?: number
+          is_system?: boolean
+          name?: string
+          schema_blueprint?: Json
+          slug?: string
+          updated_at?: string
+          user_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tag_groups_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -655,6 +700,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "user_items_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "user_items_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -747,6 +799,15 @@ export type Database = {
         Args: { p_user_id: number }
         Returns: undefined
       }
+      seed_homeops_tags_for_user: {
+        Args: { p_user_id: number }
+        Returns: undefined
+      }
+      seed_system_taxonomies_for_user: {
+        Args: { p_user_id: number }
+        Returns: undefined
+      }
+      slugify_text: { Args: { v: string }; Returns: string }
       update_citizen_passport: {
         Args: {
           p_avatar_url?: string
