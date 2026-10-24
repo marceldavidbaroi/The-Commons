@@ -16,6 +16,7 @@
 	const navItems = [
 		{ path: '/home', label: 'Home' },
 		{ path: '/notes', label: 'Notes' },
+		{ path: '/flashcards', label: 'Flashcards' },
 		{ path: '/diaries', label: 'Journals' },
 		{ path: '/goals', label: 'Goals' },
 		{ path: '/tasks', label: 'Tasks' },

@@ -77,6 +77,193 @@ export type Database = {
           },
         ]
       }
+      card_review_logs: {
+        Row: {
+          card_id: string
+          id: string
+          new_ease_factor: number
+          new_interval_days: number
+          previous_ease_factor: number
+          previous_interval_days: number
+          previous_state: number
+          rating: number
+          reviewed_at: string
+          time_taken_ms: number | null
+          user_id: string | null
+        }
+        Insert: {
+          card_id: string
+          id?: string
+          new_ease_factor: number
+          new_interval_days: number
+          previous_ease_factor: number
+          previous_interval_days: number
+          previous_state: number
+          rating: number
+          reviewed_at?: string
+          time_taken_ms?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          card_id?: string
+          id?: string
+          new_ease_factor?: number
+          new_interval_days?: number
+          previous_ease_factor?: number
+          previous_interval_days?: number
+          previous_state?: number
+          rating?: number
+          reviewed_at?: string
+          time_taken_ms?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_review_logs_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_types: {
+        Row: {
+          created_at: string
+          fields_schema: Json
+          has_reverse: boolean
+          id: string
+          name: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          fields_schema?: Json
+          has_reverse?: boolean
+          id?: string
+          name: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          fields_schema?: Json
+          has_reverse?: boolean
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      cards: {
+        Row: {
+          card_type: number
+          created_at: string
+          deck_id: string
+          due_date: string
+          ease_factor: number
+          id: string
+          interval_days: number
+          lapses: number
+          note_id: string
+          queue_state: number
+          reps: number
+          step_index: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          card_type?: number
+          created_at?: string
+          deck_id: string
+          due_date?: string
+          ease_factor?: number
+          id?: string
+          interval_days?: number
+          lapses?: number
+          note_id: string
+          queue_state?: number
+          reps?: number
+          step_index?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          card_type?: number
+          created_at?: string
+          deck_id?: string
+          due_date?: string
+          ease_factor?: number
+          id?: string
+          interval_days?: number
+          lapses?: number
+          note_id?: string
+          queue_state?: number
+          reps?: number
+          step_index?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cards_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
+            referencedRelation: "decks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cards_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "flashcard_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      decks: {
+        Row: {
+          config: Json
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decks_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "decks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       diaries: {
         Row: {
           cover_color: string | null
@@ -222,6 +409,47 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flashcard_notes: {
+        Row: {
+          card_type_id: string
+          checksum: string | null
+          created_at: string
+          fields: Json
+          id: string
+          tags: string[]
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          card_type_id: string
+          checksum?: string | null
+          created_at?: string
+          fields?: Json
+          id?: string
+          tags?: string[]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          card_type_id?: string
+          checksum?: string | null
+          created_at?: string
+          fields?: Json
+          id?: string
+          tags?: string[]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flashcard_notes_card_type_id_fkey"
+            columns: ["card_type_id"]
+            isOneToOne: false
+            referencedRelation: "card_types"
             referencedColumns: ["id"]
           },
         ]
@@ -883,6 +1111,15 @@ export type Database = {
         }
         Returns: Json
       }
+      create_flashcard_note_with_cards: {
+        Args: {
+          p_card_type_id: string
+          p_deck_id: string
+          p_fields: Json
+          p_tags?: string[]
+        }
+        Returns: string
+      }
       delete_folder: {
         Args: { cascade_children: boolean; target_folder_id: string }
         Returns: undefined
@@ -901,6 +1138,31 @@ export type Database = {
               error: true
             } & "Could not choose the best candidate function between: public.get_diary_stats(p_diary_id => int8), public.get_diary_stats(p_diary_id => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
           }
+      get_study_queue: {
+        Args: { p_deck_id: string }
+        Returns: {
+          card_type: number
+          created_at: string
+          deck_id: string
+          due_date: string
+          ease_factor: number
+          id: string
+          interval_days: number
+          lapses: number
+          note_id: string
+          queue_state: number
+          reps: number
+          step_index: number
+          updated_at: string
+          user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "cards"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_user_diaries_overview: { Args: never; Returns: Json }
       provision_feature_tag_categories: {
         Args: { p_feature: string }
@@ -941,6 +1203,28 @@ export type Database = {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       slugify_text: { Args: { v: string }; Returns: string }
+      submit_card_review: {
+        Args: { p_card_id: string; p_rating: number; p_time_taken_ms?: number }
+        Returns: {
+          card_id: string
+          id: string
+          new_ease_factor: number
+          new_interval_days: number
+          previous_ease_factor: number
+          previous_interval_days: number
+          previous_state: number
+          rating: number
+          reviewed_at: string
+          time_taken_ms: number | null
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "card_review_logs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       update_citizen_passport: {
         Args: {
           p_avatar_url?: string
