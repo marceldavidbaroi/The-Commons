@@ -226,6 +226,44 @@ export type Database = {
           },
         ]
       }
+      folders: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           achieved_at: string | null
@@ -342,6 +380,89 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      note_connections: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          source_note_id: string
+          target_note_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          source_note_id: string
+          target_note_id: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          source_note_id?: string
+          target_note_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_connections_source_note_id_fkey"
+            columns: ["source_note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "note_connections_target_note_id_fkey"
+            columns: ["target_note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notes: {
+        Row: {
+          content: string
+          created_at: string
+          deleted_at: string | null
+          folder_id: string | null
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          deleted_at?: string | null
+          folder_id?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          deleted_at?: string | null
+          folder_id?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
             referencedColumns: ["id"]
           },
         ]
@@ -762,6 +883,10 @@ export type Database = {
         }
         Returns: Json
       }
+      delete_folder: {
+        Args: { cascade_children: boolean; target_folder_id: string }
+        Returns: undefined
+      }
       get_citizen_passport_metrics: { Args: never; Returns: Json }
       get_diary_stats:
         | {
@@ -781,6 +906,10 @@ export type Database = {
         Args: { p_feature: string }
         Returns: Json
       }
+      purge_item: {
+        Args: { item_id: string; item_type: string }
+        Returns: undefined
+      }
       reorder_diaries:
         | {
             Args: { p_diary_ids: number[] }
@@ -795,6 +924,8 @@ export type Database = {
             } & "Could not choose the best candidate function between: public.reorder_diaries(p_diary_ids => _int8), public.reorder_diaries(p_diary_ids => _uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
           }
       reorder_user_items: { Args: { p_item_ids: string[] }; Returns: undefined }
+      restore_folder: { Args: { target_folder_id: string }; Returns: undefined }
+      restore_note: { Args: { target_note_id: string }; Returns: undefined }
       seed_default_tags_for_user: {
         Args: { p_user_id: number }
         Returns: undefined
@@ -807,6 +938,8 @@ export type Database = {
         Args: { p_user_id: number }
         Returns: undefined
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       slugify_text: { Args: { v: string }; Returns: string }
       update_citizen_passport: {
         Args: {
