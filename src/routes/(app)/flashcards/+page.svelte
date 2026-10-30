@@ -384,10 +384,7 @@
 								type="button"
 								class="btn btn-secondary compact"
 								title={`Add cards into ${currentFolderDeck.name}`}
-								onclick={() =>
-									goto(
-										`/flashcards/notes/new?deck=${currentFolderDeck.id}`,
-									)}
+								onclick={() => handleAddCard(currentFolderDeck)}
 							>
 								<svg
 									class="btn-icon"
@@ -797,31 +794,6 @@
 		to {
 			transform: rotate(360deg);
 		}
-	}
-
-	.empty-icon {
-		width: 36px;
-		height: 36px;
-		color: var(--text-muted);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.empty-icon svg {
-		width: 100%;
-		height: 100%;
-	}
-
-	.empty-icon.success-icon {
-		color: #10b981;
-	}
-
-	.empty-title {
-		font-size: 0.875rem;
-		font-weight: 600;
-		color: var(--text-primary);
-		margin: 0;
 	}
 
 	.empty-desc {

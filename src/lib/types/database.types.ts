@@ -1019,7 +1019,30 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      deck_statistics: {
+        Row: {
+          config: Json
+          created_at: string
+          description: string | null
+          due_cards: number
+          id: number
+          name: string
+          new_cards: number
+          parent_id: number | null
+          total_cards: number
+          updated_at: string
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decks_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "decks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       create_diary_entry:

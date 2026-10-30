@@ -24,7 +24,7 @@ export async function fetchDecks(customClient?: SupabaseClient<Database>): Promi
   const supabase = getClient(customClient);
   const { data, error } = await supabase
     .from('decks')
-    .select('*')
+    .select('id, user_id, parent_id, name, description, config, created_at, updated_at')
     .order('name', { ascending: true });
 
   if (error) {
@@ -35,36 +35,49 @@ export async function fetchDecks(customClient?: SupabaseClient<Database>): Promi
 }
 
 /**
- * Fetch all decks with aggregate stats (total cards, due cards, new cards).
+ * Fetch all decks with aggregate stats (total cards, due cards, new cards) from deck_statistics view.
  */
 export async function fetchDecksWithStats(customClient?: SupabaseClient<Database>): Promise<import('$lib/types/flashcards').DeckWithStats[]> {
   const supabase = getClient(customClient);
-  const nowIso = new Date().toISOString();
 
-  // Fetch decks and cards in parallel
-  const [decksRes, cardsRes] = await Promise.all([
-    supabase.from('decks').select('*').order('name', { ascending: true }),
-    supabase.from('cards').select('id, deck_id, queue_state, due_date')
-  ]);
+  const { data, error } = await supabase
+    .from('deck_statistics')
+    .select('id, user_id, parent_id, name, description, config, created_at, updated_at, total_cards, new_cards, due_cards')
+    .order('name', { ascending: true });
 
-  if (decksRes.error) {
-    console.error('Error fetching decks with stats:', decksRes.error);
-    throw decksRes.error;
-  }
-  if (cardsRes.error) {
-    console.error('Error fetching cards for deck stats:', cardsRes.error);
-    throw cardsRes.error;
+  if (error) {
+    console.error('Error fetching decks with stats:', error);
+    throw error;
   }
 
-  let decks = (decksRes.data || []) as unknown as DeckRecord[];
-  const cards = cardsRes.data || [];
+  let decks = (data || []).map((row) => ({
+    id: row.id,
+    user_id: row.user_id,
+    parent_id: row.parent_id,
+    name: row.name,
+    description: row.description,
+    config: row.config as unknown as DeckConfig,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    totalCards: row.total_cards,
+    dueCards: row.due_cards,
+    newCards: row.new_cards
+  }));
 
   // If user has no decks at all, auto-create a 'Default' deck so there is always a default deck
   const hasDefaultDeck = decks.some((d) => d.name.toLowerCase() === 'default');
   if (decks.length === 0 || !hasDefaultDeck) {
     try {
       const defaultDeck = await createDeck({ name: 'Default' }, customClient);
-      decks = [defaultDeck, ...decks];
+      decks = [
+        {
+          ...defaultDeck,
+          totalCards: 0,
+          dueCards: 0,
+          newCards: 0
+        },
+        ...decks
+      ];
     } catch (e) {
       console.warn('Could not auto-create Default deck:', e);
     }
@@ -77,21 +90,7 @@ export async function fetchDecksWithStats(customClient?: SupabaseClient<Database
     return a.name.localeCompare(b.name);
   });
 
-  return decks.map((deck) => {
-    const deckCards = cards.filter((c) => c.deck_id === deck.id);
-    const totalCards = deckCards.length;
-    const newCards = deckCards.filter((c) => c.queue_state === 0).length;
-    const dueCards = deckCards.filter(
-      (c) => c.queue_state !== 0 && c.queue_state !== -1 && c.due_date <= nowIso
-    ).length;
-
-    return {
-      ...deck,
-      totalCards,
-      dueCards,
-      newCards
-    };
-  });
+  return decks;
 }
 
 /**
@@ -103,7 +102,24 @@ export async function fetchDueCards(customClient?: SupabaseClient<Database>): Pr
 
   const { data: cards, error: cardsError } = await supabase
     .from('cards')
-    .select('*, decks(name), flashcard_notes(*, card_types(name))')
+    .select(`
+      id,
+      user_id,
+      note_id,
+      deck_id,
+      card_type,
+      queue_state,
+      due_date,
+      step_index,
+      interval_days,
+      ease_factor,
+      reps,
+      lapses,
+      created_at,
+      updated_at,
+      decks(name),
+      flashcard_notes(fields, card_types(name))
+    `)
     .neq('queue_state', -1)
     .lte('due_date', nowIso)
     .order('due_date', { ascending: true })
@@ -149,21 +165,60 @@ export async function fetchDueCards(customClient?: SupabaseClient<Database>): Pr
   });
 }
 
+export interface FetchCardsOptions {
+  limit?: number;
+  cursorCreatedAt?: string;
+  cursorId?: number;
+}
+
 /**
- * Fetch all cards belonging to a specific deck, including note content and card type details.
+ * Fetch cards belonging to a specific deck with keyset/cursor pagination,
+ * including note content and card type details.
  */
 export async function fetchCardsForDeck(
   deckId: number | string,
+  options?: FetchCardsOptions,
   customClient?: SupabaseClient<Database>
 ): Promise<import('$lib/types/flashcards').DueTodayItem[]> {
   const supabase = getClient(customClient);
   const numericDeckId = Number(deckId);
+  const batchLimit = options?.limit ?? 20;
 
-  const { data: cards, error: cardsError } = await supabase
+  let query = supabase
     .from('cards')
-    .select('*, decks(name), flashcard_notes(*, card_types(name))')
-    .eq('deck_id', numericDeckId)
-    .order('created_at', { ascending: false });
+    .select(`
+      id,
+      user_id,
+      note_id,
+      deck_id,
+      card_type,
+      queue_state,
+      due_date,
+      step_index,
+      interval_days,
+      ease_factor,
+      reps,
+      lapses,
+      created_at,
+      updated_at,
+      decks(name),
+      flashcard_notes(fields, card_types(name))
+    `)
+    .eq('deck_id', numericDeckId);
+
+  // Keyset / cursor condition: (created_at, id) < (cursorCreatedAt, cursorId)
+  if (options?.cursorCreatedAt && options?.cursorId !== undefined) {
+    query = query.or(
+      `created_at.lt.${options.cursorCreatedAt},and(created_at.eq.${options.cursorCreatedAt},id.lt.${options.cursorId})`
+    );
+  }
+
+  query = query
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(batchLimit);
+
+  const { data: cards, error: cardsError } = await query;
 
   if (cardsError) {
     console.error(`Error fetching cards for deck ${deckId}:`, cardsError);
@@ -319,7 +374,7 @@ export async function fetchCardTypes(
   const supabase = getClient(customClient);
   const { data, error } = await supabase
     .from('card_types')
-    .select('*')
+    .select('id, user_id, name, fields_schema, has_reverse, is_default, created_at, updated_at')
     .order('is_default', { ascending: false })
     .order('name', { ascending: true });
 
@@ -535,7 +590,7 @@ export async function fetchStudyQueue(
   // 2. Hydrate note contents and schemas
   const { data: notes, error: notesError } = await supabase
     .from('flashcard_notes')
-    .select('*, card_types(*)')
+    .select('id, user_id, card_type_id, fields, tags, checksum, created_at, updated_at, card_types(id, user_id, name, fields_schema, has_reverse, is_default, created_at, updated_at)')
     .in('id', noteIds);
 
   if (notesError) {

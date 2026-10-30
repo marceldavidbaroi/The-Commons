@@ -32,37 +32,46 @@
 	let errorMessage = $state<string | null>(null);
 	let successBanner = $state(false);
 
-	// Synchronize defaults on open or deck change
+	function resolveDeckAndType(targetDeckId?: number | string) {
+		const targetId = targetDeckId || (deck ? deck.id : decks[0]?.id || "");
+		selectedDeckId = targetId;
+
+		const currentDeck = deck || decks.find((d) => String(d.id) === String(targetId));
+		if (currentDeck?.config?.card_type_id) {
+			selectedCardTypeId = currentDeck.config.card_type_id;
+		} else if (cardTypes.length > 0) {
+			selectedCardTypeId = cardTypes[0].id;
+		} else {
+			selectedCardTypeId = "";
+		}
+
+		// Pre-initialize empty field values for the target card type synchronously
+		const ct = cardTypes.find((item) => String(item.id) === String(selectedCardTypeId)) || cardTypes[0];
+		const fields = ct?.fields_schema || [
+			{ name: "Front", label: "Front" },
+			{ name: "Back", label: "Back" },
+		];
+		const initVals: Record<string, string> = {};
+		for (const f of fields) {
+			initVals[f.name] = "";
+		}
+		fieldValues = initVals;
+	}
+
+	// Synchronize on modal open only
 	$effect(() => {
 		if (isOpen) {
 			errorMessage = null;
 			successBanner = false;
-
-			if (deck) {
-				selectedDeckId = deck.id;
-			} else if (decks.length > 0 && !selectedDeckId) {
-				selectedDeckId = decks[0].id;
-			}
-
-			// Resolve default card type from deck config
-			const currentDeck = (deck || decks.find((d) => String(d.id) === String(selectedDeckId)));
-			if (currentDeck?.config?.card_type_id) {
-				selectedCardTypeId = currentDeck.config.card_type_id;
-			} else if (cardTypes.length > 0 && !selectedCardTypeId) {
-				selectedCardTypeId = cardTypes[0].id;
-			}
+			tagsInput = "";
+			resolveDeckAndType(deck?.id);
 		}
 	});
 
-	// Whenever selected deck changes, sync card type if configured
-	$effect(() => {
-		if (isOpen && selectedDeckId) {
-			const d = decks.find((item) => String(item.id) === String(selectedDeckId));
-			if (d?.config?.card_type_id) {
-				selectedCardTypeId = d.config.card_type_id;
-			}
-		}
-	});
+	function handleDeckChange(e: Event) {
+		const val = (e.target as HTMLSelectElement).value;
+		resolveDeckAndType(val);
+	}
 
 	const activeCardType = $derived(
 		cardTypes.find((ct) => String(ct.id) === String(selectedCardTypeId)) || cardTypes[0]
@@ -74,19 +83,6 @@
 			{ name: "Back", label: "Back" },
 		]
 	);
-
-	// Ensure fieldValues has entries for all schema fields
-	$effect(() => {
-		if (schemaFields.length > 0) {
-			const next: Record<string, string> = { ...fieldValues };
-			for (const f of schemaFields) {
-				if (next[f.name] === undefined) {
-					next[f.name] = "";
-				}
-			}
-			fieldValues = next;
-		}
-	});
 
 	function parseTags(input: string): string[] {
 		return input
@@ -186,10 +182,22 @@
 							<span class="deck-subtitle">to {deck.name}</span>
 						{/if}
 					</h2>
-					<span class="shortcut-hint">Press ⌘+Enter to save & add next</span>
+					<span class="shortcut-hint"
+						>Press ⌘+Enter to save & add next</span
+					>
 				</div>
-				<button type="button" class="close-btn" onclick={onClose} aria-label="Close modal">
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<button
+					type="button"
+					class="close-btn"
+					onclick={onClose}
+					aria-label="Close modal"
+				>
+					<svg
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+					>
 						<line x1="18" y1="6" x2="6" y2="18" />
 						<line x1="6" y1="6" x2="18" y2="18" />
 					</svg>
@@ -199,7 +207,13 @@
 			<!-- Success Notification -->
 			{#if successBanner}
 				<div class="alert-success" transition:fade={{ duration: 120 }}>
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="alert-icon">
+					<svg
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						class="alert-icon"
+					>
 						<polyline points="20 6 9 17 4 12"></polyline>
 					</svg>
 					<span>Card saved! Ready for next card.</span>
@@ -214,16 +228,29 @@
 			{/if}
 
 			<!-- Form Content -->
-			<form onsubmit={(e) => { e.preventDefault(); handleSubmit(false); }} class="form-body">
+			<form
+				onsubmit={(e) => {
+					e.preventDefault();
+					handleSubmit(false);
+				}}
+				class="form-body"
+			>
 				<!-- Deck Selector (if not fixed to a deck) -->
 				{#if !deck && decks.length > 1}
 					<div class="form-field">
-						<label for="quick-deck-select" class="field-label">Deck</label>
-						<select id="quick-deck-select" class="select-input" bind:value={selectedDeckId}>
-							{#each decks as d}
-								<option value={d.id}>{d.name}</option>
-							{/each}
-						</select>
+						<label for="quick-deck-select" class="field-label"
+							>Deck</label
+						>
+							<select
+								id="quick-deck-select"
+								class="select-input"
+								value={selectedDeckId}
+								onchange={handleDeckChange}
+							>
+								{#each decks as d}
+									<option value={d.id}>{d.name}</option>
+								{/each}
+							</select>
 					</div>
 				{/if}
 
@@ -231,7 +258,10 @@
 				<div class="fields-stack">
 					{#each schemaFields as field, idx}
 						<div class="form-field">
-							<label for="quick-card-field-{idx}" class="field-label">
+							<label
+								for="quick-card-field-{idx}"
+								class="field-label"
+							>
 								{field.label || field.name}
 								{#if idx === 0}
 									<span class="required-star">*</span>
@@ -241,16 +271,18 @@
 								id="quick-card-field-{idx}"
 								class="text-input"
 								rows={idx < 2 ? 3 : 2}
-								placeholder="Enter {field.label || field.name}..."
+								placeholder="Enter {field.label ||
+									field.name}..."
 								bind:value={fieldValues[field.name]}
-								required={idx === 0}
-							></textarea>
+								required={idx === 0}></textarea>
 						</div>
 					{/each}
 
 					<!-- Tags -->
 					<div class="form-field">
-						<label for="quick-card-tags" class="field-label">Tags (comma-separated)</label>
+						<label for="quick-card-tags" class="field-label"
+							>Tags (comma-separated)</label
+						>
 						<input
 							type="text"
 							id="quick-card-tags"
@@ -263,7 +295,11 @@
 
 				<!-- Footer Actions -->
 				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" onclick={onClose}>
+					<button
+						type="button"
+						class="btn btn-secondary"
+						onclick={onClose}
+					>
 						Done
 					</button>
 
@@ -522,4 +558,3 @@
 		cursor: not-allowed;
 	}
 </style>
-

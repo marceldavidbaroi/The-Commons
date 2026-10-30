@@ -81,9 +81,13 @@ export class FlashcardsStore {
   }
 
   /**
-   * Load all decks, card types, deck stats, and due cards into local state
+   * Load all decks, card types, deck stats, and due cards into local state.
+   * If cacheAlreadyValid is true and decksWithStats is already populated, skips refetching.
    */
-  async loadHubData(): Promise<void> {
+  async loadHubData(force = false): Promise<void> {
+    if (!force && this.decksWithStats.length > 0) {
+      return;
+    }
     this.isLoading = true;
     try {
       const [fetchedDecksWithStats, fetchedCardTypes, fetchedDueCards] = await Promise.all([
@@ -206,14 +210,23 @@ export class FlashcardsStore {
       tags,
       this.customClient
     );
-    // Refresh stats and due card list in store
-    const [updatedDecksWithStats, updatedDueCards] = await Promise.all([
-      flashcardsService.fetchDecksWithStats(this.customClient),
-      flashcardsService.fetchDueCards(this.customClient)
-    ]);
-    this.decksWithStats = updatedDecksWithStats;
-    this.decks = updatedDecksWithStats;
-    this.dueCards = updatedDueCards;
+
+    // In-memory counter updates: calculate added cards (1 or 2 if reverse enabled)
+    const cardType = this.cardTypes.find((ct) => String(ct.id) === String(cardTypeId));
+    const addedCardsCount = cardType?.has_reverse ? 2 : 1;
+
+    this.decksWithStats = this.decksWithStats.map((d) => {
+      if (String(d.id) === String(deckId)) {
+        return {
+          ...d,
+          totalCards: d.totalCards + addedCardsCount,
+          newCards: d.newCards + addedCardsCount
+        };
+      }
+      return d;
+    });
+    this.decks = this.decksWithStats;
+
     return noteId;
   }
 
@@ -226,6 +239,9 @@ export class FlashcardsStore {
     this.activeCardIndex = 0;
     this.isFlipped = false;
     try {
+      if (this.decksWithStats.length === 0) {
+        await this.loadHubData();
+      }
       this.studyQueue = await flashcardsService.fetchStudyQueue(deckId, this.customClient);
     } finally {
       this.isLoading = false;
@@ -322,18 +338,53 @@ export class FlashcardsStore {
   }
 
   /**
-   * Delete cards in bulk and update store collections
+   * Delete cards in bulk and update store collections without refetching
    */
   async deleteCards(cardIds: (number | string)[]): Promise<void> {
-    await flashcardsService.deleteCards(cardIds, this.customClient);
     const idSet = new Set(cardIds.map((id) => String(id)));
+    const deletedCards = this.dueCards.filter((c) => idSet.has(String(c.id)));
+    const deletedStudyCards = this.studyQueue.filter((c) => idSet.has(String(c.id)));
+
+    await flashcardsService.deleteCards(cardIds, this.customClient);
+
     this.dueCards = this.dueCards.filter((c) => !idSet.has(String(c.id)));
     this.studyQueue = this.studyQueue.filter((c) => !idSet.has(String(c.id)));
 
-    // Refresh deck stats
-    const updatedDecks = await flashcardsService.fetchDecksWithStats(this.customClient);
-    this.decksWithStats = updatedDecks;
-    this.decks = updatedDecks;
+    // Track deleted cards per deck to update stats in memory
+    const deckCountDelta = new Map<string, { total: number; newCards: number; due: number }>();
+    const allDeleted = [...deletedCards, ...deletedStudyCards];
+    const seenCardIds = new Set<string>();
+
+    for (const card of allDeleted) {
+      const cId = String(card.id);
+      if (seenCardIds.has(cId)) continue;
+      seenCardIds.add(cId);
+
+      const dId = String(card.deck_id);
+      const current = deckCountDelta.get(dId) || { total: 0, newCards: 0, due: 0 };
+      current.total += 1;
+      if (card.queue_state === 0) {
+        current.newCards += 1;
+      } else if (card.queue_state !== -1) {
+        current.due += 1;
+      }
+      deckCountDelta.set(dId, current);
+    }
+
+    // In-memory counter updates
+    this.decksWithStats = this.decksWithStats.map((d) => {
+      const delta = deckCountDelta.get(String(d.id));
+      if (delta) {
+        return {
+          ...d,
+          totalCards: Math.max(0, d.totalCards - delta.total),
+          newCards: Math.max(0, d.newCards - delta.newCards),
+          dueCards: Math.max(0, d.dueCards - delta.due)
+        };
+      }
+      return d;
+    });
+    this.decks = this.decksWithStats;
   }
 }
 

@@ -95,6 +95,9 @@
 
 ## 3. Creation & Form Ergonomics
 - Prefer inline quick-add inputs, compact sheets/drawers, or dialog modals for creating/editing items instead of placing massive static multi-field form boxes directly on the list canvas.
+- **Zero-Latency Dialogs & Creation Workflows**:
+  - Primary list actions (such as `+ Add Card`, `+ New Entry`) must trigger immediate inline modals or drawers directly rather than dispatching full SvelteKit client-side route navigations (e.g. avoid unnecessary `goto('/feature/new')` roundtrips).
+  - Modal and drawer components must avoid cascading reactive effects (e.g., chained `$effect` triggers that modify `$state` on open). Pre-initialize and derive defaults synchronously in one synchronous pass when the modal opens to guarantee 0ms perceived input responsiveness.
 
 # State & Data Architecture Guidelines
 
