@@ -90,7 +90,6 @@ describe('Spaced Repetition & Flashcards Engine Suite (TS-01 through TS-05)', ()
 
   beforeEach(async () => {
     // Clean up flashcards tables for test users
-    await adminClient.from('card_review_logs').delete().in('user_id', [testUserId, otherUserId]);
     await adminClient.from('cards').delete().in('user_id', [testUserId, otherUserId]);
     await adminClient.from('flashcard_notes').delete().in('user_id', [testUserId, otherUserId]);
     await adminClient.from('card_types').delete().in('user_id', [testUserId, otherUserId]);
@@ -245,10 +244,6 @@ describe('Spaced Repetition & Flashcards Engine Suite (TS-01 through TS-05)', ()
     const { data: cardReview2 } = await userClient.from('cards').select('*').eq('id', cardId).single();
     expect(cardReview2!.interval_days).toBe(4);
     expect(cardReview2!.ease_factor).toBe(2.35);
-
-    // Check review audit logs
-    const { data: logs } = await userClient.from('card_review_logs').select('*').eq('card_id', cardId);
-    expect(logs?.length).toBe(4);
   });
 
   it('TS-04: get_study_queue enforces daily limits and ignores future/suspended cards', { timeout: 25000 }, async () => {
@@ -387,14 +382,5 @@ describe('Spaced Repetition & Flashcards Engine Suite (TS-01 through TS-05)', ()
     expect(updatedCard!.lapses).toBe(2);
     expect(updatedCard!.queue_state).toBe(-1); // Suspended
     expect(updatedCard!.ease_factor).toBe(1.30); // Floored at 1.30
-
-    // Check log
-    const { data: latestLog } = await userClient
-      .from('card_review_logs')
-      .select('*')
-      .eq('card_id', card!.id)
-      .single();
-    expect(latestLog!.new_ease_factor).toBe(1.30);
-    expect(latestLog!.rating).toBe(1);
   });
 });

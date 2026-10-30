@@ -1,5 +1,66 @@
-# The Commons — SvelteKit Web Application
+# The Commons — Architectural Blueprint & Development Rules
 
+## 1. High-Level Architecture (Pure SPA + Layered Design)
+- **Deployment Mode:** Pure Single-Page Application (SPA). `export const ssr = false` and `export const prerender = false` on the root layout. No SSR runtime dependencies.
+- **Strict Layer Separation:**
+  1. **View Layer** (`.svelte`): Markup, user events, and reactive derivations only. Never import Supabase directly into views.
+  2. **Store Layer** (`data.svelte.ts` / Runes): Single source of truth. Handles in-memory caching, optimistic updates, and component state.
+  3. **Service Layer** (`*-service.ts`): Pure async TypeScript functions executing Supabase SDK calls and returning typed data.
+  4. **Database Layer** (PostgreSQL): RLS policies, aggregate views, and composite indexes.
+
+## 2. Data Fetching & Pagination Rules
+- **Cursor/Keyset Pagination Only:** Never use `OFFSET` / `LIMIT`. Use keyset pagination using indexed fields (e.g., `created_at` + tiebreaker `id`).
+- **Default Batch Size:** Fixed to 20 records (`limit(20)`) for every list or paginated endpoint.
+- **Postgres Aggregations:** Summary statistics, deck badge counts, or entity metrics must be handled in PostgreSQL via Views or RPC functions. Never fetch raw lists to count or reduce in JavaScript.
+- **Explicit Column Selection:** Prohibit `select('*')`. Explicitly name required columns (e.g., `select('id, front, back, created_at')`) to minimize wire payload.
+
+## 3. Store Mutation Rules (Zero-Refetch Policy)
+- The global store is called `data` (or specialized sub-stores managed under `dataStore`).
+- **Cache-First / Stale-While-Revalidate:** On navigation, check if the store already contains data for the given entity/ID. If present, render immediately; do not flash loading spinners.
+- **No Refetch on CUD Operations:**
+  - **Create:** Insert via Supabase with `.select().single()`, then prepend/append the returned entity directly into the store array.
+  - **Edit/Update:** Update via Supabase with `.select().single()`, then update the existing record in-place in the store array via `Array.prototype.map()`.
+  - **Delete:** Delete via Supabase by `id`, then immediately filter out the record from the store array via `Array.prototype.filter()`.
+  - **Never** re-call fetch or list APIs after a mutation completes.
+
+## 4. Supabase Security & Indexing Standard
+- Every table must have `alter table <table> enable row level security;`.
+- Strict RLS policies checking `auth.uid() = user_id` for `select`, `insert`, `update`, and `delete`.
+- Multi-column composite indexes must match cursor sort fields exactly: `CREATE INDEX ... ON <table> (foreign_key, created_at desc, id desc);`.
+
+## 5. Token Reduction & Modular Code Rules (For LLM Responses)
+- **Modular Snippets Only:** Do not reprint the entire codebase or unchanged boilerplate. Provide only the targeted function, store snippet, SQL script, or component fragment being created or edited.
+- **No Fluff or Over-explanation:** Jump straight to the code and concise structural bullets.
+- **Use Unified DTOs/Types:** Reference shared TypeScript interfaces rather than duplicating definitions across multiple files.
+
+# Architecture & Code Quality: SvelteKit Modular Design
+1. **Component Modularity:**
+   - Keep components focused and single-purpose (< 120 lines where possible).
+   - Break large routes into nested sub-components inside local `$lib/components/` or route-level `_components/` folders.
+   - Separate UI presentation from data manipulation: use stores or Svelte 5 runes (`$state`, `$derived`, `$props`) isolated in `.svelte.js`/`.svelte.ts` files when logic spans multiple components.
+   - Extract custom SVG icons and graphics into dedicated icon components.
+   - Extract complex domain logic and shared helpers into `src/lib/`.
+
+2. **Route Design:**
+   - Adhere strictly to SvelteKit conventions (`+page.svelte`, `+page.server.ts`, `+layout.svelte`, `+server.ts`).
+   - Keep `+page.server.ts` actions and `load` functions minimal; offload business logic, database queries, and external APIs to service modules in `$lib/server/`.
+
+3. **State Management & Type Safety:**
+   - Use strict TypeScript interfaces for all component props, page data (`PageData`), and form actions (`ActionData`).
+   - Prefer fine-grained reactivity over monolithic state objects.
+
+# Agent Behavior & Token Optimization
+1. **Zero Fluff & Direct Delivery:**
+   - Do not include conversational filler, greetings, summaries, or post-implementation explanations.
+   - Output only the requested code diffs or the immediate solution directly.
+
+2. **Minimal Thinking & Output:**
+   - Do not perform broad architectural rewrites unless explicitly instructed.
+   - Target only the exact file and lines required to resolve the task.
+   - Provide minimal context lines in code snippets; do not reprint unchanged full files.
+
+3. **No Unprompted Brainstorming:**
+   - Implement the direct solution immediately without proposing alternative approaches or follow-up suggestions unless an execution error blocks progress.
 
 # AI Research & Execution Strategy
 - **Implementation Tasks (Code Changes & Bug Fixes)**:
@@ -41,12 +102,6 @@
 - **Server State**: Managed through SvelteKit page loaders (`+page.server.ts` / `+page.ts`), form actions, and Supabase client queries.
 - **Client State**: Svelte 5 runes (`$state`, `$derived`, `$props`) or modular Svelte stores for transient UI state (e.g. search query, active filter tabs, modals, drawer toggles).
 - **Prohibited**: Never cache, duplicate, or mirror database records (`diaries`, `tasks`, `profiles`) inside browser `localStorage`.
-
-## 2. Component Modularity (< 300-400 lines)
-- Keep client page components concise and composable.
-- Extract domain sub-views and reusable panels into `src/lib/components/`.
-- Extract custom SVG icons and graphics into dedicated icon components.
-- Extract complex domain logic and shared helpers into `src/lib/`.
 
 ## 3. Direct Supabase Query Layer
 - Use standard Supabase query builder syntax with relation joins:

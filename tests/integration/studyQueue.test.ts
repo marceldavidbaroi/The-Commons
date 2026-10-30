@@ -38,8 +38,8 @@ describe('TS-04: Daily Deck Quota & Due Queue Fetching', () => {
   let adminClient: SupabaseClient<Database>;
   let userClient: SupabaseClient<Database>;
   let testUserId: string;
-  let deckId: string;
-  let cardTypeId: string;
+  let deckId: number;
+  let cardTypeId: number;
 
   const testUserEmail = `test_studyqueue_${Date.now()}@thecommons-test.internal`;
   const testUserPassword = 'TestPassword123!#';

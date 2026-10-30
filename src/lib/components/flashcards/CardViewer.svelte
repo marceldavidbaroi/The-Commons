@@ -11,6 +11,34 @@
 		onFlip: () => void;
 	} = $props();
 
+	let isSpeaking = $state(false);
+
+	function speak(text: string, e?: MouseEvent) {
+		if (e) {
+			e.stopPropagation();
+		}
+		if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+
+		window.speechSynthesis.cancel();
+
+		const utterance = new SpeechSynthesisUtterance(text);
+		isSpeaking = true;
+		utterance.onend = () => {
+			isSpeaking = false;
+		};
+		utterance.onerror = () => {
+			isSpeaking = false;
+		};
+
+		window.speechSynthesis.speak(utterance);
+	}
+
+	function openGoogleTranslate(text: string, e: MouseEvent) {
+		e.stopPropagation();
+		const url = `https://translate.google.com/?sl=auto&tl=en&text=${encodeURIComponent(text)}&op=translate`;
+		window.open(url, '_blank', 'noopener,noreferrer');
+	}
+
 	// Resolve front & back field content dynamically based on schema / field conventions
 	const content = $derived.by(() => {
 		const fields = (card.note?.fields as Record<string, string>) || {};
@@ -124,7 +152,24 @@
 		<div class="card-body">
 			<!-- Question / Front Section -->
 			<div class="section-prompt">
-				<div class="section-label">PROMPT</div>
+				<div class="section-heading">
+					<div class="section-label">PROMPT</div>
+					<button
+						type="button"
+						class="audio-btn"
+						class:speaking={isSpeaking}
+						onclick={(e) => speak(content.frontText, e)}
+						title="Listen to pronunciation"
+						aria-label="Pronounce prompt"
+					>
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-speaker">
+							<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+							<path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+							<path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+						</svg>
+						<span>Listen</span>
+					</button>
+				</div>
 				<div class="prompt-text">{content.frontText}</div>
 			</div>
 
@@ -132,7 +177,42 @@
 			{#if isFlipped}
 				<div class="card-divider" aria-hidden="true"></div>
 				<div class="section-answer">
-					<div class="section-label">ANSWER</div>
+					<div class="section-heading">
+						<div class="section-label">ANSWER</div>
+						<div class="answer-actions">
+							<button
+								type="button"
+								class="audio-btn"
+								onclick={(e) => speak(content.backText, e)}
+								title="Pronounce answer"
+								aria-label="Pronounce answer"
+							>
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-speaker">
+									<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+									<path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+									<path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+								</svg>
+								<span>Listen</span>
+							</button>
+
+							<button
+								type="button"
+								class="translate-btn"
+								onclick={(e) => openGoogleTranslate(content.frontText, e)}
+								title="Look up in Google Translate"
+							>
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-translate">
+									<path d="M5 8l6 6"></path>
+									<path d="M4 14h8"></path>
+									<path d="M2 5h12"></path>
+									<path d="M7 2h1"></path>
+									<path d="M22 22l-5-10-5 10"></path>
+									<path d="M14 18h6"></path>
+								</svg>
+								<span>Google Translate</span>
+							</button>
+						</div>
+					</div>
 					<div class="answer-text">{content.backText}</div>
 
 					{#if content.extraFields.length > 0}
@@ -290,6 +370,54 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.375rem;
+	}
+
+	.section-heading {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+	}
+
+	.answer-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+	}
+
+	.audio-btn,
+	.translate-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3125rem;
+		background-color: var(--bg-tertiary);
+		border: 1px solid var(--border-subtle);
+		color: var(--text-secondary);
+		border-radius: var(--radius-sm);
+		padding: 0.1875rem 0.4375rem;
+		font-size: 0.6875rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.audio-btn:hover,
+	.translate-btn:hover {
+		background-color: var(--bg-primary);
+		color: var(--text-primary);
+		border-color: var(--border-focus);
+	}
+
+	.audio-btn.speaking {
+		color: var(--primary);
+		border-color: var(--primary);
+		background-color: var(--bg-primary);
+	}
+
+	.icon-speaker,
+	.icon-translate {
+		width: 12px;
+		height: 12px;
 	}
 
 	.section-label {

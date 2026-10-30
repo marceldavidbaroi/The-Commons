@@ -21,7 +21,7 @@ export class FlashcardsStore {
   dueCards = $state<DueTodayItem[]>([]);
 
   // Active study context
-  activeDeckId = $state<string | null>(null);
+  activeDeckId = $state<number | string | null>(null);
   studyQueue = $state<StudyQueueItem[]>([]);
   activeCardIndex = $state<number>(0);
 
@@ -41,7 +41,7 @@ export class FlashcardsStore {
 
   /** Active deck entity */
   activeDeck = $derived<DeckRecord | null>(
-    this.decks.find((d) => d.id === this.activeDeckId) || null
+    this.decks.find((d) => String(d.id) === String(this.activeDeckId)) || null
   );
 
   /** Currently visible flashcard under review */
@@ -106,7 +106,7 @@ export class FlashcardsStore {
   async createDeck(payload: {
     name: string;
     description?: string | null;
-    parent_id?: string | null;
+    parent_id?: number | string | null;
     config?: Partial<DeckConfig>;
   }): Promise<DeckRecord> {
     const newDeck = await flashcardsService.createDeck(payload, this.customClient);
@@ -125,28 +125,28 @@ export class FlashcardsStore {
    * Update an existing deck and update local store state in-place
    */
   async updateDeck(
-    id: string,
+    id: number | string,
     payload: {
       name?: string;
       description?: string | null;
-      parent_id?: string | null;
+      parent_id?: number | string | null;
       config?: Partial<DeckConfig>;
     }
   ): Promise<DeckRecord> {
     const updated = await flashcardsService.updateDeck(id, payload, this.customClient);
-    this.decks = this.decks.map((d) => (d.id === id ? updated : d));
-    this.decksWithStats = this.decksWithStats.map((d) => (d.id === id ? { ...d, ...updated } : d));
+    this.decks = this.decks.map((d) => (String(d.id) === String(id) ? updated : d));
+    this.decksWithStats = this.decksWithStats.map((d) => (String(d.id) === String(id) ? { ...d, ...updated } : d));
     return updated;
   }
 
   /**
    * Delete a deck and filter it from local store state
    */
-  async deleteDeck(id: string): Promise<void> {
+  async deleteDeck(id: number | string): Promise<void> {
     await flashcardsService.deleteDeck(id, this.customClient);
-    this.decks = this.decks.filter((d) => d.id !== id);
-    this.decksWithStats = this.decksWithStats.filter((d) => d.id !== id);
-    if (this.activeDeckId === id) {
+    this.decks = this.decks.filter((d) => String(d.id) !== String(id));
+    this.decksWithStats = this.decksWithStats.filter((d) => String(d.id) !== String(id));
+    if (String(this.activeDeckId) === String(id)) {
       this.activeDeckId = null;
       this.studyQueue = [];
       this.activeCardIndex = 0;
@@ -167,14 +167,38 @@ export class FlashcardsStore {
   }
 
   /**
+   * Update an existing card type and update local store state in-place
+   */
+  async updateCardType(
+    id: number | string,
+    payload: {
+      name?: string;
+      fields_schema?: Array<{ name: string; label: string }>;
+      has_reverse?: boolean;
+    }
+  ): Promise<CardTypeRecord> {
+    const updated = await flashcardsService.updateCardType(id, payload, this.customClient);
+    this.cardTypes = this.cardTypes.map((ct) => (String(ct.id) === String(id) ? updated : ct)).sort((a, b) => a.name.localeCompare(b.name));
+    return updated;
+  }
+
+  /**
+   * Delete a card type and filter from local store state
+   */
+  async deleteCardType(id: number | string): Promise<void> {
+    await flashcardsService.deleteCardType(id, this.customClient);
+    this.cardTypes = this.cardTypes.filter((ct) => String(ct.id) !== String(id));
+  }
+
+  /**
    * Ingest a note with transactional card provisioning
    */
   async createFlashcardNote(
-    deckId: string,
-    cardTypeId: string,
+    deckId: number | string,
+    cardTypeId: number | string,
     fields: Record<string, string>,
     tags: string[] = []
-  ): Promise<string> {
+  ): Promise<number> {
     const noteId = await flashcardsService.createFlashcardNote(
       deckId,
       cardTypeId,
@@ -196,7 +220,7 @@ export class FlashcardsStore {
   /**
    * Start or load a study session for the given deck ID
    */
-  async startStudySession(deckId: string): Promise<void> {
+  async startStudySession(deckId: number | string): Promise<void> {
     this.isLoading = true;
     this.activeDeckId = deckId;
     this.activeCardIndex = 0;
@@ -278,30 +302,38 @@ export class FlashcardsStore {
   }
 
   /**
-   * Fetch review logs for a card
-   */
-  async fetchCardLogs(cardId: string): Promise<import('$lib/types/flashcards').CardReviewLogRecord[]> {
-    return flashcardsService.fetchCardReviewLogs(cardId, this.customClient);
-  }
-
-  /**
    * Suspend a card and update it in local collections (dueCards, studyQueue) in-place
    */
-  async suspendCard(cardId: string): Promise<CardRecord> {
+  async suspendCard(cardId: number | string): Promise<CardRecord> {
     const updated = await flashcardsService.suspendCard(cardId, this.customClient);
-    this.dueCards = this.dueCards.filter((c) => c.id !== cardId);
-    this.studyQueue = this.studyQueue.map((c) => (c.id === cardId ? { ...c, ...updated } : c));
+    this.dueCards = this.dueCards.filter((c) => String(c.id) !== String(cardId));
+    this.studyQueue = this.studyQueue.map((c) => (String(c.id) === String(cardId) ? { ...c, ...updated } : c));
     return updated;
   }
 
   /**
    * Reset a card to new state and update in local collections in-place
    */
-  async resetCardToNew(cardId: string): Promise<CardRecord> {
+  async resetCardToNew(cardId: number | string): Promise<CardRecord> {
     const updated = await flashcardsService.resetCardToNew(cardId, this.customClient);
-    this.dueCards = this.dueCards.map((c) => (c.id === cardId ? { ...c, ...updated } : c));
-    this.studyQueue = this.studyQueue.map((c) => (c.id === cardId ? { ...c, ...updated } : c));
+    this.dueCards = this.dueCards.map((c) => (String(c.id) === String(cardId) ? { ...c, ...updated } : c));
+    this.studyQueue = this.studyQueue.map((c) => (String(c.id) === String(cardId) ? { ...c, ...updated } : c));
     return updated;
+  }
+
+  /**
+   * Delete cards in bulk and update store collections
+   */
+  async deleteCards(cardIds: (number | string)[]): Promise<void> {
+    await flashcardsService.deleteCards(cardIds, this.customClient);
+    const idSet = new Set(cardIds.map((id) => String(id)));
+    this.dueCards = this.dueCards.filter((c) => !idSet.has(String(c.id)));
+    this.studyQueue = this.studyQueue.filter((c) => !idSet.has(String(c.id)));
+
+    // Refresh deck stats
+    const updatedDecks = await flashcardsService.fetchDecksWithStats(this.customClient);
+    this.decksWithStats = updatedDecks;
+    this.decks = updatedDecks;
   }
 }
 

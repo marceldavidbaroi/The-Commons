@@ -33,7 +33,7 @@
 	});
 
 	const activeDeck = $derived(
-		flashcardsStore.decks.find((d) => d.id === deckId) || flashcardsStore.activeDeck
+		flashcardsStore.decks.find((d) => String(d.id) === String(deckId)) || flashcardsStore.activeDeck
 	);
 
 	const totalInSession = $derived(flashcardsStore.studyQueue.length);

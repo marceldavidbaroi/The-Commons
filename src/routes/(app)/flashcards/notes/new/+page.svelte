@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { flashcardsStore } from '$lib/state/flashcards.svelte';
 	import type { CardTypeRecord, DeckRecord } from '$lib/types/flashcards';
 
-	let selectedDeckId = $state<string>('');
-	let selectedCardTypeId = $state<string>('');
+	let selectedDeckId = $state<number | string>('');
+	let selectedCardTypeId = $state<number | string>('');
 	let fieldValues = $state<Record<string, string>>({});
 	let tagsInput = $state<string>('');
 	let isSubmitting = $state(false);
@@ -16,17 +17,33 @@
 		if (flashcardsStore.decks.length === 0 || flashcardsStore.cardTypes.length === 0) {
 			await flashcardsStore.loadHubData();
 		}
-		if (flashcardsStore.decks.length > 0 && !selectedDeckId) {
+		const queryDeckId = $page.url.searchParams.get('deck');
+		if (queryDeckId && flashcardsStore.decks.some((d) => String(d.id) === String(queryDeckId))) {
+			selectedDeckId = isNaN(Number(queryDeckId)) ? queryDeckId : Number(queryDeckId);
+		} else if (flashcardsStore.decks.length > 0 && !selectedDeckId) {
 			selectedDeckId = flashcardsStore.decks[0].id;
 		}
-		if (flashcardsStore.cardTypes.length > 0 && !selectedCardTypeId) {
+
+		// Check if chosen deck has a default card type
+		const currentDeck = flashcardsStore.decks.find((d) => String(d.id) === String(selectedDeckId));
+		if (currentDeck?.config?.card_type_id) {
+			selectedCardTypeId = currentDeck.config.card_type_id;
+		} else if (flashcardsStore.cardTypes.length > 0 && !selectedCardTypeId) {
 			selectedCardTypeId = flashcardsStore.cardTypes[0].id;
+		}
+	});
+
+	// Whenever selected deck changes, automatically switch to the deck's configured card type
+	$effect(() => {
+		const deck = flashcardsStore.decks.find((d) => String(d.id) === String(selectedDeckId));
+		if (deck?.config?.card_type_id) {
+			selectedCardTypeId = deck.config.card_type_id;
 		}
 	});
 
 	// Currently active Card Type entity
 	const selectedCardType = $derived<CardTypeRecord | undefined>(
-		flashcardsStore.cardTypes.find((ct) => ct.id === selectedCardTypeId)
+		flashcardsStore.cardTypes.find((ct) => String(ct.id) === String(selectedCardTypeId))
 	);
 
 	// Reset or populate field inputs whenever card type changes
@@ -41,24 +58,10 @@
 		}
 	});
 
-	// Live preview derivations
+	// Number of cards that will be generated
 	const willGenerateCardsCount = $derived(
 		selectedCardType?.has_reverse ? 2 : 1
 	);
-
-	const previewFront = $derived.by(() => {
-		const ct = selectedCardType;
-		if (!ct || !ct.fields_schema || ct.fields_schema.length === 0) return '';
-		const firstKey = ct.fields_schema[0].name;
-		return fieldValues[firstKey] || '';
-	});
-
-	const previewBack = $derived.by(() => {
-		const ct = selectedCardType;
-		if (!ct || !ct.fields_schema || ct.fields_schema.length < 2) return '';
-		const secondKey = ct.fields_schema[1].name;
-		return fieldValues[secondKey] || '';
-	});
 
 	function parseTags(input: string): string[] {
 		return input
@@ -173,44 +176,9 @@
 			</div>
 		{/if}
 
-		<div class="creator-grid">
+		<div class="creator-content">
 			<!-- Form Column -->
 			<form onsubmit={handleSubmit} class="creator-form">
-				<!-- Deck & Schema Selectors -->
-				<div class="form-card">
-					<div class="selectors-row">
-						<div class="form-group flex-1">
-							<label for="select-deck" class="form-label">Destination Deck <span class="required">*</span></label>
-							<select
-								id="select-deck"
-								class="form-select"
-								bind:value={selectedDeckId}
-								required
-							>
-								{#each flashcardsStore.decks as deck (deck.id)}
-									<option value={deck.id}>{deck.name}</option>
-								{/each}
-							</select>
-						</div>
-
-						<div class="form-group flex-1">
-							<label for="select-type" class="form-label">Card Type Schema <span class="required">*</span></label>
-							<select
-								id="select-type"
-								class="form-select"
-								bind:value={selectedCardTypeId}
-								required
-							>
-								{#each flashcardsStore.cardTypes as cardType (cardType.id)}
-									<option value={cardType.id}>
-										{cardType.name} {cardType.has_reverse ? '(Bidirectional)' : '(Forward)'}
-									</option>
-								{/each}
-							</select>
-						</div>
-					</div>
-				</div>
-
 				<!-- Dynamic Fields based on selectedCardType.fields_schema -->
 				<div class="form-card">
 					<div class="card-heading-row">
@@ -278,52 +246,6 @@
 					</button>
 				</div>
 			</form>
-
-			<!-- Live Preview Column -->
-			<div class="preview-panel">
-				<h3 class="preview-header">Live Card Preview</h3>
-				<p class="preview-desc">
-					Shows how cards will be generated based on this note's fields.
-				</p>
-
-				<!-- Forward Card Preview -->
-				<div class="card-preview">
-					<div class="preview-card-tag">Card 1: Forward</div>
-					<div class="preview-side">
-						<div class="side-label">Front</div>
-						<div class="side-content">
-							{previewFront || 'Empty front...'}
-						</div>
-					</div>
-					<div class="preview-divider"></div>
-					<div class="preview-side">
-						<div class="side-label">Back</div>
-						<div class="side-content">
-							{previewBack || 'Empty back...'}
-						</div>
-					</div>
-				</div>
-
-				<!-- Reverse Card Preview if applicable -->
-				{#if selectedCardType?.has_reverse}
-					<div class="card-preview reverse-preview">
-						<div class="preview-card-tag reverse-tag">Card 2: Reverse</div>
-						<div class="preview-side">
-							<div class="side-label">Front</div>
-							<div class="side-content">
-								{previewBack || 'Empty front (reversed)...'}
-							</div>
-						</div>
-						<div class="preview-divider"></div>
-						<div class="preview-side">
-							<div class="side-label">Back</div>
-							<div class="side-content">
-								{previewFront || 'Empty back (reversed)...'}
-							</div>
-						</div>
-					</div>
-				{/if}
-			</div>
 		</div>
 	</div>
 </div>
@@ -433,17 +355,10 @@
 		color: #166534;
 	}
 
-	.creator-grid {
-		display: grid;
-		grid-template-columns: 1fr 340px;
-		gap: 1.25rem;
-		align-items: start;
-	}
-
-	@media (max-width: 768px) {
-		.creator-grid {
-			grid-template-columns: 1fr;
-		}
+	.creator-content {
+		max-width: 640px;
+		width: 100%;
+		margin: 0 auto;
 	}
 
 	.creator-form {
@@ -460,15 +375,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
-	}
-
-	.selectors-row {
-		display: flex;
-		gap: 0.75rem;
-	}
-
-	.flex-1 {
-		flex: 1;
 	}
 
 	.form-group {
@@ -562,82 +468,6 @@
 		align-items: center;
 		justify-content: flex-end;
 		gap: 0.5rem;
-	}
-
-	.preview-panel {
-		background: var(--bg-secondary);
-		border: 1px solid var(--border-subtle);
-		border-radius: var(--radius-md);
-		padding: 1.25rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.875rem;
-	}
-
-	.preview-header {
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: var(--text-primary);
-		margin: 0;
-	}
-
-	.preview-desc {
-		font-size: 0.6875rem;
-		color: var(--text-muted);
-		margin: 0;
-	}
-
-	.card-preview {
-		background: var(--bg-primary);
-		border: 1px solid var(--border-subtle);
-		border-radius: var(--radius-sm);
-		padding: 0.875rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.625rem;
-	}
-
-	.reverse-preview {
-		border-color: #ddd6fe;
-	}
-
-	.preview-card-tag {
-		font-size: 0.625rem;
-		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-		color: var(--primary);
-	}
-
-	.reverse-tag {
-		color: #7c3aed;
-	}
-
-	.preview-side {
-		display: flex;
-		flex-direction: column;
-		gap: 0.1875rem;
-	}
-
-	.side-label {
-		font-size: 0.625rem;
-		font-weight: 600;
-		color: var(--text-muted);
-		text-transform: uppercase;
-	}
-
-	.side-content {
-		font-size: 0.8125rem;
-		color: var(--text-primary);
-		white-space: pre-wrap;
-		word-break: break-word;
-		min-height: 1.25rem;
-	}
-
-	.preview-divider {
-		height: 1px;
-		background: var(--border-subtle);
-		margin: 0.125rem 0;
 	}
 
 	.btn {

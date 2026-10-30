@@ -7,7 +7,6 @@ import type {
   CardTypeRecord,
   FlashcardNoteRecord,
   CardRecord,
-  CardReviewLogRecord,
   StudyQueueItem,
   FieldSchemaItem,
   Rating
@@ -57,8 +56,26 @@ export async function fetchDecksWithStats(customClient?: SupabaseClient<Database
     throw cardsRes.error;
   }
 
-  const decks = (decksRes.data || []) as unknown as DeckRecord[];
+  let decks = (decksRes.data || []) as unknown as DeckRecord[];
   const cards = cardsRes.data || [];
+
+  // If user has no decks at all, auto-create a 'Default' deck so there is always a default deck
+  const hasDefaultDeck = decks.some((d) => d.name.toLowerCase() === 'default');
+  if (decks.length === 0 || !hasDefaultDeck) {
+    try {
+      const defaultDeck = await createDeck({ name: 'Default' }, customClient);
+      decks = [defaultDeck, ...decks];
+    } catch (e) {
+      console.warn('Could not auto-create Default deck:', e);
+    }
+  }
+
+  // Sort so 'Default' always appears first, followed by others alphabetically
+  decks.sort((a, b) => {
+    if (a.name.toLowerCase() === 'default') return -1;
+    if (b.name.toLowerCase() === 'default') return 1;
+    return a.name.localeCompare(b.name);
+  });
 
   return decks.map((deck) => {
     const deckCards = cards.filter((c) => c.deck_id === deck.id);
@@ -133,13 +150,68 @@ export async function fetchDueCards(customClient?: SupabaseClient<Database>): Pr
 }
 
 /**
+ * Fetch all cards belonging to a specific deck, including note content and card type details.
+ */
+export async function fetchCardsForDeck(
+  deckId: number | string,
+  customClient?: SupabaseClient<Database>
+): Promise<import('$lib/types/flashcards').DueTodayItem[]> {
+  const supabase = getClient(customClient);
+  const numericDeckId = Number(deckId);
+
+  const { data: cards, error: cardsError } = await supabase
+    .from('cards')
+    .select('*, decks(name), flashcard_notes(*, card_types(name))')
+    .eq('deck_id', numericDeckId)
+    .order('created_at', { ascending: false });
+
+  if (cardsError) {
+    console.error(`Error fetching cards for deck ${deckId}:`, cardsError);
+    throw cardsError;
+  }
+
+  return (cards || []).map((c: any) => {
+    const deckName = c.decks?.name || 'Deck';
+    const note = c.flashcard_notes;
+    const cardTypeName = note?.card_types?.name || 'Standard';
+    const fields = (note?.fields as Record<string, string>) || {};
+    const fieldValues = Object.values(fields);
+
+    const front = fields.front || fields.Front || fields.question || fields.Question || fieldValues[0] || 'Card Front';
+    const back = fields.back || fields.Back || fields.answer || fields.Answer || fieldValues[1] || 'Card Back';
+
+    return {
+      id: c.id,
+      user_id: c.user_id,
+      note_id: c.note_id,
+      deck_id: c.deck_id,
+      card_type: c.card_type,
+      queue_state: c.queue_state,
+      due_date: c.due_date,
+      step_index: c.step_index,
+      interval_days: c.interval_days,
+      ease_factor: c.ease_factor,
+      reps: c.reps,
+      lapses: c.lapses,
+      created_at: c.created_at,
+      updated_at: c.updated_at,
+      deck_name: deckName,
+      card_type_name: cardTypeName,
+      note_front: c.card_type === 1 ? back : front,
+      note_back: c.card_type === 1 ? front : back,
+      note_fields: fields
+    };
+  });
+}
+
+/**
  * Create a new deck.
  */
 export async function createDeck(
   payload: {
     name: string;
     description?: string | null;
-    parent_id?: string | null;
+    parent_id?: number | string | null;
     config?: Partial<DeckConfig>;
   },
   customClient?: SupabaseClient<Database>
@@ -158,12 +230,17 @@ export async function createDeck(
     ...(payload.config || {}),
   };
 
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
   const { data, error } = await supabase
     .from('decks')
     .insert({
+      user_id: user?.id,
       name: payload.name.trim(),
       description: payload.description || null,
-      parent_id: payload.parent_id || null,
+      parent_id: payload.parent_id === null || payload.parent_id === undefined ? null : Number(payload.parent_id),
       config: finalConfig as any,
     })
     .select()
@@ -180,27 +257,28 @@ export async function createDeck(
  * Update an existing deck.
  */
 export async function updateDeck(
-  id: string,
+  id: number | string,
   payload: {
     name?: string;
     description?: string | null;
-    parent_id?: string | null;
+    parent_id?: number | string | null;
     config?: Partial<DeckConfig>;
   },
   customClient?: SupabaseClient<Database>
 ): Promise<DeckRecord> {
   const supabase = getClient(customClient);
+  const numericId = Number(id);
 
   const updates: Database['public']['Tables']['decks']['Update'] = {};
   if (payload.name !== undefined) updates.name = payload.name.trim();
   if (payload.description !== undefined) updates.description = payload.description;
-  if (payload.parent_id !== undefined) updates.parent_id = payload.parent_id;
+  if (payload.parent_id !== undefined) updates.parent_id = payload.parent_id === null ? null : Number(payload.parent_id);
   if (payload.config !== undefined) updates.config = payload.config as any;
 
   const { data, error } = await supabase
     .from('decks')
     .update(updates)
-    .eq('id', id)
+    .eq('id', numericId)
     .select()
     .single();
 
@@ -212,14 +290,19 @@ export async function updateDeck(
 }
 
 /**
- * Delete a deck (cascades to children decks and cards in database).
+ * Delete a deck (deletes all related cards and subdecks).
  */
 export async function deleteDeck(
-  id: string,
+  id: number | string,
   customClient?: SupabaseClient<Database>
 ): Promise<void> {
   const supabase = getClient(customClient);
-  const { error } = await supabase.from('decks').delete().eq('id', id);
+  const numericId = Number(id);
+
+  // Explicitly purge all cards in this deck (as well as child cards) to guarantee cards are deleted
+  await supabase.from('cards').delete().eq('deck_id', numericId);
+
+  const { error } = await supabase.from('decks').delete().eq('id', numericId);
 
   if (error) {
     console.error(`Error deleting deck ${id}:`, error);
@@ -228,7 +311,7 @@ export async function deleteDeck(
 }
 
 /**
- * Fetch all card types owned by the authenticated user.
+ * Fetch all card types owned by the authenticated user, automatically provisioning the default type if none exists.
  */
 export async function fetchCardTypes(
   customClient?: SupabaseClient<Database>
@@ -237,13 +320,48 @@ export async function fetchCardTypes(
   const { data, error } = await supabase
     .from('card_types')
     .select('*')
+    .order('is_default', { ascending: false })
     .order('name', { ascending: true });
 
   if (error) {
     console.error('Error fetching card types:', error);
     throw error;
   }
-  return (data || []) as unknown as CardTypeRecord[];
+
+  const types = (data || []) as unknown as CardTypeRecord[];
+
+  // If user has no default card type, create the system default 'Basic' card type
+  const hasDefault = types.some((t) => t.is_default);
+  if (!hasDefault) {
+    try {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser();
+
+      const { data: defaultType, error: defaultError } = await supabase
+        .from('card_types')
+        .insert({
+          user_id: user?.id,
+          name: 'Basic',
+          fields_schema: [
+            { name: 'Front', label: 'Front (Prompt)' },
+            { name: 'Back', label: 'Back (Answer)' }
+          ] as any,
+          has_reverse: false,
+          is_default: true
+        })
+        .select()
+        .single();
+
+      if (!defaultError && defaultType) {
+        return [defaultType as unknown as CardTypeRecord, ...types];
+      }
+    } catch (e) {
+      console.warn('Could not auto-provision default card type:', e);
+    }
+  }
+
+  return types;
 }
 
 /**
@@ -254,16 +372,23 @@ export async function createCardType(
     name: string;
     fields_schema: FieldSchemaItem[];
     has_reverse?: boolean;
+    is_default?: boolean;
   },
   customClient?: SupabaseClient<Database>
 ): Promise<CardTypeRecord> {
   const supabase = getClient(customClient);
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
   const { data, error } = await supabase
     .from('card_types')
     .insert({
+      user_id: user?.id,
       name: payload.name.trim(),
       fields_schema: payload.fields_schema as any,
       has_reverse: payload.has_reverse ?? false,
+      is_default: payload.is_default ?? false,
     })
     .select()
     .single();
@@ -276,19 +401,100 @@ export async function createCardType(
 }
 
 /**
+ * Update an existing card type schema. Default card types cannot be edited.
+ */
+export async function updateCardType(
+  id: number | string,
+  payload: {
+    name?: string;
+    fields_schema?: FieldSchemaItem[];
+    has_reverse?: boolean;
+  },
+  customClient?: SupabaseClient<Database>
+): Promise<CardTypeRecord> {
+  const supabase = getClient(customClient);
+  const numericId = Number(id);
+
+  // Guard against editing default card types
+  const { data: existing } = await supabase
+    .from('card_types')
+    .select('is_default')
+    .eq('id', numericId)
+    .single();
+
+  if (existing?.is_default) {
+    throw new Error('Default card type cannot be edited or modified.');
+  }
+
+  const updates: Database['public']['Tables']['card_types']['Update'] = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (payload.name !== undefined) updates.name = payload.name.trim();
+  if (payload.fields_schema !== undefined) updates.fields_schema = payload.fields_schema as any;
+  if (payload.has_reverse !== undefined) updates.has_reverse = payload.has_reverse;
+
+  const { data, error } = await supabase
+    .from('card_types')
+    .update(updates)
+    .eq('id', numericId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(`Error updating card type ${id}:`, error);
+    throw error;
+  }
+  return data as unknown as CardTypeRecord;
+}
+
+/**
+ * Delete a card type schema.
+ * All related notes and cards are deleted. Default card types cannot be deleted.
+ */
+export async function deleteCardType(
+  id: number | string,
+  customClient?: SupabaseClient<Database>
+): Promise<void> {
+  const supabase = getClient(customClient);
+  const numericId = Number(id);
+
+  // Guard against deleting default card type
+  const { data: existing } = await supabase
+    .from('card_types')
+    .select('is_default')
+    .eq('id', numericId)
+    .single();
+
+  if (existing?.is_default) {
+    throw new Error('Default card type cannot be deleted.');
+  }
+
+  // Explicitly purge related notes (which in turn cascades to all child cards in PostgreSQL)
+  await supabase.from('flashcard_notes').delete().eq('card_type_id', numericId);
+
+  const { error } = await supabase.from('card_types').delete().eq('id', numericId);
+
+  if (error) {
+    console.error(`Error deleting card type ${id}:`, error);
+    throw error;
+  }
+}
+
+/**
  * Ingest a note with transactional card provisioning via database RPC.
  */
 export async function createFlashcardNote(
-  deckId: string,
-  cardTypeId: string,
+  deckId: number | string,
+  cardTypeId: number | string,
   fields: Record<string, string>,
   tags: string[] = [],
   customClient?: SupabaseClient<Database>
-): Promise<string> {
+): Promise<number> {
   const supabase = getClient(customClient);
   const { data, error } = await supabase.rpc('create_flashcard_note_with_cards', {
-    p_deck_id: deckId,
-    p_card_type_id: cardTypeId,
+    p_deck_id: Number(deckId),
+    p_card_type_id: Number(cardTypeId),
     p_fields: fields as any,
     p_tags: tags,
   });
@@ -297,7 +503,7 @@ export async function createFlashcardNote(
     console.error('Error creating flashcard note with cards:', error);
     throw error;
   }
-  return data as string;
+  return data as number;
 }
 
 /**
@@ -305,14 +511,14 @@ export async function createFlashcardNote(
  * Joins note and card type definition for rendering study cards.
  */
 export async function fetchStudyQueue(
-  deckId: string,
+  deckId: number | string,
   customClient?: SupabaseClient<Database>
 ): Promise<StudyQueueItem[]> {
   const supabase = getClient(customClient);
 
   // 1. Invoke RPC to calculate daily-quota and due-date filtered study cards
   const { data: queueCards, error: rpcError } = await supabase.rpc('get_study_queue', {
-    p_deck_id: deckId,
+    p_deck_id: Number(deckId),
   });
 
   if (rpcError) {
@@ -337,7 +543,7 @@ export async function fetchStudyQueue(
     throw notesError;
   }
 
-  const noteMap = new Map<string, any>();
+  const noteMap = new Map<number | string, any>();
   if (notes) {
     for (const n of notes) {
       noteMap.set(n.id, n);
@@ -360,8 +566,11 @@ export async function fetchStudyQueue(
         }
       : undefined;
 
+    const cardId = card.id ?? (card as any).card_id;
+
     return {
       ...(card as unknown as CardRecord),
+      id: cardId,
       note: noteRecord,
       card_type_def: cardTypeDef,
     };
@@ -372,16 +581,16 @@ export async function fetchStudyQueue(
  * Submit an atomic card review via database RPC.
  */
 export async function submitReview(
-  cardId: string,
+  cardId: number | string,
   rating: Rating | number,
   timeTakenMs?: number,
   customClient?: SupabaseClient<Database>
-): Promise<CardReviewLogRecord> {
+): Promise<void> {
   const supabase = getClient(customClient);
   const ratingCode = typeof rating === 'number' ? rating : RATING_MAP[rating];
 
-  const { data, error } = await supabase.rpc('submit_card_review', {
-    p_card_id: cardId,
+  const { error } = await supabase.rpc('submit_card_review', {
+    p_card_id: Number(cardId),
     p_rating: ratingCode,
     p_time_taken_ms: timeTakenMs,
   });
@@ -390,44 +599,20 @@ export async function submitReview(
     console.error(`Error submitting card review for ${cardId}:`, error);
     throw error;
   }
-
-  return data as unknown as CardReviewLogRecord;
-}
-
-/**
- * Fetch chronological card review logs for audit ledger inspection.
- */
-export async function fetchCardReviewLogs(
-  cardId: string,
-  customClient?: SupabaseClient<Database>
-): Promise<CardReviewLogRecord[]> {
-  const supabase = getClient(customClient);
-  const { data, error } = await supabase
-    .from('card_review_logs')
-    .select('*')
-    .eq('card_id', cardId)
-    .order('reviewed_at', { ascending: false });
-
-  if (error) {
-    console.error(`Error fetching review logs for card ${cardId}:`, error);
-    throw error;
-  }
-
-  return (data || []) as unknown as CardReviewLogRecord[];
 }
 
 /**
  * Suspend card (queue_state = -1).
  */
 export async function suspendCard(
-  cardId: string,
+  cardId: number | string,
   customClient?: SupabaseClient<Database>
 ): Promise<CardRecord> {
   const supabase = getClient(customClient);
   const { data, error } = await supabase
     .from('cards')
     .update({ queue_state: -1 })
-    .eq('id', cardId)
+    .eq('id', Number(cardId))
     .select()
     .single();
 
@@ -443,7 +628,7 @@ export async function suspendCard(
  * Reset card to new state (queue_state = 0, step_index = 0, reps = 0, interval_days = 0, due_date = today).
  */
 export async function resetCardToNew(
-  cardId: string,
+  cardId: number | string,
   customClient?: SupabaseClient<Database>
 ): Promise<CardRecord> {
   const supabase = getClient(customClient);
@@ -458,7 +643,7 @@ export async function resetCardToNew(
       interval_days: 0,
       due_date: today,
     })
-    .eq('id', cardId)
+    .eq('id', Number(cardId))
     .select()
     .single();
 
@@ -468,4 +653,54 @@ export async function resetCardToNew(
   }
 
   return data as unknown as CardRecord;
+}
+
+/**
+ * Bulk delete flashcards by their card IDs.
+ * Also deletes orphaned flashcard notes when all associated cards are removed.
+ */
+export async function deleteCards(
+  cardIds: (number | string)[],
+  customClient?: SupabaseClient<Database>
+): Promise<void> {
+  if (!cardIds || cardIds.length === 0) return;
+  const supabase = getClient(customClient);
+  const ids = cardIds.map((id) => (typeof id === 'number' ? id : id));
+
+  // Find note IDs associated with these cards to clean up parent notes
+  const { data: cardsToDelete } = await supabase
+    .from('cards')
+    .select('id, note_id')
+    .in('id', ids as any);
+
+  const noteIds = Array.from(new Set((cardsToDelete || []).map((c: any) => c.note_id).filter(Boolean)));
+
+  const { error } = await supabase
+    .from('cards')
+    .delete()
+    .in('id', ids as any);
+
+  if (error) {
+    console.error('Error deleting cards:', error);
+    throw error;
+  }
+
+  // Clean up notes if any
+  if (noteIds.length > 0) {
+    // Delete notes that have no remaining cards
+    const { data: remainingCards } = await supabase
+      .from('cards')
+      .select('note_id')
+      .in('note_id', noteIds as any);
+
+    const remainingNoteIds = new Set((remainingCards || []).map((c: any) => c.note_id));
+    const orphanedNoteIds = noteIds.filter((nid) => !remainingNoteIds.has(nid));
+
+    if (orphanedNoteIds.length > 0) {
+      await supabase
+        .from('flashcard_notes')
+        .delete()
+        .in('id', orphanedNoteIds as any);
+    }
+  }
 }

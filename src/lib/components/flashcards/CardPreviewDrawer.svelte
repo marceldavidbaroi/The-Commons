@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { fade, fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
-	import type { CardRecord, CardReviewLogRecord, DueTodayItem, StudyQueueItem } from '$lib/types/flashcards';
+	import type { CardRecord, DueTodayItem, StudyQueueItem } from '$lib/types/flashcards';
 	import { flashcardsStore } from '$lib/state/flashcards.svelte';
 
 	let {
@@ -16,31 +16,8 @@
 		onCardUpdated?: (updated: CardRecord) => void;
 	} = $props();
 
-	let reviewLogs = $state<CardReviewLogRecord[]>([]);
-	let isLoadingLogs = $state(false);
 	let isActionInProgress = $state(false);
 	let actionFeedback = $state<string | null>(null);
-
-	// Load review logs when card changes or drawer opens
-	$effect(() => {
-		if (isOpen && card?.id) {
-			loadLogs(card.id);
-		} else {
-			reviewLogs = [];
-			actionFeedback = null;
-		}
-	});
-
-	async function loadLogs(cardId: string) {
-		isLoadingLogs = true;
-		try {
-			reviewLogs = await flashcardsStore.fetchCardLogs(cardId);
-		} catch (err) {
-			console.error('Failed to load card review logs:', err);
-		} finally {
-			isLoadingLogs = false;
-		}
-	}
 
 	async function handleSuspend() {
 		if (!card?.id || isActionInProgress) return;
@@ -252,52 +229,6 @@
 						<span class="metric-value lapses-value">{card.lapses}</span>
 					</div>
 				</div>
-			</section>
-
-			<!-- Section 3: Historical Audit Ledger -->
-			<section class="drawer-section">
-				<div class="section-header">
-					<h3 class="section-title">Review History</h3>
-					<span class="ledger-count">{reviewLogs.length} logs</span>
-				</div>
-
-				{#if isLoadingLogs}
-					<div class="ledger-loading">
-						<div class="spinner-small"></div>
-						<span>Loading audit history...</span>
-					</div>
-				{:else if reviewLogs.length === 0}
-					<div class="ledger-empty">
-						<span>No review logs recorded yet for this card.</span>
-					</div>
-				{:else}
-					<div class="ledger-list" role="list">
-						{#each reviewLogs as log (log.id)}
-							{@const rating = getRatingLabel(log.rating)}
-							<div class="ledger-row" role="listitem">
-								<div class="ledger-col-main">
-									<div class="ledger-rating-row">
-										<span class="rating-badge {rating.cls}">{rating.label}</span>
-										<span class="ledger-timestamp">{formatDate(log.reviewed_at)}</span>
-									</div>
-									<div class="ledger-transitions">
-										<span class="transition-pill">
-											Int: {log.previous_interval_days}d → {log.new_interval_days}d
-										</span>
-										<span class="transition-pill">
-											Ease: {Number(log.previous_ease_factor).toFixed(2)} → {Number(log.new_ease_factor).toFixed(2)}
-										</span>
-									</div>
-								</div>
-								{#if log.time_taken_ms != null}
-									<div class="ledger-col-latency" title="Response Latency">
-										<span>{(log.time_taken_ms / 1000).toFixed(1)}s</span>
-									</div>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				{/if}
 			</section>
 		</div>
 

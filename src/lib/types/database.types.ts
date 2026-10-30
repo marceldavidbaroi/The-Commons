@@ -77,62 +77,13 @@ export type Database = {
           },
         ]
       }
-      card_review_logs: {
-        Row: {
-          card_id: string
-          id: string
-          new_ease_factor: number
-          new_interval_days: number
-          previous_ease_factor: number
-          previous_interval_days: number
-          previous_state: number
-          rating: number
-          reviewed_at: string
-          time_taken_ms: number | null
-          user_id: string | null
-        }
-        Insert: {
-          card_id: string
-          id?: string
-          new_ease_factor: number
-          new_interval_days: number
-          previous_ease_factor: number
-          previous_interval_days: number
-          previous_state: number
-          rating: number
-          reviewed_at?: string
-          time_taken_ms?: number | null
-          user_id?: string | null
-        }
-        Update: {
-          card_id?: string
-          id?: string
-          new_ease_factor?: number
-          new_interval_days?: number
-          previous_ease_factor?: number
-          previous_interval_days?: number
-          previous_state?: number
-          rating?: number
-          reviewed_at?: string
-          time_taken_ms?: number | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "card_review_logs_card_id_fkey"
-            columns: ["card_id"]
-            isOneToOne: false
-            referencedRelation: "cards"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       card_types: {
         Row: {
           created_at: string
           fields_schema: Json
           has_reverse: boolean
-          id: string
+          id: number
+          is_default: boolean
           name: string
           updated_at: string
           user_id: string | null
@@ -141,7 +92,8 @@ export type Database = {
           created_at?: string
           fields_schema?: Json
           has_reverse?: boolean
-          id?: string
+          id?: number
+          is_default?: boolean
           name: string
           updated_at?: string
           user_id?: string | null
@@ -150,7 +102,8 @@ export type Database = {
           created_at?: string
           fields_schema?: Json
           has_reverse?: boolean
-          id?: string
+          id?: number
+          is_default?: boolean
           name?: string
           updated_at?: string
           user_id?: string | null
@@ -161,13 +114,13 @@ export type Database = {
         Row: {
           card_type: number
           created_at: string
-          deck_id: string
+          deck_id: number
           due_date: string
           ease_factor: number
-          id: string
+          id: number
           interval_days: number
           lapses: number
-          note_id: string
+          note_id: number
           queue_state: number
           reps: number
           step_index: number
@@ -177,13 +130,13 @@ export type Database = {
         Insert: {
           card_type?: number
           created_at?: string
-          deck_id: string
+          deck_id: number
           due_date?: string
           ease_factor?: number
-          id?: string
+          id?: number
           interval_days?: number
           lapses?: number
-          note_id: string
+          note_id: number
           queue_state?: number
           reps?: number
           step_index?: number
@@ -193,13 +146,13 @@ export type Database = {
         Update: {
           card_type?: number
           created_at?: string
-          deck_id?: string
+          deck_id?: number
           due_date?: string
           ease_factor?: number
-          id?: string
+          id?: number
           interval_days?: number
           lapses?: number
-          note_id?: string
+          note_id?: number
           queue_state?: number
           reps?: number
           step_index?: number
@@ -228,9 +181,9 @@ export type Database = {
           config: Json
           created_at: string
           description: string | null
-          id: string
+          id: number
           name: string
-          parent_id: string | null
+          parent_id: number | null
           updated_at: string
           user_id: string | null
         }
@@ -238,9 +191,9 @@ export type Database = {
           config?: Json
           created_at?: string
           description?: string | null
-          id?: string
+          id?: number
           name: string
-          parent_id?: string | null
+          parent_id?: number | null
           updated_at?: string
           user_id?: string | null
         }
@@ -248,9 +201,9 @@ export type Database = {
           config?: Json
           created_at?: string
           description?: string | null
-          id?: string
+          id?: number
           name?: string
-          parent_id?: string | null
+          parent_id?: number | null
           updated_at?: string
           user_id?: string | null
         }
@@ -415,31 +368,31 @@ export type Database = {
       }
       flashcard_notes: {
         Row: {
-          card_type_id: string
+          card_type_id: number
           checksum: string | null
           created_at: string
           fields: Json
-          id: string
+          id: number
           tags: string[]
           updated_at: string
           user_id: string | null
         }
         Insert: {
-          card_type_id: string
+          card_type_id: number
           checksum?: string | null
           created_at?: string
           fields?: Json
-          id?: string
+          id?: number
           tags?: string[]
           updated_at?: string
           user_id?: string | null
         }
         Update: {
-          card_type_id?: string
+          card_type_id?: number
           checksum?: string | null
           created_at?: string
           fields?: Json
-          id?: string
+          id?: number
           tags?: string[]
           updated_at?: string
           user_id?: string | null
@@ -1113,12 +1066,12 @@ export type Database = {
       }
       create_flashcard_note_with_cards: {
         Args: {
-          p_card_type_id: string
-          p_deck_id: string
+          p_card_type_id: number
+          p_deck_id: number
           p_fields: Json
           p_tags?: string[]
         }
-        Returns: string
+        Returns: number
       }
       delete_folder: {
         Args: { cascade_children: boolean; target_folder_id: string }
@@ -1139,17 +1092,17 @@ export type Database = {
             } & "Could not choose the best candidate function between: public.get_diary_stats(p_diary_id => int8), public.get_diary_stats(p_diary_id => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
           }
       get_study_queue: {
-        Args: { p_deck_id: string }
+        Args: { p_deck_id: number; p_limit?: number; p_new_limit?: number }
         Returns: {
           card_type: number
           created_at: string
-          deck_id: string
+          deck_id: number
           due_date: string
           ease_factor: number
-          id: string
+          id: number
           interval_days: number
           lapses: number
-          note_id: string
+          note_id: number
           queue_state: number
           reps: number
           step_index: number
@@ -1204,26 +1157,8 @@ export type Database = {
       show_trgm: { Args: { "": string }; Returns: string[] }
       slugify_text: { Args: { v: string }; Returns: string }
       submit_card_review: {
-        Args: { p_card_id: string; p_rating: number; p_time_taken_ms?: number }
-        Returns: {
-          card_id: string
-          id: string
-          new_ease_factor: number
-          new_interval_days: number
-          previous_ease_factor: number
-          previous_interval_days: number
-          previous_state: number
-          rating: number
-          reviewed_at: string
-          time_taken_ms: number | null
-          user_id: string | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "card_review_logs"
-          isOneToOne: true
-          isSetofReturn: false
-        }
+        Args: { p_card_id: number; p_rating: number; p_time_taken_ms?: number }
+        Returns: Json
       }
       update_citizen_passport: {
         Args: {

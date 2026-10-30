@@ -3,11 +3,23 @@
 
 	let {
 		cards,
+		selectable = false,
+		selectedCardIds = [],
+		onToggleSelect,
+		onSelectAll,
 		onCardClick
 	}: {
 		cards: DueTodayItem[];
+		selectable?: boolean;
+		selectedCardIds?: (number | string)[];
+		onToggleSelect?: (cardId: number | string) => void;
+		onSelectAll?: (selectAll: boolean) => void;
 		onCardClick?: (card: DueTodayItem) => void;
 	} = $props();
+
+	const isAllSelected = $derived(
+		cards.length > 0 && cards.every((c) => selectedCardIds.some((id) => String(id) === String(c.id)))
+	);
 
 	function getQueueStateLabel(state: number): { label: string; cls: string } {
 		switch (state) {
@@ -28,10 +40,28 @@
 </script>
 
 <div class="due-list-container" role="list">
+	{#if selectable && cards.length > 0}
+		<div class="select-all-row">
+			<label class="checkbox-container">
+				<input
+					type="checkbox"
+					class="card-checkbox"
+					checked={isAllSelected}
+					onchange={(e) => onSelectAll?.((e.target as HTMLInputElement).checked)}
+				/>
+				<span class="select-all-label">
+					{isAllSelected ? 'Deselect all' : 'Select all'} ({cards.length} cards)
+				</span>
+			</label>
+		</div>
+	{/if}
+
 	{#each cards as card (card.id)}
 		{@const stateInfo = getQueueStateLabel(card.queue_state)}
+		{@const isSelected = selectedCardIds.some((id) => String(id) === String(card.id))}
 		<div
 			class="card-row"
+			class:selected={isSelected}
 			role="listitem"
 			tabindex="0"
 			onclick={() => onCardClick?.(card)}
@@ -42,6 +72,18 @@
 				}
 			}}
 		>
+			{#if selectable}
+				<div class="checkbox-col" onclick={(e) => e.stopPropagation()} role="presentation">
+					<input
+						type="checkbox"
+						class="card-checkbox"
+						checked={isSelected}
+						aria-label={`Select ${card.note_front || 'card'}`}
+						onchange={() => onToggleSelect?.(card.id)}
+					/>
+				</div>
+			{/if}
+
 			<div class="queue-indicator {stateInfo.cls}" title={stateInfo.label}></div>
 
 			<div class="card-content-area">
@@ -87,6 +129,41 @@
 		flex-direction: column;
 		gap: 0.375rem;
 		width: 100%;
+	}
+
+	.select-all-row {
+		display: flex;
+		align-items: center;
+		padding: 0.35rem 0.5rem;
+		font-size: 0.75rem;
+		color: var(--text-muted);
+	}
+
+	.checkbox-container {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		cursor: pointer;
+		user-select: none;
+	}
+
+	.checkbox-col {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding-right: 0.25rem;
+	}
+
+	.card-checkbox {
+		cursor: pointer;
+		accent-color: var(--accent-primary, #3b82f6);
+		width: 15px;
+		height: 15px;
+	}
+
+	.card-row.selected {
+		border-color: var(--accent-primary, #3b82f6);
+		background-color: rgba(59, 130, 246, 0.08);
 	}
 
 	.card-row {

@@ -6,10 +6,10 @@ import * as flashcardsService from '$lib/services/flashcards-service';
 
 function createMockCard(overrides: Partial<CardRecord> = {}): CardRecord {
   return {
-    id: 'card-1',
+    id: 1,
     user_id: 'user-1',
-    note_id: 'note-1',
-    deck_id: 'deck-1',
+    note_id: 10,
+    deck_id: 1,
     card_type: 0,
     queue_state: 0, // New
     due_date: '2026-10-24',
@@ -170,23 +170,23 @@ describe('Phase 2: FlashcardsStore Reactive Runes State Container', () => {
   });
 
   it('calculates derived queue counts correctly', () => {
-    const cardNew: StudyQueueItem = { ...createMockCard({ id: 'c1', queue_state: 0 }) };
-    const cardLearning: StudyQueueItem = { ...createMockCard({ id: 'c2', queue_state: 1 }) };
-    const cardReview: StudyQueueItem = { ...createMockCard({ id: 'c3', queue_state: 2 }) };
+    const cardNew: StudyQueueItem = { ...createMockCard({ id: 1, queue_state: 0 }) };
+    const cardLearning: StudyQueueItem = { ...createMockCard({ id: 2, queue_state: 1 }) };
+    const cardReview: StudyQueueItem = { ...createMockCard({ id: 3, queue_state: 2 }) };
 
     store.studyQueue = [cardNew, cardLearning, cardReview];
     store.activeCardIndex = 0;
 
     expect(store.hasMoreCards).toBe(true);
-    expect(store.currentCard?.id).toBe('c1');
+    expect(store.currentCard?.id).toBe(1);
     expect(store.remainingCount).toBe(3);
     expect(store.newCardsCount).toBe(1);
     expect(store.dueTodayCount).toBe(2);
   });
 
   it('advances currentCard and toggles flip state', () => {
-    const card1: StudyQueueItem = { ...createMockCard({ id: 'c1' }) };
-    const card2: StudyQueueItem = { ...createMockCard({ id: 'c2' }) };
+    const card1: StudyQueueItem = { ...createMockCard({ id: 1 }) };
+    const card2: StudyQueueItem = { ...createMockCard({ id: 2 }) };
 
     store.studyQueue = [card1, card2];
     store.activeCardIndex = 0;
@@ -198,17 +198,17 @@ describe('Phase 2: FlashcardsStore Reactive Runes State Container', () => {
   });
 
   it('optimistically advances on review and re-queues lapsed card', async () => {
-    const card1: StudyQueueItem = { ...createMockCard({ id: 'c1', queue_state: 2, lapses: 0 }) };
-    const card2: StudyQueueItem = { ...createMockCard({ id: 'c2', queue_state: 2 }) };
-    const card3: StudyQueueItem = { ...createMockCard({ id: 'c3', queue_state: 2 }) };
-    const card4: StudyQueueItem = { ...createMockCard({ id: 'c4', queue_state: 2 }) };
-    const card5: StudyQueueItem = { ...createMockCard({ id: 'c5', queue_state: 2 }) };
+    const card1: StudyQueueItem = { ...createMockCard({ id: 1, queue_state: 2, lapses: 0 }) };
+    const card2: StudyQueueItem = { ...createMockCard({ id: 2, queue_state: 2 }) };
+    const card3: StudyQueueItem = { ...createMockCard({ id: 3, queue_state: 2 }) };
+    const card4: StudyQueueItem = { ...createMockCard({ id: 4, queue_state: 2 }) };
+    const card5: StudyQueueItem = { ...createMockCard({ id: 5, queue_state: 2 }) };
 
     store.studyQueue = [card1, card2, card3, card4, card5];
-    store.activeDeckId = 'deck-1';
+    store.activeDeckId = 1;
     store.decks = [
       {
-        id: 'deck-1',
+        id: 1,
         name: 'Default',
         description: null,
         parent_id: null,
@@ -224,25 +224,13 @@ describe('Phase 2: FlashcardsStore Reactive Runes State Container', () => {
       },
     ];
 
-    vi.spyOn(flashcardsService, 'submitReview').mockResolvedValue({
-      id: 'log-1',
-      user_id: 'user-1',
-      card_id: 'c1',
-      rating: 1,
-      previous_state: 2,
-      previous_interval_days: 0,
-      previous_ease_factor: 2.5,
-      new_interval_days: 1,
-      new_ease_factor: 2.3,
-      time_taken_ms: 1200,
-      reviewed_at: '2026-10-24T00:00:00Z',
-    });
+    vi.spyOn(flashcardsService, 'submitReview').mockResolvedValue(undefined);
 
     await store.submitCardReview('again', 1200);
 
     // Queue index advanced immediately
     expect(store.activeCardIndex).toBe(1);
-    expect(store.currentCard?.id).toBe('c2');
+    expect(store.currentCard?.id).toBe(2);
     expect(store.isFlipped).toBe(false);
 
     // c1 was re-queued 3 positions later:
@@ -250,7 +238,7 @@ describe('Phase 2: FlashcardsStore Reactive Runes State Container', () => {
     // After re-insert at activeIndex + 4 (index 0 + 4 = 4):
     // [c1, c2, c3, c4, c1(updated), c5]
     expect(store.studyQueue.length).toBe(6);
-    expect(store.studyQueue[4].id).toBe('c1');
+    expect(store.studyQueue[4].id).toBe(1);
     expect(store.studyQueue[4].queue_state).toBe(3); // Relearning
   });
 });

@@ -5,12 +5,13 @@ export type DeckConfig = {
   max_reviews_per_day: number;
   learn_steps_minutes: number[];
   leech_threshold: number;
+  card_type_id?: number | string | null;
 };
 
 export interface DeckRecord {
-  id: string;
+  id: number;
   user_id: string | null;
-  parent_id: string | null;
+  parent_id: number | null;
   name: string;
   description: string | null;
   config: DeckConfig;
@@ -31,19 +32,20 @@ export interface FieldSchemaItem {
 }
 
 export interface CardTypeRecord {
-  id: string;
+  id: number;
   user_id: string | null;
   name: string;
   fields_schema: FieldSchemaItem[];
   has_reverse: boolean;
+  is_default?: boolean;
   created_at: string;
   updated_at: string;
 }
 
 export interface FlashcardNoteRecord {
-  id: string;
+  id: number;
   user_id: string | null;
-  card_type_id: string;
+  card_type_id: number;
   fields: Record<string, string>;
   tags: string[];
   checksum: string | null;
@@ -52,10 +54,10 @@ export interface FlashcardNoteRecord {
 }
 
 export interface CardRecord {
-  id: string;
+  id: number;
   user_id: string | null;
-  note_id: string;
-  deck_id: string;
+  note_id: number;
+  deck_id: number;
   card_type: number; // 0 = Forward, 1 = Reverse
   queue_state: number; // -1 = Suspended, 0 = New, 1 = Learning, 2 = Review, 3 = Relearning
   due_date: string;
@@ -66,20 +68,6 @@ export interface CardRecord {
   lapses: number;
   created_at: string;
   updated_at: string;
-}
-
-export interface CardReviewLogRecord {
-  id: string;
-  user_id: string | null;
-  card_id: string;
-  rating: number; // 1 = Again, 2 = Hard, 3 = Normal, 4 = Easy
-  previous_state: number;
-  previous_interval_days: number;
-  previous_ease_factor: number;
-  new_interval_days: number;
-  new_ease_factor: number;
-  time_taken_ms: number | null;
-  reviewed_at: string;
 }
 
 export interface StudyQueueItem extends CardRecord {
