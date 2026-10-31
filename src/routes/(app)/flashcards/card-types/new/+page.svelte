@@ -6,8 +6,8 @@
 	let name = $state('');
 	let hasReverse = $state(false);
 	let fields = $state<FieldSchemaItem[]>([
-		{ name: 'Front', label: 'Front (Prompt)' },
-		{ name: 'Back', label: 'Back (Answer)' }
+		{ label: 'Front', type: 'title' },
+		{ label: 'Back', type: 'description' }
 	]);
 	let isSubmitting = $state(false);
 	let errorMessage = $state<string | null>(null);
@@ -20,8 +20,8 @@
 		fields = [
 			...fields,
 			{
-				name: `Field_${count}`,
-				label: `Field ${count}`
+				label: `Field ${count}`,
+				type: 'title'
 			}
 		];
 	}
@@ -71,19 +71,19 @@
 			return;
 		}
 
-		// Ensure field names are valid and unique
-		const names = new Set<string>();
+		// Ensure field labels are valid and unique
+		const labels = new Set<string>();
 		for (const f of fields) {
-			const cleanName = f.name.trim();
-			if (!cleanName) {
-				errorMessage = 'All fields must have a non-empty key identifier.';
+			const cleanLabel = f.label.trim();
+			if (!cleanLabel) {
+				errorMessage = 'All fields must have a non-empty label.';
 				return;
 			}
-			if (names.has(cleanName.toLowerCase())) {
-				errorMessage = `Duplicate field key "${cleanName}". Field keys must be unique.`;
+			if (labels.has(cleanLabel.toLowerCase())) {
+				errorMessage = `Duplicate field label "${cleanLabel}". Field labels must be unique.`;
 				return;
 			}
-			names.add(cleanName.toLowerCase());
+			labels.add(cleanLabel.toLowerCase());
 		}
 
 		errorMessage = null;
@@ -91,8 +91,8 @@
 
 		try {
 			const cleanedFields = fields.map((f) => ({
-				name: f.name.trim(),
-				label: f.label.trim() || f.name.trim()
+				label: f.label.trim(),
+				type: f.type || 'title'
 			}));
 
 			await flashcardsStore.createCardType({
@@ -224,29 +224,31 @@
 							<!-- Index Indicator -->
 							<span class="field-index">#{index + 1}</span>
 
-							<!-- Field Key (Storage identifier) -->
-							<div class="field-input-group">
-								<label for={`field-key-${index}`} class="field-sublabel">Key</label>
-								<input
-									id={`field-key-${index}`}
-									type="text"
-									class="form-input form-input-mono"
-									bind:value={field.name}
-									placeholder="e.g. front"
-									required
-								/>
-							</div>
-
 							<!-- Field Label (Display name) -->
 							<div class="field-input-group flex-2">
-								<label for={`field-label-${index}`} class="field-sublabel">Display Label</label>
+								<label for={`field-label-${index}`} class="field-sublabel">Field Label</label>
 								<input
 									id={`field-label-${index}`}
 									type="text"
 									class="form-input"
 									bind:value={field.label}
-									placeholder="e.g. Front (Prompt)"
+									placeholder="e.g. Front, Answer, Date"
+									required
 								/>
+							</div>
+
+							<!-- Field Type -->
+							<div class="field-input-group">
+								<label for={`field-type-${index}`} class="field-sublabel">Field Type</label>
+								<select
+									id={`field-type-${index}`}
+									class="form-input form-select"
+									bind:value={field.type}
+								>
+									<option value="title">Title</option>
+									<option value="description">Description (Rich Text)</option>
+									<option value="date">Date</option>
+								</select>
 							</div>
 
 							<!-- Ordering & Removal Actions -->

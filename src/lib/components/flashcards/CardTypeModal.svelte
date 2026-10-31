@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { fade, scale } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
-	import type { CardTypeRecord, FieldSchemaItem } from '$lib/types/flashcards';
+	import type { CardTypeRecord, FieldSchemaItem, FieldType } from '$lib/types/flashcards';
 
 	let {
 		isOpen = false,
@@ -24,8 +24,8 @@
 	let name = $state('');
 	let hasReverse = $state(false);
 	let fields = $state<FieldSchemaItem[]>([
-		{ name: 'Front', label: 'Front (Prompt)' },
-		{ name: 'Back', label: 'Back (Answer)' }
+		{ label: 'Front', type: 'title' },
+		{ label: 'Back', type: 'description' }
 	]);
 	let isSubmitting = $state(false);
 	let isDeleting = $state(false);
@@ -44,13 +44,16 @@
 			if (initialCardType) {
 				name = initialCardType.name;
 				hasReverse = initialCardType.has_reverse;
-				fields = (initialCardType.fields_schema || []).map((f) => ({ ...f }));
+				fields = (initialCardType.fields_schema || []).map((f) => ({
+					label: f.label || f.name || 'Field',
+					type: f.type || 'title'
+				}));
 			} else {
 				name = '';
 				hasReverse = false;
 				fields = [
-					{ name: 'Front', label: 'Front (Prompt)' },
-					{ name: 'Back', label: 'Back (Answer)' }
+					{ label: 'Front', type: 'title' },
+					{ label: 'Back', type: 'description' }
 				];
 			}
 		}
@@ -61,8 +64,8 @@
 		fields = [
 			...fields,
 			{
-				name: `Field_${count}`,
-				label: `Field ${count}`
+				label: `Field ${count}`,
+				type: 'title'
 			}
 		];
 	}
@@ -89,18 +92,18 @@
 			return;
 		}
 
-		const names = new Set<string>();
+		const labels = new Set<string>();
 		for (const f of fields) {
-			const cleanName = f.name.trim();
-			if (!cleanName) {
-				errorMessage = 'All fields must have a non-empty name identifier.';
+			const cleanLabel = f.label.trim();
+			if (!cleanLabel) {
+				errorMessage = 'All fields must have a non-empty label.';
 				return;
 			}
-			if (names.has(cleanName.toLowerCase())) {
-				errorMessage = `Duplicate field "${cleanName}". Field names must be unique.`;
+			if (labels.has(cleanLabel.toLowerCase())) {
+				errorMessage = `Duplicate field label "${cleanLabel}". Field labels must be unique.`;
 				return;
 			}
-			names.add(cleanName.toLowerCase());
+			labels.add(cleanLabel.toLowerCase());
 		}
 
 		if (isDefaultType) {
@@ -114,8 +117,8 @@
 			await onSave({
 				name: trimmedName,
 				fields_schema: fields.map((f) => ({
-					name: f.name.trim(),
-					label: f.label.trim() || f.name.trim()
+					label: f.label.trim(),
+					type: f.type || 'title'
 				})),
 				has_reverse: hasReverse
 			});
@@ -256,19 +259,21 @@
 							<div class="field-row">
 								<input
 									type="text"
-									class="form-input field-key-input"
-									bind:value={field.name}
-									placeholder="Key identifier"
+									class="form-input field-label-input"
+									bind:value={field.label}
+									placeholder="Field label (e.g. Front, Answer, Date)"
 									required
 									disabled={isDefaultType}
 								/>
-								<input
-									type="text"
-									class="form-input field-label-input"
-									bind:value={field.label}
-									placeholder="Display label"
+								<select
+									class="form-select field-type-select"
+									bind:value={field.type}
 									disabled={isDefaultType}
-								/>
+								>
+									<option value="title">Title</option>
+									<option value="description">Description (Rich Text)</option>
+									<option value="date">Date</option>
+								</select>
 								{#if !isDefaultType}
 									<button
 										type="button"
@@ -593,14 +598,19 @@
 		gap: 0.375rem;
 	}
 
-	.field-key-input {
-		flex: 1;
-		font-family: var(--font-mono);
-		font-size: 0.75rem;
+	.field-label-input {
+		flex: 1.5;
 	}
 
-	.field-label-input {
-		flex: 1.2;
+	.field-type-select {
+		flex: 1;
+		padding: 0.5rem 0.5rem;
+		font-size: 0.75rem;
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-sm);
+		background-color: var(--bg-primary);
+		color: var(--text-primary);
+		outline: none;
 	}
 
 	.btn-remove-field {

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { StudyQueueItem } from '$lib/types/flashcards';
+	import { marked } from 'marked';
 
 	let {
 		card,
@@ -10,6 +11,15 @@
 		isFlipped: boolean;
 		onFlip: () => void;
 	} = $props();
+
+	function renderMarkdown(raw: string): string {
+		if (!raw) return '';
+		try {
+			return marked.parse(raw, { async: false }) as string;
+		} catch {
+			return raw;
+		}
+	}
 
 	let isSpeaking = $state(false);
 
@@ -50,18 +60,19 @@
 		const extraFields: Array<{ label: string; value: string }> = [];
 
 		if (schema.length >= 2) {
-			const promptKey = schema[0].name;
-			const answerKey = schema[1].name;
+			const promptKey = schema[0].label || schema[0].name || 'Front';
+			const answerKey = schema[1].label || schema[1].name || 'Back';
 			frontText = isReverse ? (fields[answerKey] || '') : (fields[promptKey] || '');
 			backText = isReverse ? (fields[promptKey] || '') : (fields[answerKey] || '');
 
 			// Any 3rd+ fields treated as contextual / extra fields on the answer side
 			for (let i = 2; i < schema.length; i++) {
 				const item = schema[i];
-				if (fields[item.name]) {
+				const key = item.label || item.name || `Field ${i + 1}`;
+				if (fields[key]) {
 					extraFields.push({
-						label: item.label || item.name,
-						value: fields[item.name]
+						label: key,
+						value: fields[key]
 					});
 				}
 			}
@@ -213,14 +224,18 @@
 							</button>
 						</div>
 					</div>
-					<div class="answer-text">{content.backText}</div>
+					<div class="answer-text markdown-content">
+						{@html renderMarkdown(content.backText)}
+					</div>
 
 					{#if content.extraFields.length > 0}
 						<div class="extra-fields-grid">
 							{#each content.extraFields as field}
 								<div class="extra-field-block">
 									<span class="field-title">{field.label}:</span>
-									<span class="field-body">{field.value}</span>
+									<div class="field-body markdown-content">
+										{@html renderMarkdown(field.value)}
+									</div>
 								</div>
 							{/each}
 						</div>
@@ -445,32 +460,71 @@
 	}
 
 	.answer-text {
-		font-size: 1.125rem;
-		font-weight: 500;
+		font-size: 1rem;
+		font-weight: 400;
 		color: var(--text-primary);
 		line-height: 1.5;
-		white-space: pre-wrap;
 		word-break: break-word;
+	}
+
+	:global(.markdown-content p) {
+		margin: 0 0 0.5rem 0;
+	}
+
+	:global(.markdown-content p:last-child) {
+		margin-bottom: 0;
+	}
+
+	:global(.markdown-content h1, .markdown-content h2, .markdown-content h3, .markdown-content h4) {
+		font-size: 1rem;
+		font-weight: 600;
+		color: var(--text-primary);
+		margin: 0.5rem 0 0.25rem 0;
+	}
+
+	:global(.markdown-content h1:first-child, .markdown-content h2:first-child, .markdown-content h3:first-child) {
+		margin-top: 0;
+	}
+
+	:global(.markdown-content ul, .markdown-content ol) {
+		margin: 0.25rem 0 0.5rem 1.25rem;
+		padding: 0;
+	}
+
+	:global(.markdown-content li) {
+		margin-bottom: 0.25rem;
+	}
+
+	:global(.markdown-content code) {
+		background: var(--bg-tertiary);
+		padding: 0.125rem 0.25rem;
+		border-radius: var(--radius-xs);
+		font-family: var(--font-mono);
+		font-size: 0.85em;
 	}
 
 	.extra-fields-grid {
 		display: flex;
 		flex-direction: column;
-		gap: 0.375rem;
-		margin-top: 0.5rem;
-		padding-top: 0.5rem;
+		gap: 0.75rem;
+		margin-top: 0.75rem;
+		padding-top: 0.75rem;
 		border-top: 1px dashed var(--border-subtle);
 	}
 
 	.extra-field-block {
 		display: flex;
-		gap: 0.375rem;
-		font-size: 0.8125rem;
+		flex-direction: column;
+		gap: 0.25rem;
+		font-size: 0.875rem;
 		line-height: 1.4;
 	}
 
 	.field-title {
 		font-weight: 600;
+		font-size: 0.75rem;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
 		color: var(--text-secondary);
 	}
 

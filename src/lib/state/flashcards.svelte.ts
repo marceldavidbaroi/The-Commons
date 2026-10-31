@@ -4,6 +4,7 @@ import type {
   DueTodayItem,
   DeckConfig,
   CardTypeRecord,
+  FieldSchemaItem,
   StudyQueueItem,
   CardRecord,
   Rating
@@ -162,7 +163,7 @@ export class FlashcardsStore {
    */
   async createCardType(payload: {
     name: string;
-    fields_schema: Array<{ name: string; label: string }>;
+    fields_schema: FieldSchemaItem[];
     has_reverse?: boolean;
   }): Promise<CardTypeRecord> {
     const created = await flashcardsService.createCardType(payload, this.customClient);
@@ -177,7 +178,7 @@ export class FlashcardsStore {
     id: number | string,
     payload: {
       name?: string;
-      fields_schema?: Array<{ name: string; label: string }>;
+      fields_schema?: FieldSchemaItem[];
       has_reverse?: boolean;
     }
   ): Promise<CardTypeRecord> {
@@ -228,6 +229,43 @@ export class FlashcardsStore {
     this.decks = this.decksWithStats;
 
     return noteId;
+  }
+
+  /**
+   * Bulk create flashcard notes and update local deck statistics
+   */
+  async bulkCreateFlashcardNotes(
+    deckId: number | string,
+    cardTypeId: number | string,
+    items: Record<string, string>[],
+    tags: string[] = ['csv-import']
+  ): Promise<number> {
+    const createdCount = await flashcardsService.bulkCreateFlashcardNotes(
+      deckId,
+      cardTypeId,
+      items,
+      tags,
+      this.customClient
+    );
+
+    // In-memory counter updates: calculate added cards (1 or 2 per note if reverse enabled)
+    const cardType = this.cardTypes.find((ct) => String(ct.id) === String(cardTypeId));
+    const cardsPerNote = cardType?.has_reverse ? 2 : 1;
+    const totalAddedCards = createdCount * cardsPerNote;
+
+    this.decksWithStats = this.decksWithStats.map((d) => {
+      if (String(d.id) === String(deckId)) {
+        return {
+          ...d,
+          totalCards: d.totalCards + totalAddedCards,
+          newCards: d.newCards + totalAddedCards
+        };
+      }
+      return d;
+    });
+    this.decks = this.decksWithStats;
+
+    return createdCount;
   }
 
   /**

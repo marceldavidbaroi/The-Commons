@@ -52,7 +52,8 @@
 		if (ct && ct.fields_schema) {
 			const initial: Record<string, string> = {};
 			for (const f of ct.fields_schema) {
-				initial[f.name] = fieldValues[f.name] || '';
+				const key = f.label || f.name || 'Field';
+				initial[key] = fieldValues[key] || '';
 			}
 			fieldValues = initial;
 		}
@@ -88,9 +89,10 @@
 			return;
 		}
 
-		const firstFieldName = ct.fields_schema[0].name;
-		if (!fieldValues[firstFieldName]?.trim()) {
-			errorMessage = `The primary field "${ct.fields_schema[0].label || firstFieldName}" cannot be blank.`;
+		const firstField = ct.fields_schema[0];
+		const firstKey = firstField.label || firstField.name || 'Front';
+		if (!fieldValues[firstKey]?.trim()) {
+			errorMessage = `The primary field "${firstKey}" cannot be blank.`;
 			return;
 		}
 
@@ -112,7 +114,8 @@
 			// Reset fields for convenient rapid entry
 			const resetValues: Record<string, string> = {};
 			for (const f of ct.fields_schema) {
-				resetValues[f.name] = '';
+				const key = f.label || f.name || 'Field';
+				resetValues[key] = '';
 			}
 			fieldValues = resetValues;
 			tagsInput = '';
@@ -196,22 +199,42 @@
 
 					<div class="dynamic-fields-container">
 						{#if selectedCardType && selectedCardType.fields_schema}
-							{#each selectedCardType.fields_schema as field, index (field.name)}
+							{#each selectedCardType.fields_schema as field, index (field.label || field.name || index)}
+								{@const fieldKey = field.label || field.name || `field_${index}`}
 								<div class="form-group">
-									<label for={`input-${field.name}`} class="form-label">
+									<label for={`input-${fieldKey}`} class="form-label">
 										{field.label || field.name}
 										{#if index === 0}
 											<span class="required">*</span>
 										{/if}
 									</label>
-									<textarea
-										id={`input-${field.name}`}
-										class="form-textarea"
-										rows="3"
-										bind:value={fieldValues[field.name]}
-										placeholder={`Enter ${field.label || field.name}...`}
-										required={index === 0}
-									></textarea>
+									{#if field.type === 'date'}
+										<input
+											id={`input-${fieldKey}`}
+											type="date"
+											class="form-input"
+											bind:value={fieldValues[fieldKey]}
+											required={index === 0}
+										/>
+									{:else if field.type === 'description'}
+										<textarea
+											id={`input-${fieldKey}`}
+											class="form-textarea"
+											rows="5"
+											bind:value={fieldValues[fieldKey]}
+											placeholder={`Enter markdown or details for ${field.label || field.name}...`}
+											required={index === 0}
+										></textarea>
+									{:else}
+										<input
+											id={`input-${fieldKey}`}
+											type="text"
+											class="form-input"
+											bind:value={fieldValues[fieldKey]}
+											placeholder={`Enter ${field.label || field.name}...`}
+											required={index === 0}
+										/>
+									{/if}
 								</div>
 							{/each}
 						{/if}

@@ -48,12 +48,13 @@
 		// Pre-initialize empty field values for the target card type synchronously
 		const ct = cardTypes.find((item) => String(item.id) === String(selectedCardTypeId)) || cardTypes[0];
 		const fields = ct?.fields_schema || [
-			{ name: "Front", label: "Front" },
-			{ name: "Back", label: "Back" },
+			{ label: "Front", type: "title" },
+			{ label: "Back", type: "description" },
 		];
 		const initVals: Record<string, string> = {};
 		for (const f of fields) {
-			initVals[f.name] = "";
+			const key = f.label || f.name || "Field";
+			initVals[key] = "";
 		}
 		fieldValues = initVals;
 	}
@@ -79,8 +80,8 @@
 
 	const schemaFields = $derived(
 		activeCardType?.fields_schema || [
-			{ name: "Front", label: "Front" },
-			{ name: "Back", label: "Back" },
+			{ label: "Front", type: "title" },
+			{ label: "Back", type: "description" },
 		]
 	);
 
@@ -101,9 +102,10 @@
 			return;
 		}
 
-		const firstField = schemaFields[0]?.name;
-		if (!firstField || !fieldValues[firstField]?.trim()) {
-			errorMessage = `"${schemaFields[0]?.label || "Front"}" cannot be empty.`;
+		const firstField = schemaFields[0];
+		const firstKey = firstField?.label || firstField?.name || "Front";
+		if (!firstField || !fieldValues[firstKey]?.trim()) {
+			errorMessage = `"${firstKey}" cannot be empty.`;
 			return;
 		}
 
@@ -123,7 +125,8 @@
 			// Reset fields for the next card immediately
 			const cleared: Record<string, string> = {};
 			for (const f of schemaFields) {
-				cleared[f.name] = "";
+				const key = f.label || f.name || "Field";
+				cleared[key] = "";
 			}
 			fieldValues = cleared;
 			tagsInput = "";
@@ -256,7 +259,8 @@
 
 				<!-- Dynamic Schema Fields -->
 				<div class="fields-stack">
-					{#each schemaFields as field, idx}
+					{#each schemaFields as field, idx (field.label || field.name || idx)}
+						{@const fieldKey = field.label || field.name || `field_${idx}`}
 						<div class="form-field">
 							<label
 								for="quick-card-field-{idx}"
@@ -267,14 +271,32 @@
 									<span class="required-star">*</span>
 								{/if}
 							</label>
-							<textarea
-								id="quick-card-field-{idx}"
-								class="text-input"
-								rows={idx < 2 ? 3 : 2}
-								placeholder="Enter {field.label ||
-									field.name}..."
-								bind:value={fieldValues[field.name]}
-								required={idx === 0}></textarea>
+							{#if field.type === 'date'}
+								<input
+									type="date"
+									id="quick-card-field-{idx}"
+									class="text-input-line"
+									bind:value={fieldValues[fieldKey]}
+									required={idx === 0}
+								/>
+							{:else if field.type === 'description'}
+								<textarea
+									id="quick-card-field-{idx}"
+									class="text-input"
+									rows={4}
+									placeholder="Enter markdown or details for {field.label || field.name}..."
+									bind:value={fieldValues[fieldKey]}
+									required={idx === 0}></textarea>
+							{:else}
+								<input
+									type="text"
+									id="quick-card-field-{idx}"
+									class="text-input-line"
+									placeholder="Enter {field.label || field.name}..."
+									bind:value={fieldValues[fieldKey]}
+									required={idx === 0}
+								/>
+							{/if}
 						</div>
 					{/each}
 

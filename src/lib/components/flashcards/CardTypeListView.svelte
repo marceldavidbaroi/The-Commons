@@ -77,9 +77,9 @@
 						<span class="schema-label">Fields ({cardType.fields_schema?.length || 0}):</span>
 						{#each (cardType.fields_schema || []) as field}
 							<span class="field-chip">
-								<span class="field-key">{field.name}</span>
-								{#if field.label && field.label !== field.name}
-									<span class="field-label-text">({field.label})</span>
+								<span class="field-key">{field.label || field.name}</span>
+								{#if field.type}
+									<span class="field-type-badge">{field.type}</span>
 								{/if}
 							</span>
 						{/each}
@@ -213,6 +213,18 @@
 
 	.field-label-text {
 		color: var(--text-muted);
+	}
+
+	.field-type-badge {
+		font-size: 0.625rem;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		padding: 0.0625rem 0.25rem;
+		border-radius: var(--radius-xs);
+		background-color: var(--bg-surface);
+		color: var(--text-secondary);
+		border: 1px solid var(--border-subtle);
+		margin-left: 0.25rem;
 	}
 
 	/* Small Cards Grid Mode */

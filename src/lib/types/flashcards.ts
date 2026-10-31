@@ -26,9 +26,12 @@ export interface DeckWithStats extends DeckRecord {
   depth?: number;
 }
 
+export type FieldType = 'title' | 'description' | 'date';
+
 export interface FieldSchemaItem {
-  name: string;
   label: string;
+  type?: FieldType;
+  name?: string; // Optional for backward compatibility with existing data
 }
 
 export interface CardTypeRecord {

@@ -29,6 +29,8 @@
 	let isUploading = $state(false);
 	let errorMessage = $state<string | null>(null);
 	let successCount = $state<number | null>(null);
+	let showAiPrompt = $state(false);
+	let copiedPrompt = $state(false);
 
 	// Currently chosen card type record
 	const activeCardType = $derived(
@@ -39,8 +41,8 @@
 	// Schema fields for current card type
 	const schemaFields = $derived(
 		activeCardType?.fields_schema || [
-			{ name: "Front", label: "Front" },
-			{ name: "Back", label: "Back" },
+			{ name: "Front", label: "Front", type: "title" },
+			{ name: "Back", label: "Back", type: "description" },
 		],
 	);
 
@@ -49,6 +51,8 @@
 		if (isOpen && deck) {
 			errorMessage = null;
 			successCount = null;
+			showAiPrompt = false;
+			copiedPrompt = false;
 			csvFile = null;
 			parsedRows = [];
 			csvHeaders = [];
@@ -69,20 +73,20 @@
 			const mapping: Record<string, string> = {};
 			for (let i = 0; i < schemaFields.length; i++) {
 				const f = schemaFields[i];
+				const fieldKey = f.label || f.name || `field_${i}`;
 				// Exact match or case-insensitive match
 				const matched = csvHeaders.find(
 					(h) =>
-						h.trim().toLowerCase() ===
-							f.name.trim().toLowerCase() ||
-						h.trim().toLowerCase() === f.label.trim().toLowerCase(),
+						h.trim().toLowerCase() === fieldKey.trim().toLowerCase() ||
+						(f.name && h.trim().toLowerCase() === f.name.trim().toLowerCase())
 				);
 				if (matched) {
-					mapping[f.name] = matched;
+					mapping[fieldKey] = matched;
 				} else if (i < csvHeaders.length) {
 					// Fallback to sequential position
-					mapping[f.name] = csvHeaders[i];
+					mapping[fieldKey] = csvHeaders[i];
 				} else {
-					mapping[f.name] = "";
+					mapping[fieldKey] = "";
 				}
 			}
 			columnMapping = mapping;
@@ -90,6 +94,12 @@
 	});
 
 	function parseCSV(text: string): { headers: string[]; rows: string[][] } {
+		// Detect delimiter: comma or tab (TSV/spreadsheet paste)
+		const firstLine = text.split(/\r\n|\n|\r/)[0] || "";
+		const tabCount = (firstLine.match(/\t/g) || []).length;
+		const commaCount = (firstLine.match(/,/g) || []).length;
+		const delimiter = tabCount > commaCount ? "\t" : ",";
+
 		const lines: string[] = [];
 		let row: string[] = [];
 		let inQuotes = false;
@@ -106,7 +116,7 @@
 				} else {
 					inQuotes = !inQuotes;
 				}
-			} else if (char === "," && !inQuotes) {
+			} else if (char === delimiter && !inQuotes) {
 				row.push(currentVal.trim());
 				currentVal = "";
 			} else if ((char === "\r" || char === "\n") && !inQuotes) {
@@ -143,12 +153,119 @@
 		return { headers, rows: rawRows };
 	}
 
+	const generatedAiPrompt = $derived.by(() => {
+		const headers = schemaFields
+			.map((f) => `"${(f.label || f.name || "").replace(/"/g, '""')}"`)
+			.join(",");
+
+		const fieldGuidelines = schemaFields
+			.map((f, idx) => {
+				const label = f.label || f.name;
+				const type = f.type || "title";
+				const lowerLabel = (label || "").toLowerCase();
+
+				if (type === "title" || idx === 0 || lowerLabel.includes("front") || lowerLabel.includes("prompt")) {
+					return `- "${label}": The corrected word (Title Case, plain text).`;
+				}
+				if (type === "description" || idx === 1 || lowerLabel.includes("back") || lowerLabel.includes("answer") || lowerLabel.includes("definition")) {
+					return `- "${label}": Plain definition only (do NOT include labels or markdown headers like "### Definition").`;
+				}
+				if (type === "date") {
+					return `- "${label}": Date formatted as YYYY-MM-DD.`;
+				}
+				return `- "${label}": Exactly 3 bulleted everyday examples formatted as:
+  - Example 1
+  - Example 2
+  - Example 3
+  (do NOT include headers like "### Everyday Examples").`;
+			})
+			.join("\n");
+
+		return `You are a vocabulary flashcard generator.
+
+Task:
+1. Fix any typos or misspellings in the provided list of words.
+2. Provide a clear, simple definition for each word.
+3. Provide 3 simple, day-to-day example sentences for each word.
+4. Output the result directly as a downloadable CSV file using Python, and also provide the raw CSV code block.
+
+CSV Specifications:
+1. Header row (must match exactly):
+${headers}
+2. Column formatting:
+${fieldGuidelines}
+3. CSV syntax rules:
+- Every cell must be enclosed in double quotes ("...").
+- Internal double quotes must be escaped as ("").
+- Line breaks inside cells must be preserved.
+
+Output instructions:
+- Use Python code to create and save the output directly as a downloadable CSV file.
+- Show the raw CSV text inside a single code block for direct copying.
+- Do NOT output Markdown tables, conversational greetings, or closing explanations.
+
+Here are the words:
+[PASTE YOUR WORDS HERE]`;
+	});
+
+	async function copyAiPrompt() {
+		try {
+			await navigator.clipboard.writeText(generatedAiPrompt);
+			copiedPrompt = true;
+			setTimeout(() => {
+				copiedPrompt = false;
+			}, 2500);
+		} catch (err) {
+			console.error("Failed to copy AI prompt:", err);
+		}
+	}
+
+	function normalizeDateValue(raw: string): string {
+		const trimmed = raw.trim();
+		if (!trimmed) return "";
+		// If already in YYYY-MM-DD
+		if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+		// Try parsing standard formats
+		const parsed = new Date(trimmed);
+		if (!isNaN(parsed.getTime())) {
+			return parsed.toISOString().split("T")[0];
+		}
+		return trimmed;
+	}
+
 	function downloadBlankCsv() {
 		if (schemaFields.length === 0) return;
 		const headersRow = schemaFields
-			.map((f) => `"${(f.label || f.name).replace(/"/g, '""')}"`)
+			.map((f) => `"${(f.label || f.name || "").replace(/"/g, '""')}"`)
 			.join(",");
-		const csvContent = headersRow + "\r\n";
+
+		// Generate realistic, type-specific sample values
+		const todayIso = new Date().toISOString().split("T")[0];
+		const sample1Values = schemaFields.map((f) => {
+			if (f.type === "date") return `"${todayIso}"`;
+			if (f.type === "description") {
+				return `"### Overview\nKey points and explanation.\n- Bullet point 1\n- Bullet point 2"`;
+			}
+			// default to title
+			return `"Sample ${f.label || f.name} title"`;
+		});
+
+		const sample2Values = schemaFields.map((f) => {
+			if (f.type === "date") return `"2026-12-31"`;
+			if (f.type === "description") {
+				return `"Detailed description or answer goes here."`;
+			}
+			return `"Another ${f.label || f.name} item"`;
+		});
+
+		const sampleRow1 = sample1Values
+			.map((v) => v.replace(/\n/g, "\r\n"))
+			.join(",");
+		const sampleRow2 = sample2Values
+			.map((v) => v.replace(/\n/g, "\r\n"))
+			.join(",");
+
+		const csvContent = `${headersRow}\r\n${sampleRow1}\r\n${sampleRow2}\r\n`;
 		const blob = new Blob([csvContent], {
 			type: "text/csv;charset=utf-8;",
 		});
@@ -161,7 +278,7 @@
 			.toLowerCase()
 			.replace(/[^a-z0-9_-]/g, "_");
 		link.href = url;
-		link.download = `${safeDeckName}_${typeName}_template.csv`;
+		link.download = `${safeDeckName}_${typeName}_sample.csv`;
 		link.click();
 		URL.revokeObjectURL(url);
 	}
@@ -223,12 +340,17 @@
 				const fields: Record<string, string> = {};
 				let hasContent = false;
 
-				for (const field of schemaFields) {
-					const mappedCol = columnMapping[field.name];
-					const val = (
+				for (let i = 0; i < schemaFields.length; i++) {
+					const field = schemaFields[i];
+					const fieldKey = field.label || field.name || `field_${i}`;
+					const mappedCol = columnMapping[fieldKey];
+					let val = (
 						mappedCol && row[mappedCol] ? row[mappedCol] : ""
 					).trim();
-					fields[field.name] = val;
+					if (field.type === "date" && val) {
+						val = normalizeDateValue(val);
+					}
+					fields[fieldKey] = val;
 					if (val) hasContent = true;
 				}
 
@@ -342,27 +464,40 @@
 								>Defines the template schema</span
 							>
 						</label>
-						<button
-							type="button"
-							class="btn-download-template"
-							onclick={downloadBlankCsv}
-							title="Download empty CSV template for this card type"
-							disabled={isUploading}
-						>
-							<svg
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
+						<div class="header-actions-group">
+							<button
+								type="button"
+								class="btn-text-action"
+								onclick={() => (showAiPrompt = !showAiPrompt)}
+								title="Customize AI prompt for this schema"
 							>
-								<path
-									d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
-								/>
-								<polyline points="7 10 12 15 17 10" />
-								<line x1="12" y1="15" x2="12" y2="3" />
-							</svg>
-							<span>Download Blank CSV</span>
-						</button>
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+								</svg>
+								<span>{showAiPrompt ? "Hide AI Prompt" : "AI Prompt Generator"}</span>
+							</button>
+							<button
+								type="button"
+								class="btn-download-template"
+								onclick={downloadBlankCsv}
+								title="Download empty CSV template for this card type"
+								disabled={isUploading}
+							>
+								<svg
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path
+										d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+									/>
+									<polyline points="7 10 12 15 17 10" />
+									<line x1="12" y1="15" x2="12" y2="3" />
+								</svg>
+								<span>Sample CSV</span>
+							</button>
+						</div>
 					</div>
 					<select
 						id="csv-card-type"
@@ -379,6 +514,49 @@
 						{/each}
 					</select>
 				</div>
+
+				<!-- AI Prompt Customizer Accordion / Panel -->
+				{#if showAiPrompt}
+					<div class="ai-prompt-box">
+						<div class="ai-prompt-header">
+							<div class="ai-prompt-title">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<circle cx="12" cy="12" r="10" />
+									<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+									<line x1="12" y1="17" x2="12.01" y2="17" />
+								</svg>
+								<span>CSV Format Prompt for AI</span>
+							</div>
+							<button
+								type="button"
+								class="btn-copy-prompt"
+								onclick={copyAiPrompt}
+								title="Copy format instructions to clipboard"
+							>
+								{#if copiedPrompt}
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+										<polyline points="20 6 9 17 4 12" />
+									</svg>
+									<span>Copied!</span>
+								{:else}
+									<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+										<rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+										<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+									</svg>
+									<span>Copy Format Prompt</span>
+								{/if}
+							</button>
+						</div>
+
+						<p class="ai-prompt-desc">
+							Append this format specification to your prompt in ChatGPT, Claude, or Gemini so the generated CSV matches this schema exactly.
+						</p>
+
+						<div class="ai-prompt-preview-wrap">
+							<pre class="ai-prompt-code">{generatedAiPrompt}</pre>
+						</div>
+					</div>
+				{/if}
 
 				<!-- File Picker -->
 				<div class="form-group">
@@ -432,22 +610,25 @@
 						</p>
 
 						<div class="mapping-grid">
-							{#each schemaFields as field (field.name)}
+							{#each schemaFields as field, i (field.label || field.name || i)}
+								{@const fieldKey = field.label || field.name || `field_${i}`}
 								<div class="mapping-row">
 									<div class="field-label-cell">
 										<span class="field-name"
 											>{field.label || field.name}</span
 										>
-										<span class="field-tag"
-											>{field.name}</span
-										>
+										{#if field.type}
+											<span class="field-tag"
+												>{field.type}</span
+											>
+										{/if}
 									</div>
 									<div class="field-arrow">➔</div>
 									<div class="field-select-cell">
 										<select
 											class="form-select compact"
 											bind:value={
-												columnMapping[field.name]
+												columnMapping[fieldKey]
 											}
 											disabled={isUploading}
 										>
@@ -470,17 +651,18 @@
 								<span class="preview-title">Row 1 Preview:</span
 								>
 								<div class="preview-fields">
-									{#each schemaFields as field}
+									{#each schemaFields as field, i}
+										{@const fieldKey = field.label || field.name || `field_${i}`}
 										<div class="preview-item">
 											<strong
 												>{field.label ||
 													field.name}:</strong
 											>
 											<span
-												>{columnMapping[field.name]
+												>{columnMapping[fieldKey]
 													? parsedRows[0][
 															columnMapping[
-																field.name
+																fieldKey
 															]
 														] || "—"
 													: "—"}</span
@@ -617,6 +799,158 @@
 	.form-label.no-margin {
 		flex: 1;
 		margin: 0;
+	}
+
+	.header-actions-group {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+	}
+
+	.btn-text-action {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		background: none;
+		border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.15));
+		border-radius: var(--radius-sm, 4px);
+		color: var(--text-secondary, #cbd5e1);
+		padding: 0.2rem 0.5rem;
+		font-size: 0.725rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.btn-text-action:hover {
+		background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+		color: var(--text-primary, #fff);
+	}
+
+	.btn-text-action svg {
+		width: 12px;
+		height: 12px;
+	}
+
+	.ai-prompt-box {
+		background: var(--bg-secondary, #25252d);
+		border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
+		border-radius: var(--radius-md, 8px);
+		padding: 0.875rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.625rem;
+	}
+
+	.ai-prompt-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.ai-prompt-title {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: var(--text-primary, #fff);
+	}
+
+	.ai-prompt-title svg {
+		width: 14px;
+		height: 14px;
+		color: var(--primary, #3b82f6);
+	}
+
+	.btn-copy-prompt {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		background: var(--primary, #3b82f6);
+		color: #fff;
+		border: none;
+		border-radius: var(--radius-sm, 4px);
+		padding: 0.25rem 0.625rem;
+		font-size: 0.75rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: background-color 0.15s ease;
+	}
+
+	.btn-copy-prompt:hover {
+		background: var(--primary-hover, #2563eb);
+	}
+
+	.btn-copy-prompt svg {
+		width: 12px;
+		height: 12px;
+	}
+
+	.ai-prompt-desc {
+		font-size: 0.75rem;
+		color: var(--text-muted, #94a3b8);
+		margin: 0;
+		line-height: 1.4;
+	}
+
+	.ai-controls-row {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.ai-control-field {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.flex-3 {
+		flex: 3;
+	}
+
+	.flex-1 {
+		flex: 1;
+	}
+
+	.ai-sublabel {
+		font-size: 0.6875rem;
+		font-weight: 500;
+		color: var(--text-secondary, #94a3b8);
+	}
+
+	.ai-input {
+		width: 100%;
+		padding: 0.375rem 0.5rem;
+		background: var(--bg-primary, #18181b);
+		border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
+		border-radius: var(--radius-sm, 4px);
+		color: var(--text-primary, #fff);
+		font-size: 0.75rem;
+		outline: none;
+		box-sizing: border-box;
+	}
+
+	.ai-input:focus {
+		border-color: var(--primary, #3b82f6);
+	}
+
+	.ai-prompt-preview-wrap {
+		background: var(--bg-primary, #18181b);
+		border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+		border-radius: var(--radius-sm, 4px);
+		max-height: 140px;
+		overflow-y: auto;
+		padding: 0.5rem;
+	}
+
+	.ai-prompt-code {
+		font-family: var(--font-mono, monospace);
+		font-size: 0.6875rem;
+		color: var(--text-secondary, #cbd5e1);
+		margin: 0;
+		white-space: pre-wrap;
+		word-break: break-word;
 	}
 
 	.btn-download-template {

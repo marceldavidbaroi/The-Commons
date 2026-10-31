@@ -77,6 +77,56 @@ export type Database = {
           },
         ]
       }
+      card_review_logs: {
+        Row: {
+          card_id: number
+          id: number
+          new_ease_factor: number
+          new_interval_days: number
+          previous_ease_factor: number
+          previous_interval_days: number
+          previous_state: number
+          rating: number
+          reviewed_at: string
+          time_taken_ms: number | null
+          user_id: string | null
+        }
+        Insert: {
+          card_id: number
+          id?: number
+          new_ease_factor: number
+          new_interval_days: number
+          previous_ease_factor: number
+          previous_interval_days: number
+          previous_state: number
+          rating: number
+          reviewed_at?: string
+          time_taken_ms?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          card_id?: number
+          id?: number
+          new_ease_factor?: number
+          new_interval_days?: number
+          previous_ease_factor?: number
+          previous_interval_days?: number
+          previous_state?: number
+          rating?: number
+          reviewed_at?: string
+          time_taken_ms?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_review_logs_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       card_types: {
         Row: {
           created_at: string
@@ -164,6 +214,13 @@ export type Database = {
             foreignKeyName: "cards_deck_id_fkey"
             columns: ["deck_id"]
             isOneToOne: false
+            referencedRelation: "deck_statistics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cards_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
             referencedRelation: "decks"
             referencedColumns: ["id"]
           },
@@ -208,6 +265,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "decks_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "deck_statistics"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "decks_parent_id_fkey"
             columns: ["parent_id"]
@@ -1021,19 +1085,26 @@ export type Database = {
     Views: {
       deck_statistics: {
         Row: {
-          config: Json
-          created_at: string
+          config: Json | null
+          created_at: string | null
           description: string | null
-          due_cards: number
-          id: number
-          name: string
-          new_cards: number
+          due_cards: number | null
+          id: number | null
+          name: string | null
+          new_cards: number | null
           parent_id: number | null
-          total_cards: number
-          updated_at: string
+          total_cards: number | null
+          updated_at: string | null
           user_id: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "decks_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "deck_statistics"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "decks_parent_id_fkey"
             columns: ["parent_id"]
@@ -1045,6 +1116,15 @@ export type Database = {
       }
     }
     Functions: {
+      bulk_create_flashcard_notes: {
+        Args: {
+          p_card_type_id: number
+          p_deck_id: number
+          p_default_tags?: string[]
+          p_items: Json
+        }
+        Returns: number
+      }
       create_diary_entry:
         | {
             Args: {
@@ -1117,27 +1197,23 @@ export type Database = {
       get_study_queue: {
         Args: { p_deck_id: number; p_limit?: number; p_new_limit?: number }
         Returns: {
+          card_id: number
           card_type: number
-          created_at: string
+          card_type_name: string
+          card_type_schema: Json
           deck_id: number
           due_date: string
           ease_factor: number
-          id: number
+          has_reverse: boolean
           interval_days: number
           lapses: number
+          note_fields: Json
           note_id: number
+          note_tags: string[]
           queue_state: number
           reps: number
           step_index: number
-          updated_at: string
-          user_id: string | null
         }[]
-        SetofOptions: {
-          from: "*"
-          to: "cards"
-          isOneToOne: false
-          isSetofReturn: true
-        }
       }
       get_user_diaries_overview: { Args: never; Returns: Json }
       provision_feature_tag_categories: {

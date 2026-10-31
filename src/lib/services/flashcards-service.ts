@@ -50,22 +50,22 @@ export async function fetchDecksWithStats(customClient?: SupabaseClient<Database
     throw error;
   }
 
-  let decks = (data || []).map((row) => ({
-    id: row.id,
+  let decks: import('$lib/types/flashcards').DeckWithStats[] = (data || []).map((row) => ({
+    id: row.id ?? 0,
     user_id: row.user_id,
     parent_id: row.parent_id,
-    name: row.name,
+    name: row.name ?? '',
     description: row.description,
     config: row.config as unknown as DeckConfig,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-    totalCards: row.total_cards,
-    dueCards: row.due_cards,
-    newCards: row.new_cards
+    created_at: row.created_at ?? '',
+    updated_at: row.updated_at ?? '',
+    totalCards: row.total_cards ?? 0,
+    dueCards: row.due_cards ?? 0,
+    newCards: row.new_cards ?? 0
   }));
 
   // If user has no decks at all, auto-create a 'Default' deck so there is always a default deck
-  const hasDefaultDeck = decks.some((d) => d.name.toLowerCase() === 'default');
+  const hasDefaultDeck = decks.some((d) => (d.name || '').toLowerCase() === 'default');
   if (decks.length === 0 || !hasDefaultDeck) {
     try {
       const defaultDeck = await createDeck({ name: 'Default' }, customClient);
@@ -85,9 +85,11 @@ export async function fetchDecksWithStats(customClient?: SupabaseClient<Database
 
   // Sort so 'Default' always appears first, followed by others alphabetically
   decks.sort((a, b) => {
-    if (a.name.toLowerCase() === 'default') return -1;
-    if (b.name.toLowerCase() === 'default') return 1;
-    return a.name.localeCompare(b.name);
+    const aName = a.name || '';
+    const bName = b.name || '';
+    if (aName.toLowerCase() === 'default') return -1;
+    if (bName.toLowerCase() === 'default') return 1;
+    return aName.localeCompare(bName);
   });
 
   return decks;
@@ -399,8 +401,8 @@ export async function fetchCardTypes(
           user_id: user?.id,
           name: 'Basic',
           fields_schema: [
-            { name: 'Front', label: 'Front (Prompt)' },
-            { name: 'Back', label: 'Back (Answer)' }
+            { label: 'Front', type: 'title' },
+            { label: 'Back', type: 'description' }
           ] as any,
           has_reverse: false,
           is_default: true
@@ -562,6 +564,31 @@ export async function createFlashcardNote(
 }
 
 /**
+ * Bulk create multiple flashcard notes with cards in a single database RPC call.
+ */
+export async function bulkCreateFlashcardNotes(
+  deckId: number | string,
+  cardTypeId: number | string,
+  items: Array<Record<string, string> | { fields: Record<string, string>; tags?: string[] }>,
+  defaultTags: string[] = ['csv-import'],
+  customClient?: SupabaseClient<Database>
+): Promise<number> {
+  const supabase = getClient(customClient);
+  const { data, error } = await supabase.rpc('bulk_create_flashcard_notes', {
+    p_deck_id: Number(deckId),
+    p_card_type_id: Number(cardTypeId),
+    p_items: items as any,
+    p_default_tags: defaultTags
+  });
+
+  if (error) {
+    console.error('Error bulk creating flashcard notes:', error);
+    throw error;
+  }
+  return data as number;
+}
+
+/**
  * Fetch study queue for a deck respecting daily quotas and scheduling limits.
  * Joins note and card type definition for rendering study cards.
  */
@@ -621,7 +648,7 @@ export async function fetchStudyQueue(
         }
       : undefined;
 
-    const cardId = card.id ?? (card as any).card_id;
+    const cardId = (card as any).id ?? card.card_id;
 
     return {
       ...(card as unknown as CardRecord),
