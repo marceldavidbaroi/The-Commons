@@ -637,15 +637,15 @@ export async function fetchStudyQueue(
     const cardTypeDef = noteData?.card_types as CardTypeRecord | undefined;
     const noteRecord: FlashcardNoteRecord | undefined = noteData
       ? {
-          id: noteData.id,
-          user_id: noteData.user_id,
-          card_type_id: noteData.card_type_id,
-          fields: noteData.fields as Record<string, string>,
-          tags: noteData.tags || [],
-          checksum: noteData.checksum,
-          created_at: noteData.created_at,
-          updated_at: noteData.updated_at,
-        }
+        id: noteData.id,
+        user_id: noteData.user_id,
+        card_type_id: noteData.card_type_id,
+        fields: noteData.fields as Record<string, string>,
+        tags: noteData.tags || [],
+        checksum: noteData.checksum,
+        created_at: noteData.created_at,
+        updated_at: noteData.updated_at,
+      }
       : undefined;
 
     const cardId = (card as any).id ?? card.card_id;
