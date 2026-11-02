@@ -2,6 +2,8 @@
 	import { notesStore } from '$lib/state/notes.svelte';
 	import type { NoteDetail } from '$lib/types/notes';
 	import EditorLine from './EditorLine.svelte';
+	import EditorTable from './EditorTable.svelte';
+	import EditorCodeBlock from './EditorCodeBlock.svelte';
 	import WikiLinkSuggestion from './WikiLinkSuggestion.svelte';
 	import { tick } from 'svelte';
 
@@ -16,6 +18,42 @@
 	// Local editable state
 	let title = $state<string>(note.title);
 	let content = $state<string>(note.content);
+
+	// History stack for Undo/Redo
+	let history = $state<string[]>([note.content]);
+	let historyIndex = $state<number>(0);
+	let isHistoryNavigating = false;
+
+	function pushHistory(newContent: string) {
+		if (isHistoryNavigating) return;
+		if (history[historyIndex] === newContent) return;
+		// Truncate redo future
+		const newHist = history.slice(0, historyIndex + 1);
+		newHist.push(newContent);
+		if (newHist.length > 50) newHist.shift();
+		history = newHist;
+		historyIndex = history.length - 1;
+	}
+
+	function handleUndo() {
+		if (historyIndex > 0) {
+			isHistoryNavigating = true;
+			historyIndex--;
+			content = history[historyIndex];
+			notesStore.updateNoteContentLocal(note.id, content);
+			isHistoryNavigating = false;
+		}
+	}
+
+	function handleRedo() {
+		if (historyIndex < history.length - 1) {
+			isHistoryNavigating = true;
+			historyIndex++;
+			content = history[historyIndex];
+			notesStore.updateNoteContentLocal(note.id, content);
+			isHistoryNavigating = false;
+		}
+	}
 
 	// Editor view mode: 'preview' (hybrid line-based) or 'raw' (full textarea)
 	let viewMode = $state<'hybrid' | 'raw'>('hybrid');
@@ -41,6 +79,128 @@
 	// Split content into lines for line-based hybrid preview
 	const lines = $derived(content.split('\n'));
 
+	interface TableBlock {
+		type: 'table';
+		startIndex: number;
+		endIndex: number; // inclusive
+		headers: string[];
+		alignments: ('left' | 'center' | 'right' | 'none')[];
+		rows: string[][];
+	}
+
+	interface CodeFenceBlock {
+		type: 'code';
+		startIndex: number;
+		endIndex: number;
+		language: string;
+		code: string;
+	}
+
+	interface LineBlock {
+		type: 'line';
+		index: number;
+		text: string;
+	}
+
+	type ParsedBlock = LineBlock | TableBlock | CodeFenceBlock;
+
+	function isTableRow(raw: string): boolean {
+		const trimmed = raw.trim();
+		return trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.length > 1;
+	}
+
+	function isDelimiterRow(raw: string): boolean {
+		const trimmed = raw.trim();
+		return /^\|(?:\s*:?-+:?\s*\|)+$/.test(trimmed);
+	}
+
+	function parseRowCells(raw: string): string[] {
+		let trimmed = raw.trim();
+		if (trimmed.startsWith('|')) trimmed = trimmed.slice(1);
+		if (trimmed.endsWith('|')) trimmed = trimmed.slice(0, -1);
+		return trimmed.split('|').map((c) => c.trim());
+	}
+
+	const contentBlocks = $derived.by<ParsedBlock[]>(() => {
+		const blocks: ParsedBlock[] = [];
+		let i = 0;
+
+		while (i < lines.length) {
+			const current = lines[i];
+
+			// Check if this starts a code fence: ```lang
+			if (current.trim().startsWith('```')) {
+				const match = current.trim().match(/^```([a-zA-Z0-9_-]*)/);
+				const language = match ? match[1] : '';
+				let end = i + 1;
+				while (end < lines.length && !lines[end].trim().startsWith('```')) {
+					end++;
+				}
+				const codeLines = lines.slice(i + 1, end);
+				blocks.push({
+					type: 'code',
+					startIndex: i,
+					endIndex: Math.min(end, lines.length - 1),
+					language,
+					code: codeLines.join('\n')
+				});
+				i = end + 1;
+				continue;
+			}
+
+			// Check if this starts a table
+			if (
+				i + 1 < lines.length &&
+				isTableRow(current) &&
+				isDelimiterRow(lines[i + 1])
+			) {
+				// Find end of table
+				let end = i + 2;
+				while (end < lines.length && isTableRow(lines[end])) {
+					end++;
+				}
+				const tableEnd = end - 1; // inclusive
+
+				const headers = parseRowCells(current);
+				const delimiterCells = parseRowCells(lines[i + 1]);
+				const alignments: ('left' | 'center' | 'right' | 'none')[] = delimiterCells.map((cell) => {
+					const hasLeft = cell.startsWith(':');
+					const hasRight = cell.endsWith(':');
+					if (hasLeft && hasRight) return 'center';
+					if (hasRight) return 'right';
+					if (hasLeft) return 'left';
+					return 'none';
+				});
+
+				const rows: string[][] = [];
+				for (let r = i + 2; r <= tableEnd; r++) {
+					rows.push(parseRowCells(lines[r]));
+				}
+
+				blocks.push({
+					type: 'table',
+					startIndex: i,
+					endIndex: tableEnd,
+					headers,
+					alignments,
+					rows
+				});
+
+				i = tableEnd + 1;
+				continue;
+			}
+
+			blocks.push({
+				type: 'line',
+				index: i,
+				text: current
+			});
+			i++;
+		}
+
+		return blocks;
+	});
+
 	function handleTitleBlur(e: FocusEvent) {
 		const newTitle = (e.target as HTMLInputElement).value.trim();
 		if (newTitle && newTitle !== note.title) {
@@ -57,6 +217,7 @@
 	function handleContentInput(e: Event) {
 		const target = e.target as HTMLTextAreaElement;
 		content = target.value;
+		pushHistory(content);
 		notesStore.updateNoteContentLocal(note.id, content);
 		checkForWikiTrigger(target);
 	}
@@ -97,25 +258,39 @@
 	}
 
 	function handleSelectWikiNote(selectedTitle: string) {
-		if (!textareaEl) return;
+		if (viewMode === 'raw' && textareaEl) {
+			const textBefore = content.substring(0, wikiTriggerIndex);
+			const textAfter = content.substring(textareaEl.selectionStart);
+			const replacement = `[[${selectedTitle}]]`;
+			content = textBefore + replacement + textAfter;
+			notesStore.updateNoteContentLocal(note.id, content);
+			isWikiSuggestOpen = false;
 
-		const textBefore = content.substring(0, wikiTriggerIndex);
-		const textAfter = content.substring(textareaEl.selectionStart);
+			tick().then(() => {
+				if (textareaEl) {
+					const nextCursor = textBefore.length + replacement.length;
+					textareaEl.focus();
+					textareaEl.setSelectionRange(nextCursor, nextCursor);
+				}
+			});
+			return;
+		}
 
-		// Insert [[Selected Title]]
-		const replacement = `[[${selectedTitle}]]`;
-		content = textBefore + replacement + textAfter;
-		notesStore.updateNoteContentLocal(note.id, content);
-
-		isWikiSuggestOpen = false;
-
-		tick().then(() => {
-			if (textareaEl) {
-				const nextCursor = textBefore.length + replacement.length;
-				textareaEl.focus();
-				textareaEl.setSelectionRange(nextCursor, nextCursor);
-			}
-		});
+		if (activeLineIndex !== null && activeLineIndex >= 0 && activeLineIndex < lines.length) {
+			const currentLines = [...lines];
+			const lineText = currentLines[activeLineIndex];
+			const textBefore = lineText.substring(0, wikiTriggerIndex);
+			// Find close bracket or end of trigger
+			const restOfLine = lineText.substring(wikiTriggerIndex);
+			const closeIdx = restOfLine.indexOf(']]');
+			const textAfter = closeIdx !== -1 ? restOfLine.substring(closeIdx + 2) : restOfLine.replace(/^\[\[[^\s]*/, '');
+			
+			const replacement = `[[${selectedTitle}]]`;
+			currentLines[activeLineIndex] = textBefore + replacement + textAfter;
+			content = currentLines.join('\n');
+			notesStore.updateNoteContentLocal(note.id, content);
+			isWikiSuggestOpen = false;
+		}
 	}
 
 	function handleTextareaKeyDown(e: KeyboardEvent) {
@@ -179,17 +354,45 @@
 		}
 	}
 
-	// Track which line is currently being edited in Live Preview (Obsidian-style)
 	let activeLineIndex = $state<number | null>(null);
+
+	function handleWikiTrigger(query: string, triggerPos: { top: number; left: number }, triggerCharIndex: number) {
+		if (triggerCharIndex === -1) {
+			isWikiSuggestOpen = false;
+			return;
+		}
+		wikiQuery = query;
+		wikiTriggerPos = triggerPos;
+		wikiTriggerIndex = triggerCharIndex;
+		isWikiSuggestOpen = true;
+	}
 
 	function handleLineUpdate(index: number, newText: string) {
 		const currentLines = [...lines];
 		currentLines[index] = newText;
 		content = currentLines.join('\n');
+		pushHistory(content);
 		notesStore.updateNoteContentLocal(note.id, content);
 	}
 
 	function handleLineKeyDown(e: KeyboardEvent, index: number) {
+		// Undo: Cmd+Z / Ctrl+Z
+		if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
+			e.preventDefault();
+			handleUndo();
+			return;
+		}
+
+		// Redo: Cmd+Shift+Z / Ctrl+Shift+Z / Ctrl+Y
+		if (
+			((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'z') ||
+			(e.ctrlKey && e.key.toLowerCase() === 'y')
+		) {
+			e.preventDefault();
+			handleRedo();
+			return;
+		}
+
 		// Cmd+S / Ctrl+S
 		if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
 			e.preventDefault();
@@ -197,9 +400,82 @@
 			return;
 		}
 
+		if (isWikiSuggestOpen && wikiSuggestComp) {
+			const handled = wikiSuggestComp.handleKeyDown(e);
+			if (handled) return;
+		}
+
 		if (e.key === 'Enter') {
 			e.preventDefault();
 			const currentLines = [...lines];
+			const currentLine = currentLines[index] || '';
+
+			// Task list: - [ ] or - [x]
+			const taskMatch = currentLine.match(/^(\s*)([-*+]\s+\[[ xX]\])\s*(.*)$/);
+			// Ordered list: 1. or 1)
+			const orderedMatch = currentLine.match(/^(\s*)(\d+)([.)]\s+)(.*)$/);
+			// Unordered bullet list: - or * or +
+			const bulletMatch = currentLine.match(/^(\s*)([-*+]\s+)(.*)$/);
+
+			if (taskMatch) {
+				const indent = taskMatch[1];
+				const contentAfter = taskMatch[3].trim();
+				// Smart backspace/exit: pressing enter on empty list item removes prefix
+				if (contentAfter === '') {
+					currentLines[index] = indent; // clear checkbox formatting
+					content = currentLines.join('\n');
+					notesStore.updateNoteContentLocal(note.id, content);
+					activeLineIndex = index;
+					return;
+				}
+				const nextPrefix = `${indent}- [ ] `;
+				currentLines.splice(index + 1, 0, nextPrefix);
+				content = currentLines.join('\n');
+				notesStore.updateNoteContentLocal(note.id, content);
+				activeLineIndex = index + 1;
+				return;
+			}
+
+			if (orderedMatch) {
+				const indent = orderedMatch[1];
+				const num = parseInt(orderedMatch[2], 10);
+				const delimiter = orderedMatch[3];
+				const contentAfter = orderedMatch[4].trim();
+				if (contentAfter === '') {
+					currentLines[index] = indent; // clear numbering formatting
+					content = currentLines.join('\n');
+					notesStore.updateNoteContentLocal(note.id, content);
+					activeLineIndex = index;
+					return;
+				}
+				const nextPrefix = `${indent}${num + 1}${delimiter}`;
+				currentLines.splice(index + 1, 0, nextPrefix);
+				content = currentLines.join('\n');
+				notesStore.updateNoteContentLocal(note.id, content);
+				activeLineIndex = index + 1;
+				return;
+			}
+
+			if (bulletMatch) {
+				const indent = bulletMatch[1];
+				const marker = bulletMatch[2];
+				const contentAfter = bulletMatch[3].trim();
+				if (contentAfter === '') {
+					currentLines[index] = indent; // clear bullet formatting
+					content = currentLines.join('\n');
+					notesStore.updateNoteContentLocal(note.id, content);
+					activeLineIndex = index;
+					return;
+				}
+				const nextPrefix = `${indent}${marker}`;
+				currentLines.splice(index + 1, 0, nextPrefix);
+				content = currentLines.join('\n');
+				notesStore.updateNoteContentLocal(note.id, content);
+				activeLineIndex = index + 1;
+				return;
+			}
+
+			// Standard line break
 			currentLines.splice(index + 1, 0, '');
 			content = currentLines.join('\n');
 			notesStore.updateNoteContentLocal(note.id, content);
@@ -224,6 +500,117 @@
 
 	function enterLineEdit(index: number) {
 		activeLineIndex = index;
+	}
+
+	function handleUpdateCodeBlock(startIndex: number, endIndex: number, language: string, newCode: string) {
+		const currentLines = [...lines];
+		const newLines = newCode.split('\n');
+		const replacement = [`\`\`\`${language}`, ...newLines, '```'];
+		currentLines.splice(startIndex, endIndex - startIndex + 1, ...replacement);
+		content = currentLines.join('\n');
+		notesStore.updateNoteContentLocal(note.id, content);
+	}
+
+	function handleUpdateTableCell(
+		tableStartIndex: number,
+		rowIndex: number,
+		colIndex: number,
+		newValue: string
+	) {
+		const currentLines = [...lines];
+		// rowIndex -1 is header (line tableStartIndex)
+		// data row 0 starts at tableStartIndex + 2
+		const targetLineIdx = rowIndex === -1 ? tableStartIndex : tableStartIndex + 2 + rowIndex;
+		if (targetLineIdx >= currentLines.length) return;
+
+		const cells = parseRowCells(currentLines[targetLineIdx]);
+		while (cells.length <= colIndex) {
+			cells.push('');
+		}
+		cells[colIndex] = newValue;
+		currentLines[targetLineIdx] = `| ${cells.join(' | ')} |`;
+		content = currentLines.join('\n');
+		notesStore.updateNoteContentLocal(note.id, content);
+	}
+
+	function handleAddTableRow(tableStartIndex: number, insertAfterRowIdx: number) {
+		const currentLines = [...lines];
+		const headerCells = parseRowCells(currentLines[tableStartIndex]);
+		const emptyRow = `| ${headerCells.map(() => ' ').join(' | ')} |`;
+
+		// Header is tableStartIndex, delimiter is +1, rows start at +2
+		// If insertAfterRowIdx is -1 (after header), insert at tableStartIndex + 2
+		const targetInsertIdx = tableStartIndex + 2 + insertAfterRowIdx + 1;
+		currentLines.splice(targetInsertIdx, 0, emptyRow);
+		content = currentLines.join('\n');
+		notesStore.updateNoteContentLocal(note.id, content);
+	}
+
+	function handleDeleteTableRow(tableStartIndex: number, rowIdx: number) {
+		const currentLines = [...lines];
+		const targetLineIdx = tableStartIndex + 2 + rowIdx;
+		if (targetLineIdx < currentLines.length) {
+			currentLines.splice(targetLineIdx, 1);
+			content = currentLines.join('\n');
+			notesStore.updateNoteContentLocal(note.id, content);
+		}
+	}
+
+	function handleAddTableColumn(tableStartIndex: number, insertAfterColIdx: number) {
+		const currentLines = [...lines];
+		let idx = tableStartIndex;
+
+		// Header row
+		const headerCells = parseRowCells(currentLines[idx]);
+		headerCells.splice(insertAfterColIdx + 1, 0, 'Header');
+		currentLines[idx] = `| ${headerCells.join(' | ')} |`;
+		idx++;
+
+		// Delimiter row
+		const delimCells = parseRowCells(currentLines[idx]);
+		delimCells.splice(insertAfterColIdx + 1, 0, '---');
+		currentLines[idx] = `| ${delimCells.join(' | ')} |`;
+		idx++;
+
+		// Data rows
+		while (idx < currentLines.length && isTableRow(currentLines[idx])) {
+			const rowCells = parseRowCells(currentLines[idx]);
+			rowCells.splice(insertAfterColIdx + 1, 0, ' ');
+			currentLines[idx] = `| ${rowCells.join(' | ')} |`;
+			idx++;
+		}
+
+		content = currentLines.join('\n');
+		notesStore.updateNoteContentLocal(note.id, content);
+	}
+
+	function handleDeleteTableColumn(tableStartIndex: number, colIdx: number) {
+		const currentLines = [...lines];
+		let idx = tableStartIndex;
+
+		// Header row
+		const headerCells = parseRowCells(currentLines[idx]);
+		if (headerCells.length <= 1) return; // Prevent deleting the only column
+		headerCells.splice(colIdx, 1);
+		currentLines[idx] = `| ${headerCells.join(' | ')} |`;
+		idx++;
+
+		// Delimiter row
+		const delimCells = parseRowCells(currentLines[idx]);
+		delimCells.splice(colIdx, 1);
+		currentLines[idx] = `| ${delimCells.join(' | ')} |`;
+		idx++;
+
+		// Data rows
+		while (idx < currentLines.length && isTableRow(currentLines[idx])) {
+			const rowCells = parseRowCells(currentLines[idx]);
+			rowCells.splice(colIdx, 1);
+			currentLines[idx] = `| ${rowCells.join(' | ')} |`;
+			idx++;
+		}
+
+		content = currentLines.join('\n');
+		notesStore.updateNoteContentLocal(note.id, content);
 	}
 
 	function enterRawEditor(lineIndex?: number) {
@@ -254,7 +641,12 @@
 			placeholder="Untitled Note"
 			onblur={handleTitleBlur}
 			onkeydown={(e) => {
-				if (e.key === 'Enter') {
+				if (isWikiSuggestOpen && wikiSuggestComp) {
+			const handled = wikiSuggestComp.handleKeyDown(e);
+			if (handled) return;
+		}
+
+		if (e.key === 'Enter') {
 					(e.target as HTMLInputElement).blur();
 				}
 			}}
@@ -368,19 +760,57 @@
 					</div>
 				{:else}
 					<div class="lines-container">
-						{#each lines as line, index}
-							<EditorLine
-								text={line}
-								lineIndex={index}
-								isFocused={activeLineIndex === index}
-								onFocus={() => enterLineEdit(index)}
-								onUpdateText={handleLineUpdate}
-								onKeyDown={handleLineKeyDown}
-								onToggleTask={handleToggleTask}
-								onWikiClick={handleWikiLinkClick}
-							/>
+						{#each contentBlocks as block}
+							{#if block.type === 'code'}
+								<EditorCodeBlock
+									code={block.code}
+									language={block.language}
+									onUpdateCode={(newCode) =>
+										handleUpdateCodeBlock(block.startIndex, block.endIndex, block.language, newCode)}
+								/>
+							{:else if block.type === 'table'}
+								<EditorTable
+									headers={block.headers}
+									alignments={block.alignments}
+									rows={block.rows}
+									startIndex={block.startIndex}
+									onUpdateCell={(rowIdx, colIdx, val) =>
+										handleUpdateTableCell(block.startIndex, rowIdx, colIdx, val)}
+									onAddRow={(insertAfterRowIdx) =>
+										handleAddTableRow(block.startIndex, insertAfterRowIdx)}
+									onDeleteRow={(rowIdx) =>
+										handleDeleteTableRow(block.startIndex, rowIdx)}
+									onAddColumn={(insertAfterColIdx) =>
+										handleAddTableColumn(block.startIndex, insertAfterColIdx)}
+									onDeleteColumn={(colIdx) =>
+										handleDeleteTableColumn(block.startIndex, colIdx)}
+									onWikiClick={handleWikiLinkClick}
+								/>
+							{:else}
+								<EditorLine
+									text={block.text}
+									lineIndex={block.index}
+									isFocused={activeLineIndex === block.index}
+									onFocus={() => enterLineEdit(block.index)}
+									onUpdateText={handleLineUpdate}
+									onKeyDown={handleLineKeyDown}
+									onToggleTask={handleToggleTask}
+									onWikiClick={handleWikiLinkClick}
+									onWikiTrigger={handleWikiTrigger}
+								/>
+							{/if}
 						{/each}
 					</div>
+				{/if}
+
+				{#if isWikiSuggestOpen}
+					<WikiLinkSuggestion
+						bind:this={wikiSuggestComp}
+						query={wikiQuery}
+						position={wikiTriggerPos}
+						onSelect={handleSelectWikiNote}
+						onClose={() => (isWikiSuggestOpen = false)}
+					/>
 				{/if}
 			</div>
 		{/if}
