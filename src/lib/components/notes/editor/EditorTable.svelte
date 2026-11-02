@@ -27,6 +27,7 @@
 
 	// Currently editing cell: rowIndex: -1 for header, 0..N for data rows
 	let editingCell = $state<{ row: number; col: number } | null>(null);
+	let cellDraftValue = $state<string>('');
 	let cellInputEl = $state<HTMLInputElement | null>(null);
 
 	$effect(() => {
@@ -115,17 +116,33 @@
 	}
 
 	function startEditCell(row: number, col: number) {
+		commitCurrentCell();
 		editingCell = { row, col };
+		if (row === -1) {
+			cellDraftValue = headers[col] ?? '';
+		} else {
+			cellDraftValue = rows[row]?.[col] ?? '';
+		}
 	}
 
-	function handleCellInput(e: Event, row: number, col: number) {
-		const val = (e.target as HTMLInputElement).value;
-		onUpdateCell?.(row, col, val);
+	function commitCurrentCell() {
+		if (!editingCell) return;
+		const { row, col } = editingCell;
+		const currentOriginal = row === -1 ? headers[col] : rows[row]?.[col];
+		if (cellDraftValue !== currentOriginal) {
+			onUpdateCell?.(row, col, cellDraftValue);
+		}
+	}
+
+	function handleBlur() {
+		commitCurrentCell();
+		editingCell = null;
 	}
 
 	function handleKeyDown(e: KeyboardEvent, row: number, col: number) {
 		if (e.key === 'Tab') {
 			e.preventDefault();
+			commitCurrentCell();
 			const totalRows = rows.length;
 			const totalCols = headers.length;
 
@@ -150,6 +167,7 @@
 			}
 		} else if (e.key === 'Enter') {
 			e.preventDefault();
+			commitCurrentCell();
 			const totalRows = rows.length;
 			if (row + 1 < totalRows) {
 				startEditCell(row + 1, col);
@@ -172,17 +190,20 @@
 				{#each headers as header, colIdx}
 					<th
 						style:text-align={alignments[colIdx] !== 'none' ? alignments[colIdx] : undefined}
-						onclick={() => startEditCell(-1, colIdx)}
+						onclick={(e) => {
+							e.stopPropagation();
+							startEditCell(-1, colIdx);
+						}}
 					>
 						{#if editingCell && editingCell.row === -1 && editingCell.col === colIdx}
 							<input
 								bind:this={cellInputEl}
 								type="text"
 								class="table-cell-input header-cell"
-								value={header}
-								oninput={(e) => handleCellInput(e, -1, colIdx)}
+								bind:value={cellDraftValue}
+								onclick={(e) => e.stopPropagation()}
 								onkeydown={(e) => handleKeyDown(e, -1, colIdx)}
-								onblur={() => (editingCell = null)}
+								onblur={handleBlur}
 							/>
 						{:else}
 							<div class="cell-display">
@@ -222,17 +243,20 @@
 						{@const cellText = row[colIdx] ?? ''}
 						<td
 							style:text-align={alignments[colIdx] !== 'none' ? alignments[colIdx] : undefined}
-							onclick={() => startEditCell(rowIdx, colIdx)}
+							onclick={(e) => {
+								e.stopPropagation();
+								startEditCell(rowIdx, colIdx);
+							}}
 						>
 							{#if editingCell && editingCell.row === rowIdx && editingCell.col === colIdx}
 								<input
 									bind:this={cellInputEl}
 									type="text"
 									class="table-cell-input"
-									value={cellText}
-									oninput={(e) => handleCellInput(e, rowIdx, colIdx)}
+									bind:value={cellDraftValue}
+									onclick={(e) => e.stopPropagation()}
 									onkeydown={(e) => handleKeyDown(e, rowIdx, colIdx)}
-									onblur={() => (editingCell = null)}
+									onblur={handleBlur}
 								/>
 							{:else}
 								<div class="cell-display">

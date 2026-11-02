@@ -653,6 +653,28 @@
 		/>
 
 		<div class="editor-actions">
+			<!-- Move to Folder button -->
+			<button
+				type="button"
+				class="btn-action-outline"
+				onclick={() => {
+					notesStore.pendingNoteToMove = {
+						id: note.id,
+						title: note.title,
+						currentFolderId: note.folder_id
+					};
+					notesStore.moveNoteModalOpen = true;
+				}}
+				title="Move Note to Folder"
+			>
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="action-icon">
+					<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+					<line x1="12" y1="11" x2="12" y2="17" />
+					<line x1="9" y1="14" x2="15" y2="14" />
+				</svg>
+				<span>Move</span>
+			</button>
+
 			<!-- Explicit Save Button to eliminate constant API autosave requests -->
 			<button
 				type="button"
@@ -760,7 +782,7 @@
 					</div>
 				{:else}
 					<div class="lines-container">
-						{#each contentBlocks as block}
+						{#each contentBlocks as block (block.type === 'line' ? `line-${block.index}` : `${block.type}-${block.startIndex}`)}
 							{#if block.type === 'code'}
 								<EditorCodeBlock
 									code={block.code}
@@ -862,6 +884,33 @@
 		align-items: center;
 		gap: 10px;
 		flex-shrink: 0;
+	}
+
+	.btn-action-outline {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-family: var(--font-sans);
+		font-size: 12px;
+		font-weight: 500;
+		padding: 5px 10px;
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--border-subtle);
+		background: var(--bg-tertiary);
+		color: var(--text-muted);
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.btn-action-outline:hover {
+		background: var(--bg-primary);
+		color: var(--text-primary);
+		border-color: var(--border-medium);
+	}
+
+	.action-icon {
+		width: 13px;
+		height: 13px;
 	}
 
 	.btn-save {

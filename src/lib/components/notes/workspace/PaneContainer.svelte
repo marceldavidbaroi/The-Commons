@@ -27,7 +27,7 @@
 <div
 	class="pane-container"
 	class:focused={isFocused}
-	tabindex="0"
+	tabindex="-1"
 	role="region"
 	aria-label="Workspace Pane"
 	onclick={handleFocus}
@@ -110,7 +110,7 @@
 
 	.pane-content {
 		flex: 1;
-		overflow: auto;
+		overflow: hidden;
 		display: flex;
 		flex-direction: column;
 		position: relative;

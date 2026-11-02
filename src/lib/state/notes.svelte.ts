@@ -45,12 +45,14 @@ export class NotesStore {
   localGraphDepth = $state<number>(1);
 
   // Inspector & Context Dock
-  contextDockOpen = $state<boolean>(true);
+  contextDockOpen = $state<boolean>(false);
 
   // Modals & Drawers
   recycleBinOpen = $state<boolean>(false);
   deleteFolderModalOpen = $state<boolean>(false);
   pendingFolderToDelete = $state<{ id: string; name: string } | null>(null);
+  moveNoteModalOpen = $state<boolean>(false);
+  pendingNoteToMove = $state<{ id: string; title: string; currentFolderId: string | null } | null>(null);
   commandPaletteOpen = $state<boolean>(false);
 
   // Custom client injection for tests
@@ -583,6 +585,25 @@ export class NotesStore {
         }
       }
     }
+  }
+
+  async moveNoteToFolder(id: string, targetFolderId: string | null): Promise<void> {
+    const updated = await notesService.moveNote(id, targetFolderId, this.customClient);
+
+    // Update local stub list
+    this.notes = this.notes.map((n) =>
+      n.id === id ? { ...n, folder_id: updated.folder_id } : n
+    );
+
+    // Update active cache if present
+    if (this.activeNotesCache.has(id)) {
+      const nextCache = new Map(this.activeNotesCache);
+      nextCache.set(id, { ...nextCache.get(id)!, folder_id: updated.folder_id });
+      this.activeNotesCache = nextCache;
+    }
+
+    this.moveNoteModalOpen = false;
+    this.pendingNoteToMove = null;
   }
 
   async deleteNote(id: string): Promise<void> {

@@ -3,6 +3,7 @@
 	import TreeFolder from './TreeFolder.svelte';
 	import TreeFile from './TreeFile.svelte';
 	import DeleteFolderModal from './DeleteFolderModal.svelte';
+	import MoveNoteModal from './MoveNoteModal.svelte';
 	import type { FolderRecord } from '$lib/types/notes';
 
 	let searchQuery = $state<string>('');
@@ -258,6 +259,22 @@
 			notesStore.pendingFolderToDelete = null;
 		}}
 		onConfirm={confirmDeleteFolder}
+	/>
+
+	<!-- Move Note Modal -->
+	<MoveNoteModal
+		isOpen={notesStore.moveNoteModalOpen}
+		noteTitle={notesStore.pendingNoteToMove?.title}
+		currentFolderId={notesStore.pendingNoteToMove?.currentFolderId}
+		folders={notesStore.folders}
+		onCancel={() => {
+			notesStore.moveNoteModalOpen = false;
+			notesStore.pendingNoteToMove = null;
+		}}
+		onConfirm={async (targetFolderId) => {
+			if (!notesStore.pendingNoteToMove) return;
+			await notesStore.moveNoteToFolder(notesStore.pendingNoteToMove.id, targetFolderId);
+		}}
 	/>
 </aside>
 

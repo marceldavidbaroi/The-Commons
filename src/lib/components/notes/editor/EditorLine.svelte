@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { notesStore } from '$lib/state/notes.svelte';
 	import TurndownService from 'turndown';
+	import katex from 'katex';
 
 	const turndownService = new TurndownService({
 		headingStyle: 'atx',
@@ -81,7 +82,7 @@
 	}
 
 	interface InlineToken {
-		type: 'text' | 'bold' | 'italic' | 'strike' | 'code' | 'wiki' | 'tag';
+		type: 'text' | 'bold' | 'italic' | 'strike' | 'code' | 'wiki' | 'tag' | 'math_inline' | 'math_display';
 		content: string;
 		raw: string;
 		start: number;
@@ -93,8 +94,8 @@
 
 	function parseInlineTokens(raw: string): InlineToken[] {
 		if (!raw) return [];
-		// Match: `code`, ~~strike~~, **bold**, *italic*, [[wiki]], #tag
-		const regex = /(`[^`]+`)|(~~[^~]+~~)|(\*\*[^*]+\*\*)|(\*[^*]+\*)|(\[\[[^\]]+\]\])|(#[\w\u00C0-\u024F\-/]+)/g;
+		// Match: $$math$$, $math$, `code`, ~~strike~~, **bold**, *italic*, [[wiki]], #tag
+		const regex = /(\$\$[^\$\n]+?\$\$)|(\$[^\$\n]+?\$)|(`[^`]+`)|(~~[^~]+~~)|(\*\*[^*]+\*\*)|(\*[^*]+\*)|(\[\[[^\]]+\]\])|(#[\w\u00C0-\u024F\-/]+)/g;
 		const tokens: InlineToken[] = [];
 		let lastIdx = 0;
 		let match: RegExpExecArray | null;
@@ -116,6 +117,26 @@
 			const end = start + full.length;
 
 			if (match[1]) {
+				// Display math $$formula$$
+				tokens.push({
+					type: 'math_display',
+					content: full.slice(2, -2),
+					raw: full,
+					start,
+					end,
+					delimiter: '$$'
+				});
+			} else if (match[2]) {
+				// Inline math $formula$
+				tokens.push({
+					type: 'math_inline',
+					content: full.slice(1, -1),
+					raw: full,
+					start,
+					end,
+					delimiter: '$'
+				});
+			} else if (match[3]) {
 				// Code `code`
 				tokens.push({
 					type: 'code',
@@ -125,7 +146,7 @@
 					end,
 					delimiter: '`'
 				});
-			} else if (match[2]) {
+			} else if (match[4]) {
 				// Strike ~~strike~~
 				tokens.push({
 					type: 'strike',
@@ -135,7 +156,7 @@
 					end,
 					delimiter: '~~'
 				});
-			} else if (match[3]) {
+			} else if (match[5]) {
 				// Bold **bold**
 				tokens.push({
 					type: 'bold',
@@ -145,7 +166,7 @@
 					end,
 					delimiter: '**'
 				});
-			} else if (match[4]) {
+			} else if (match[6]) {
 				// Italic *italic*
 				tokens.push({
 					type: 'italic',
@@ -155,7 +176,7 @@
 					end,
 					delimiter: '*'
 				});
-			} else if (match[5]) {
+			} else if (match[7]) {
 				// Wiki link [[title|alias]]
 				const inner = full.slice(2, -2).trim();
 				const parts = inner.split('|');
@@ -172,7 +193,7 @@
 					delimiter: '[[',
 					isResolved
 				});
-			} else if (match[6]) {
+			} else if (match[8]) {
 				// Tag #tag-name
 				tokens.push({
 					type: 'tag',
@@ -210,6 +231,14 @@
 			.replace(/'/g, '&#039;');
 	}
 
+	function renderKatexHtml(formula: string, displayMode: boolean): string {
+		try {
+			return katex.renderToString(formula, { displayMode, throwOnError: false });
+		} catch {
+			return escapeHtml(formula);
+		}
+	}
+
 	// Build contextual live-preview HTML: syntax delimiters show only when cursor is inside the token
 	function renderLivePreviewHtml(rawText: string, caretPos: number | null): string {
 		if (!rawText) return '';
@@ -234,6 +263,10 @@
 				html += `<del class="live-strike"><span class="${delimClass}">~~</span>${escapeHtml(t.content)}<span class="${delimClass}">~~</span></del>`;
 			} else if (t.type === 'code') {
 				html += `<code class="live-code"><span class="${delimClass}">\`</span>${escapeHtml(t.content)}<span class="${delimClass}">\`</span></code>`;
+			} else if (t.type === 'math_display') {
+				html += `<span class="live-math-block"><span class="${delimClass}">$$</span>${escapeHtml(t.content)}<span class="${delimClass}">$$</span></span>`;
+			} else if (t.type === 'math_inline') {
+				html += `<span class="live-math-inline"><span class="${delimClass}">$</span>${escapeHtml(t.content)}<span class="${delimClass}">$</span></span>`;
 			} else if (t.type === 'wiki') {
 				const resolvedClass = t.isResolved ? 'resolved' : 'unresolved';
 				html += `<span class="wiki-link-chip ${resolvedClass}"><span class="${delimClass}">[[</span>${escapeHtml(t.content)}<span class="${delimClass}">]]</span></span>`;
@@ -394,7 +427,7 @@
 	});
 
 	interface ParsedToken {
-		type: 'text' | 'bold' | 'italic' | 'strike' | 'code' | 'wiki' | 'tag';
+		type: 'text' | 'bold' | 'italic' | 'strike' | 'code' | 'wiki' | 'tag' | 'math_inline' | 'math_display';
 		content: string;
 		raw: string;
 		isResolved?: boolean;
@@ -402,7 +435,7 @@
 	}
 
 	interface LineParsed {
-		type: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'task' | 'bullet' | 'quote' | 'callout' | 'image' | 'hr' | 'paragraph';
+		type: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'task' | 'bullet' | 'quote' | 'callout' | 'image' | 'hr' | 'math_block' | 'paragraph';
 		content: string;
 		taskChecked?: boolean;
 		level?: number;
@@ -410,11 +443,22 @@
 		calloutTitle?: string;
 		imageSrc?: string;
 		imageAlt?: string;
+		mathFormula?: string;
 	}
 
 	// Classify the line structure
 	const lineStructure = $derived.by<LineParsed>(() => {
 		const raw = text;
+
+		// Standalone math block: $$formula$$
+		const mathBlockMatch = raw.match(/^\s*\$\$(.+?)\$\$\s*$/);
+		if (mathBlockMatch) {
+			return {
+				type: 'math_block',
+				content: mathBlockMatch[1].trim(),
+				mathFormula: mathBlockMatch[1].trim()
+			};
+		}
 
 		// Horizontal rule
 		if (/^(\*\*\*|---|___)\s*$/.test(raw.trim())) {
@@ -501,13 +545,13 @@
 		};
 	});
 
-	// Inline token parsing (bold, italic, strike, code, [[wiki-link]], #tag)
+	// Inline token parsing (math, bold, italic, strike, code, [[wiki-link]], #tag)
 	const inlineTokens = $derived.by<ParsedToken[]>(() => {
 		const raw = lineStructure.content;
 		if (!raw) return [];
 
-		// Match patterns: `code`, ~~strike~~, [[wiki]], **bold**, *italic*, #tag
-		const regex = /(`[^`]+`)|(~~[^~]+~~)|(\[\[[^\]]+\]\])|(\*\*[^*]+\*\*)|(\*[^*]+\*)|(#[\w\u00C0-\u024F\-/]+)/g;
+		// Match patterns: $$math$$, $math$, `code`, ~~strike~~, [[wiki]], **bold**, *italic*, #tag
+		const regex = /(\$\$[^\$\n]+?\$\$)|(\$[^\$\n]+?\$)|(`[^`]+`)|(~~[^~]+~~)|(\[\[[^\]]+\]\])|(\*\*[^*]+\*\*)|(\*[^*]+\*)|(#[\w\u00C0-\u024F\-/]+)/g;
 		const tokens: ParsedToken[] = [];
 		let lastIndex = 0;
 		let match;
@@ -524,20 +568,34 @@
 
 			const fullMatch = match[0];
 			if (match[1]) {
+				// Display math $$formula$$
+				tokens.push({
+					type: 'math_display',
+					content: fullMatch.slice(2, -2),
+					raw: fullMatch
+				});
+			} else if (match[2]) {
+				// Inline math $formula$
+				tokens.push({
+					type: 'math_inline',
+					content: fullMatch.slice(1, -1),
+					raw: fullMatch
+				});
+			} else if (match[3]) {
 				// Code
 				tokens.push({
 					type: 'code',
 					content: fullMatch.slice(1, -1),
 					raw: fullMatch
 				});
-			} else if (match[2]) {
+			} else if (match[4]) {
 				// Strike
 				tokens.push({
 					type: 'strike',
 					content: fullMatch.slice(2, -2),
 					raw: fullMatch
 				});
-			} else if (match[3]) {
+			} else if (match[5]) {
 				// Wiki Link [[target|alias]]
 				const inner = fullMatch.slice(2, -2).trim();
 				const parts = inner.split('|');
@@ -552,21 +610,21 @@
 					raw: fullMatch,
 					isResolved
 				});
-			} else if (match[4]) {
+			} else if (match[6]) {
 				// Bold **text**
 				tokens.push({
 					type: 'bold',
 					content: fullMatch.slice(2, -2),
 					raw: fullMatch
 				});
-			} else if (match[5]) {
+			} else if (match[7]) {
 				// Italic *text*
 				tokens.push({
 					type: 'italic',
 					content: fullMatch.slice(1, -1),
 					raw: fullMatch
 				});
-			} else if (match[6]) {
+			} else if (match[8]) {
 				// Tag #tag
 				tokens.push({
 					type: 'tag',
@@ -604,6 +662,36 @@
 	}
 </script>
 
+<!-- Inline token renderer snippet -->
+{#snippet renderToken(token: ParsedToken)}
+	{#if token.type === 'wiki'}
+		<button
+			type="button"
+			class="wiki-link-chip"
+			class:resolved={token.isResolved}
+			class:unresolved={!token.isResolved}
+			title={token.isResolved ? `Open note: ${token.title}` : `Create note: ${token.title}`}
+			onclick={(e) => handleWikiClick(token.title || token.content, e)}
+		>{token.content}</button>
+	{:else if token.type === 'math_display'}
+		<span class="math-display-inline">{@html renderKatexHtml(token.content, true)}</span>
+	{:else if token.type === 'math_inline'}
+		<span class="math-inline">{@html renderKatexHtml(token.content, false)}</span>
+	{:else if token.type === 'bold'}
+		<strong>{token.content}</strong>
+	{:else if token.type === 'italic'}
+		<em>{token.content}</em>
+	{:else if token.type === 'code'}
+		<code>{token.content}</code>
+	{:else if token.type === 'strike'}
+		<del>{token.content}</del>
+	{:else if token.type === 'tag'}
+		<span class="tag-pill">#{token.content}</span>
+	{:else}
+		<span>{token.content}</span>
+	{/if}
+{/snippet}
+
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
 	class="editor-line"
@@ -626,95 +714,34 @@
 				data-placeholder={lineIndex === 0 ? "Type # for heading, [[ for link..." : ""}
 			></div>
 		</div>
+	{:else if lineStructure.type === 'math_block'}
+		<div class="line-math-block">
+			{@html renderKatexHtml(lineStructure.mathFormula || '', true)}
+		</div>
 	{:else if lineStructure.type === 'hr'}
 		<div class="line-hr"><hr /></div>
 	{:else if lineStructure.type === 'h1'}
 		<h1 class="line-h1">
 			{#each inlineTokens as token}
-				{#if token.type === 'wiki'}
-					<button
-						type="button"
-						class="wiki-link-chip"
-						class:resolved={token.isResolved}
-						class:unresolved={!token.isResolved}
-						title={token.isResolved ? `Open note: ${token.title}` : `Create note: ${token.title}`}
-						onclick={(e) => handleWikiClick(token.title || token.content, e)}
-					>{token.content}</button>
-				{:else if token.type === 'bold'}
-					<strong>{token.content}</strong>
-				{:else if token.type === 'italic'}
-					<em>{token.content}</em>
-				{:else if token.type === 'code'}
-					<code>{token.content}</code>
-				{:else}
-					<span>{token.content}</span>
-				{/if}
+				{@render renderToken(token)}
 			{/each}
 		</h1>
 	{:else if lineStructure.type === 'h2'}
 		<h2 class="line-h2">
 			{#each inlineTokens as token}
-				{#if token.type === 'wiki'}
-					<button
-						type="button"
-						class="wiki-link-chip"
-						class:resolved={token.isResolved}
-						class:unresolved={!token.isResolved}
-						onclick={(e) => handleWikiClick(token.title || token.content, e)}
-					>{token.content}</button>
-				{:else if token.type === 'bold'}
-					<strong>{token.content}</strong>
-				{:else if token.type === 'italic'}
-					<em>{token.content}</em>
-				{:else if token.type === 'code'}
-					<code>{token.content}</code>
-				{:else}
-					<span>{token.content}</span>
-				{/if}
+				{@render renderToken(token)}
 			{/each}
 		</h2>
 	{:else if lineStructure.type === 'h3'}
 		<h3 class="line-h3">
 			{#each inlineTokens as token}
-				{#if token.type === 'wiki'}
-					<button
-						type="button"
-						class="wiki-link-chip"
-						class:resolved={token.isResolved}
-						class:unresolved={!token.isResolved}
-						onclick={(e) => handleWikiClick(token.title || token.content, e)}
-					>{token.content}</button>
-				{:else if token.type === 'bold'}
-					<strong>{token.content}</strong>
-				{:else if token.type === 'italic'}
-					<em>{token.content}</em>
-				{:else if token.type === 'code'}
-					<code>{token.content}</code>
-				{:else}
-					<span>{token.content}</span>
-				{/if}
+				{@render renderToken(token)}
 			{/each}
 		</h3>
 	{:else if lineStructure.type === 'h4' || lineStructure.type === 'h5' || lineStructure.type === 'h6'}
 		<h4 class="line-h4">
 			{#each inlineTokens as token}
-				{#if token.type === 'wiki'}
-					<button
-						type="button"
-						class="wiki-link-chip"
-						class:resolved={token.isResolved}
-						class:unresolved={!token.isResolved}
-						onclick={(e) => handleWikiClick(token.title || token.content, e)}
-					>{token.content}</button>
-				{:else if token.type === 'bold'}
-					<strong>{token.content}</strong>
-				{:else if token.type === 'italic'}
-					<em>{token.content}</em>
-				{:else if token.type === 'code'}
-					<code>{token.content}</code>
-				{:else}
-					<span>{token.content}</span>
-				{/if}
+				{@render renderToken(token)}
 			{/each}
 		</h4>
 	{:else if lineStructure.type === 'task'}
@@ -735,23 +762,7 @@
 			</button>
 			<div class="task-text">
 				{#each inlineTokens as token}
-					{#if token.type === 'wiki'}
-						<button
-							type="button"
-							class="wiki-link-chip"
-							class:resolved={token.isResolved}
-							class:unresolved={!token.isResolved}
-							onclick={(e) => handleWikiClick(token.title || token.content, e)}
-						>{token.content}</button>
-					{:else if token.type === 'bold'}
-						<strong>{token.content}</strong>
-					{:else if token.type === 'italic'}
-						<em>{token.content}</em>
-					{:else if token.type === 'code'}
-						<code>{token.content}</code>
-					{:else}
-						<span>{token.content}</span>
-					{/if}
+					{@render renderToken(token)}
 				{/each}
 			</div>
 		</div>
@@ -782,23 +793,7 @@
 	{:else if lineStructure.type === 'quote'}
 		<div class="line-quote">
 			{#each inlineTokens as token}
-				{#if token.type === 'wiki'}
-					<button
-						type="button"
-						class="wiki-link-chip"
-						class:resolved={token.isResolved}
-						class:unresolved={!token.isResolved}
-						onclick={(e) => handleWikiClick(token.title || token.content, e)}
-					>{token.content}</button>
-				{:else if token.type === 'bold'}
-					<strong>{token.content}</strong>
-				{:else if token.type === 'italic'}
-					<em>{token.content}</em>
-				{:else if token.type === 'code'}
-					<code>{token.content}</code>
-				{:else}
-					<span>{token.content}</span>
-				{/if}
+				{@render renderToken(token)}
 			{/each}
 		</div>
 	{:else if lineStructure.type === 'bullet'}
@@ -806,23 +801,7 @@
 			<span class="bullet-dot">•</span>
 			<div class="bullet-text">
 				{#each inlineTokens as token}
-					{#if token.type === 'wiki'}
-						<button
-							type="button"
-							class="wiki-link-chip"
-							class:resolved={token.isResolved}
-							class:unresolved={!token.isResolved}
-							onclick={(e) => handleWikiClick(token.title || token.content, e)}
-						>{token.content}</button>
-					{:else if token.type === 'bold'}
-						<strong>{token.content}</strong>
-					{:else if token.type === 'italic'}
-						<em>{token.content}</em>
-					{:else if token.type === 'code'}
-						<code>{token.content}</code>
-					{:else}
-						<span>{token.content}</span>
-					{/if}
+					{@render renderToken(token)}
 				{/each}
 			</div>
 		</div>
@@ -832,23 +811,7 @@
 				<span class="empty-line-spacer">&nbsp;</span>
 			{:else}
 				{#each inlineTokens as token}
-					{#if token.type === 'wiki'}
-						<button
-							type="button"
-							class="wiki-link-chip"
-							class:resolved={token.isResolved}
-							class:unresolved={!token.isResolved}
-							onclick={(e) => handleWikiClick(token.title || token.content, e)}
-						>{token.content}</button>
-					{:else if token.type === 'bold'}
-						<strong>{token.content}</strong>
-					{:else if token.type === 'italic'}
-						<em>{token.content}</em>
-					{:else if token.type === 'code'}
-						<code>{token.content}</code>
-					{:else}
-						<span>{token.content}</span>
-					{/if}
+					{@render renderToken(token)}
 				{/each}
 			{/if}
 		</div>
@@ -943,6 +906,32 @@
 		border-radius: var(--radius-sm);
 		border: 1px solid var(--border-subtle);
 		color: var(--text-primary);
+	}
+
+	.live-math-block,
+	.live-math-inline {
+		font-family: var(--font-mono, monospace);
+		color: var(--primary);
+	}
+
+	.line-math-block {
+		margin: 8px 0;
+		padding: 6px 12px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		overflow-x: auto;
+	}
+
+	.math-display-inline {
+		display: block;
+		margin: 6px 0;
+		overflow-x: auto;
+	}
+
+	.math-inline {
+		display: inline;
+		vertical-align: baseline;
 	}
 
 	.active-line-wrapper.line-h2 .inline-line-input {

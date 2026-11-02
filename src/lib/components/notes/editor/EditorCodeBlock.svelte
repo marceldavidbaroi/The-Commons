@@ -1,4 +1,8 @@
 <script lang="ts">
+	import { tick } from 'svelte';
+	import mermaid from 'mermaid';
+	import { themeStore } from '$lib/theme';
+
 	let {
 		code,
 		language = '',
@@ -12,6 +16,56 @@
 	let isEditing = $state<boolean>(false);
 	let copied = $state<boolean>(false);
 	let codeArea = $state<HTMLTextAreaElement | null>(null);
+	let mermaidSvg = $state<string>('');
+	let mermaidError = $state<string | null>(null);
+
+	const isMermaid = $derived(language?.toLowerCase().trim() === 'mermaid');
+
+	$effect(() => {
+		const currentTheme = $themeStore;
+		if (isMermaid && !isEditing && code.trim()) {
+			const currentCode = code;
+			const isDark = currentTheme === 'midnight' || (typeof document !== 'undefined' && document.documentElement.classList.contains('dark'));
+			
+			tick().then(async () => {
+				try {
+					mermaid.initialize({
+						startOnLoad: false,
+						theme: 'base',
+						securityLevel: 'loose',
+						themeVariables: {
+							darkMode: isDark,
+							background: 'transparent',
+							mainBkg: isDark ? '#201f1d' : '#ffffff',
+							nodeBorder: isDark ? '#34302b' : '#e3ddd1',
+							nodeTextColor: isDark ? '#ede8df' : '#2c2825',
+							primaryColor: isDark ? '#201f1d' : '#ffffff',
+							primaryBorderColor: isDark ? '#34302b' : '#e3ddd1',
+							primaryTextColor: isDark ? '#ede8df' : '#2c2825',
+							clusterBkg: isDark ? '#181716' : '#f6f4ee',
+							clusterBorder: isDark ? '#34302b' : '#e3ddd1',
+							titleColor: isDark ? '#ede8df' : '#2c2825',
+							lineColor: isDark ? '#736c61' : '#948b82',
+							arrowheadColor: isDark ? '#736c61' : '#948b82',
+							defaultLinkColor: isDark ? '#736c61' : '#948b82',
+							secondaryColor: isDark ? '#282623' : '#ede8de',
+							tertiaryColor: isDark ? '#181716' : '#f6f4ee',
+							fontFamily: 'var(--font-mono, monospace)',
+							fontSize: '12px'
+						}
+					});
+					const renderId = `m-${Math.random().toString(36).substring(2, 9)}`;
+					const { svg } = await mermaid.render(renderId, currentCode);
+					mermaidSvg = svg;
+					mermaidError = null;
+				} catch (err: any) {
+					console.error('Mermaid render error in EditorCodeBlock:', err);
+					mermaidError = err?.message || 'Failed to render mermaid diagram';
+					mermaidSvg = '';
+				}
+			});
+		}
+	});
 
 	async function handleCopy() {
 		try {
@@ -46,7 +100,24 @@
 
 <div class="code-block-container" role="region" aria-label="Code block">
 	<div class="code-block-header">
-		<span class="code-lang-tag">{language || 'plaintext'}</span>
+		<div class="header-left">
+			<span class="code-lang-tag">{language || 'plaintext'}</span>
+			{#if isMermaid}
+				<button
+					type="button"
+					class="view-toggle-btn"
+					onclick={() => {
+						isEditing = !isEditing;
+						if (isEditing) {
+							setTimeout(() => codeArea?.focus(), 0);
+						}
+					}}
+					aria-label={isEditing ? 'Preview diagram' : 'Edit mermaid code'}
+				>
+					{isEditing ? 'Preview' : 'Edit'}
+				</button>
+			{/if}
+		</div>
 		<button
 			type="button"
 			class="copy-btn"
@@ -79,6 +150,42 @@
 			rows={Math.max(2, code.split('\n').length)}
 			spellcheck="false"
 		></textarea>
+	{:else if isMermaid}
+		{#if mermaidError}
+			<div class="mermaid-error">
+				<div class="mermaid-error-title">Diagram syntax error</div>
+				<pre class="code-block-content" onclick={() => {
+					isEditing = true;
+					setTimeout(() => codeArea?.focus(), 0);
+				}}><code>{code}</code></pre>
+			</div>
+		{:else if mermaidSvg}
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<div
+				class="mermaid-preview"
+				role="button"
+				tabindex="0"
+				title="Click to edit diagram source"
+				onclick={() => {
+					isEditing = true;
+					setTimeout(() => codeArea?.focus(), 0);
+				}}
+			>
+				{@html mermaidSvg}
+			</div>
+		{:else}
+			<!-- Loading or empty state -->
+			<pre
+				class="code-block-content"
+				onclick={() => {
+					isEditing = true;
+					setTimeout(() => codeArea?.focus(), 0);
+				}}
+				tabindex="0"
+				role="button"
+				aria-label="Click to edit code block"
+			><code>{code}</code></pre>
+		{/if}
 	{:else}
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<pre
@@ -96,8 +203,8 @@
 
 <style>
 	.code-block-container {
-		background: var(--bg-tertiary, #1e1e24);
-		border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+		background: var(--bg-tertiary);
+		border: 1px solid var(--border-subtle);
 		border-radius: var(--radius-md, 6px);
 		margin: 8px 0;
 		overflow: hidden;
@@ -110,9 +217,15 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 6px 12px;
-		background: rgba(0, 0, 0, 0.2);
-		border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+		background: color-mix(in srgb, var(--bg-surface) 60%, transparent);
+		border-bottom: 1px solid var(--border-subtle);
 		user-select: none;
+	}
+
+	.header-left {
+		display: flex;
+		align-items: center;
+		gap: 8px;
 	}
 
 	.code-lang-tag {
@@ -121,6 +234,24 @@
 		letter-spacing: 0.5px;
 		color: var(--text-muted);
 		font-weight: 600;
+	}
+
+	.view-toggle-btn {
+		font-size: 10px;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		padding: 1px 6px;
+		border-radius: var(--radius-sm, 4px);
+		border: 1px solid var(--border-subtle);
+		background: var(--bg-secondary);
+		color: var(--text-muted);
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.view-toggle-btn:hover {
+		background: var(--bg-primary);
+		color: var(--text-primary);
 	}
 
 	.copy-btn {
@@ -144,7 +275,7 @@
 
 	.copy-btn:hover {
 		color: var(--text-primary);
-		background: rgba(255, 255, 255, 0.08);
+		background: color-mix(in srgb, var(--text-primary) 8%, transparent);
 	}
 
 	.code-block-content {
@@ -159,6 +290,109 @@
 
 	.code-block-content:focus {
 		outline: 1px solid var(--primary);
+	}
+
+	.mermaid-preview {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: 1.5rem 1rem;
+		background: var(--bg-primary);
+		overflow-x: auto;
+		cursor: pointer;
+		transition: background-color 0.15s ease;
+	}
+
+	.mermaid-preview:hover {
+		background: color-mix(in srgb, var(--bg-primary) 95%, var(--bg-secondary));
+	}
+
+	.mermaid-preview:focus {
+		outline: 1px solid var(--primary);
+	}
+
+	.mermaid-preview :global(svg) {
+		max-width: 100%;
+		height: auto;
+	}
+
+	/* Labels & text elements */
+	.mermaid-preview :global(text),
+	.mermaid-preview :global(.node text),
+	.mermaid-preview :global(.node .label),
+	.mermaid-preview :global(.node span),
+	.mermaid-preview :global(.node p),
+	.mermaid-preview :global(.messageText),
+	.mermaid-preview :global(.actor text),
+	.mermaid-preview :global(.entity text),
+	.mermaid-preview :global(.labelText) {
+		fill: var(--text-primary) !important;
+		color: var(--text-primary) !important;
+		font-family: var(--font-mono, monospace) !important;
+		font-size: 12px;
+	}
+
+	/* Subgraph / cluster styling */
+	.mermaid-preview :global(.cluster rect),
+	.mermaid-preview :global(.cluster polygon) {
+		fill: var(--bg-tertiary) !important;
+		stroke: var(--border-subtle) !important;
+		stroke-width: 1px !important;
+		rx: 6px;
+		ry: 6px;
+	}
+
+	.mermaid-preview :global(.cluster text),
+	.mermaid-preview :global(.cluster span),
+	.mermaid-preview :global(.cluster p) {
+		fill: var(--text-secondary) !important;
+		color: var(--text-secondary) !important;
+		font-weight: 600;
+	}
+
+	/* Node boxes inside diagrams */
+	.mermaid-preview :global(.node rect),
+	.mermaid-preview :global(.node circle),
+	.mermaid-preview :global(.node polygon),
+	.mermaid-preview :global(.node ellipse),
+	.mermaid-preview :global(.actor),
+	.mermaid-preview :global(.entityBox) {
+		fill: var(--bg-secondary) !important;
+		stroke: var(--border-subtle) !important;
+		stroke-width: 1px !important;
+		rx: 6px;
+		ry: 6px;
+	}
+
+	/* Edges, arrows & connectors */
+	.mermaid-preview :global(.relationshipLine),
+	.mermaid-preview :global(.flowchart-link),
+	.mermaid-preview :global(.edgePaths .path) {
+		stroke: var(--text-muted) !important;
+		stroke-width: 1.25px !important;
+	}
+
+	.mermaid-preview :global(.marker),
+	.mermaid-preview :global(.arrowheadPath) {
+		fill: var(--text-muted) !important;
+		stroke: var(--text-muted) !important;
+	}
+
+	.mermaid-preview :global(.edgeLabel) {
+		background-color: var(--bg-primary) !important;
+		color: var(--text-secondary) !important;
+	}
+
+	.mermaid-error {
+		padding: 8px 12px;
+		background: color-mix(in srgb, var(--danger, #ef4444) 10%, transparent);
+	}
+
+	.mermaid-error-title {
+		font-size: 11px;
+		color: var(--danger, #ef4444);
+		font-weight: 600;
+		margin-bottom: 4px;
 	}
 
 	.code-editor-textarea {
