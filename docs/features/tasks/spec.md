@@ -6,10 +6,10 @@ Consolidated from every decision so far. One thing to note up front: **status is
 
 ## Section 1 — Picture of the app
 
-### Lists index (`/`)
+### Lists index (`/tasks`)
 Cards showing list name and **active task count** (todo + in_progress, excluding trashed). A "New list" button, a **Trash** link, and per-card delete (moves the list *and all its tasks* to trash as a bundle). Clicking a card opens the list.
 
-### Tasks in a list (`/lists/[id]`)
+### Tasks in a list (`/tasks/lists/[id]`)
 Rows show **title + status pill + priority flag**. Status and priority are **inline-editable** from the row. A checkbox enables **multi-select** with a sticky bottom action bar.
 
 Header controls:
@@ -36,16 +36,16 @@ List body loads **10 tasks per page** via **cursor pagination**. A **"Load more"
 └──────────────────────────────────────────────────────────┘
 ```
 
-### Create task (`/lists/[id]/tasks/new`)
+### Create task (`/tasks/lists/[id]/tasks/new`)
 Separate page. Title field, rich text description (TipTap) with `[[` picker, status (default To do), priority (default None). Save → **lands on the new task's preview**.
 
-### Task preview (`/lists/[id]/tasks/[taskId]`)
+### Task preview (`/tasks/lists/[id]/tasks/[taskId]`)
 Read-only: title, status pill, priority flag, rendered description with live chips, backlinks panel. Header: **Edit**, **Move to trash**.
 
-### Edit task (`/lists/[id]/tasks/[taskId]/edit`)
+### Edit task (`/tasks/lists/[id]/tasks/[taskId]/edit`)
 Same form as create, prefilled. Save → back to preview.
 
-### Trash (`/trash`)
+### Trash (`/tasks/trash`)
 Two sections: **Lists** and **Tasks**. Each row shows name + when trashed. Actions: **Restore**, **Delete permanently**. A **"Empty trash"** button with confirmation. **No auto-purge**.
 
 Restore rules:
@@ -190,16 +190,16 @@ Trash reads are normal `SELECT` including soft-deleted rows; live pages add `WHE
 ### 2.10 API surface
 
 **Loads:**
-- `/` — lists + `activeCount`, live only.
-- `/lists/[id]` — list meta (incl. `sort_mode`) + page 1 tasks + `nextCursor` + counts. Reads filters from URL.
-- `/lists/[id]/tasks/new` — list id for picker scope.
-- `/lists/[id]/tasks/[taskId]` — task + chip resolution + backlinks (live sources only).
-- `/lists/[id]/tasks/[taskId]/edit` — same task, edit mode.
-- `/trash` — soft-deleted lists + tasks.
-- `GET /lists/[id]/tasks?q=&exclude=` — picker search, scoped to list, title only, 8 results.
+- `/tasks` — lists + `active_tasks_count`, live only.
+- `/tasks/lists/[id]` — list meta (incl. `sort_mode`) + page 1 tasks + `nextCursor` + counts. Reads filters from URL.
+- `/tasks/lists/[id]/tasks/new` — list id for picker scope.
+- `/tasks/lists/[id]/tasks/[taskId]` — task + chip resolution + backlinks (live sources only).
+- `/tasks/lists/[id]/tasks/[taskId]/edit` — same task, edit mode.
+- `/tasks/trash` — soft-deleted lists + tasks.
+- `GET /tasks/lists/[id]/tasks?q=&exclude=` — picker search, scoped to list, title only, 8 results.
 
 **Pagination endpoint:**
-- `GET /lists/[id]/tasks/page?cursor=...&status=...&priority=...`
+- `GET /tasks/lists/[id]/tasks/page?cursor=...&status=...&priority=...`
 
 **Form actions / endpoints:**
 - `create list`, `delete list` (soft, bundle)
@@ -225,12 +225,12 @@ Checklists are inline scratch content — ticking has **no effect** on task stat
 
 | Route | Purpose |
 |---|---|
-| `/` | Lists index (live) + Trash link |
-| `/lists/[id]` | Tasks in list (rows, sort, filters, bulk, pagination) |
-| `/lists/[id]/tasks/new` | Create task page |
-| `/lists/[id]/tasks/[taskId]` | Preview |
-| `/lists/[id]/tasks/[taskId]/edit` | Edit |
-| `/trash` | Trash — lists + tasks |
+| `/tasks` | Lists index (live) + Trash link |
+| `/tasks/lists/[id]` | Tasks in list (rows, sort, filters, bulk, pagination) |
+| `/tasks/lists/[id]/tasks/new` | Create task page |
+| `/tasks/lists/[id]/tasks/[taskId]` | Preview |
+| `/tasks/lists/[id]/tasks/[taskId]/edit` | Edit |
+| `/tasks/trash` | Trash — lists + tasks |
 
 ### 3.2 Components
 
@@ -328,12 +328,113 @@ Ship after step 12. Step 13 trails.
 
 ## Section 5 — Decisions confirmed
 
-**A. Count metrics**:
+**A. Route Structure**:
+- Nested under `/tasks`:
+  - `/tasks` (Lists index)
+  - `/tasks/lists/[id]` (Tasks in list)
+  - `/tasks/lists/[id]/tasks/new` (Create task)
+  - `/tasks/lists/[id]/tasks/[taskId]` (Preview)
+  - `/tasks/lists/[id]/tasks/[taskId]/edit` (Edit task)
+  - `/tasks/trash` (Trash)
+
+**B. Count metrics**:
 - **All live tasks** displayed on list detail header (`totalLive`).
 - Counts are maintained directly in fields on the `lists` table (`live_tasks_count` and `active_tasks_count`) updated via database triggers on task changes—no API calls to count or fetch all tasks.
 
-**B. Filter UI style**:
+**C. Filter UI style**:
 - **Multi-select checkboxes** for both Status and Priority.
 
 Everything locked: status sort **removed**, filters **added** for both status and priority, page size **10**, **cursor** keyset pagination, trash with restore rules, priority with inline edit, bulk delete, rich text with tables + checklists, chips in three states, backlinks panel, persisted per-list sort.
+
+---
+
+## Section 6 — Implementation Phases & Clean Code Execution
+
+To enforce clean code, high modularity (<120 lines per component), and strict layer separation (View -> Store -> Service -> PostgreSQL):
+
+### Phase 1: Database Ground Truth & Keyset Schema
+- Incremental migration file creating:
+  - `lists`: `id`, `name`, `owner_id`, `sort_mode` (`'created' | 'priority' | 'manual'`), `live_tasks_count`, `active_tasks_count`, `deleted_at`, `trash_reason` (`'list_deleted'`), `created_at`.
+  - `tasks`: `id`, `list_id` (FK cascade), `title`, `description_html`, `status` (`'todo' | 'in_progress' | 'done' | 'cancelled'`), `priority` (`'none' | 'low' | 'medium' | 'high' | 'urgent'`), `position` (float8), `deleted_at`, `trash_reason` (`'individual' | 'bulk' | 'list_deleted'`), `created_at`, `updated_at`.
+  - `task_links`: `(source_task_id, target_task_id)` composite PK, FK on hard delete cascade.
+  - Multi-column indexes:
+    - `(created_at ASC, id ASC)`
+    - `(priority DESC, created_at ASC, id ASC)`
+    - `(position ASC, id ASC)`
+  - Database triggers on `tasks` (insert, update status/deleted_at, delete) to keep `lists.live_tasks_count` and `lists.active_tasks_count` perfectly synchronized with zero API runtime count cost.
+  - Strict RLS policies checking ownership (`auth.uid() = owner_id` and via `list_id`).
+- DTOs / TypeScript interfaces in `src/lib/types/tasks.ts`.
+
+### Phase 2: Service Layer & Keyset Cursor Engine
+- `src/lib/services/tasks-service.ts`:
+  - `fetchLists()`
+  - `createList()`, `renameList()`, `trashListBundle()`, `restoreListBundle()`, `deleteListPermanent()`
+  - `fetchTasksPage({ listId, sortMode, statusFilters, priorityFilters, cursor, limit })`:
+    - Base64 opaque keyset cursor serializer/deserializer.
+    - SQL keyset query generator for Created, Priority (mixed-direction), and Manual modes.
+    - Fetch 11 rows to evaluate `hasMore` and construct `nextCursor`.
+  - `updateTaskStatus()`, `updateTaskPriority()`, `updateTaskPosition()` (fractional indexing).
+  - `bulkTrashTasks()`, `restoreTask()`, `deleteTaskPermanent()`, `emptyTrash()`.
+  - `syncTaskLinks(sourceTaskId, descriptionHtml)` parsing `data-task-id`.
+  - `searchListTasks(listId, query, excludeId)` for `[[` picker.
+
+### Phase 3: Store Layer & Client State (Svelte 5 Runes)
+- `src/lib/state/tasks.svelte.ts`:
+  - Active list state, tasks array accumulator for infinite cursor pagination (`loadMore()`).
+  - Active filters (`status: Set<TaskStatus>`, `priority: Set<TaskPriority>`).
+  - Selected task IDs (`Set<string | number>`) for bulk actions.
+  - In-place optimistic updates for status/priority (no disruptive re-sorting).
+  - Cursor reset logic on filter/sort change.
+
+### Phase 4: Lists Index & List Card View
+- Route: `src/routes/(app)/tasks/+page.svelte`
+- Components (`src/lib/components/tasks/lists/`):
+  - `ListCard.svelte`: Name, active count pill, context menu / trash action.
+  - `CreateListModal.svelte`: Fast inline modal for new list creation.
+  - Navigation header with link to `/tasks/trash`.
+
+### Phase 5: Tasks in List (Table, Inline Edits, Keyset Pagination)
+- Route: `src/routes/(app)/tasks/lists/[id]/+page.svelte`
+- Components (`src/lib/components/tasks/table/`):
+  - `ListHeader.svelte`: Back button, list title, count label (`totalFiltered of totalLive tasks`), "New task" CTA.
+  - `Toolbar.svelte`: `SortSelect.svelte` (Created, Priority, Manual), `StatusFilter.svelte` (multi-select), `PriorityFilter.svelte` (multi-select).
+  - `TaskTable.svelte`: Virtual/keyed rows with multi-selection support and drag-and-drop handles (active only in Manual sort mode).
+  - `TaskRow.svelte`: Multi-select checkbox, title, inline-editable `PriorityFlag.svelte`, inline-editable `StatusPill.svelte`.
+  - `LoadMoreButton.svelte`: Cursor triggers with loading spinner; hides when `nextCursor === null`.
+  - `BulkActionBar.svelte`: Sticky bottom drawer with count, "Move to trash", and "Clear".
+  - `EmptyState.svelte`: Differentiates between 0 tasks in list vs. 0 filter matches.
+
+### Phase 6: Create & Edit Task Pages
+- Routes: `src/routes/(app)/tasks/lists/[id]/tasks/new/+page.svelte` and `src/routes/(app)/tasks/lists/[id]/tasks/[taskId]/edit/+page.svelte`
+- Components (`src/lib/components/tasks/editor/`):
+  - `TaskForm.svelte`: Single-purpose wrapper.
+  - `TaskTitleInput.svelte`.
+  - `TaskMetaFields.svelte`: Status and priority dropdown selectors.
+  - `RichTextEditor.svelte`: TipTap instance with headings, lists, tables, checklist task items.
+  - `LinkPicker.svelte`: `@tiptap/suggestion` popover triggered by `[[`, calling `searchListTasks`.
+  - `TaskChipNode.ts`: TipTap custom node rendering `<span data-task-id="..." data-type="task-link">`.
+
+### Phase 7: Task Preview & Chip Resolution
+- Route: `src/routes/(app)/tasks/lists/[id]/tasks/[taskId]/+page.svelte`
+- Components (`src/lib/components/tasks/preview/`):
+  - `TaskPreviewHeader.svelte`: Title, status, priority, "Edit", "Move to trash".
+  - `TaskDescriptionRender.svelte`: Renders HTML with 3 chip states:
+    1. **Live** (interactive router link)
+    2. **In trash** (muted, opens preview of trashed task)
+    3. **Deleted** (`⚠ Deleted task`, unclickable)
+  - `BacklinksPanel.svelte`: Lists referencing tasks (live sources only).
+
+### Phase 8: Trash & Restore Management
+- Route: `src/routes/(app)/tasks/trash/+page.svelte`
+- Components (`src/lib/components/tasks/trash/`):
+  - `TrashSections.svelte`: Tabs or split view for Trashed Lists and Trashed Tasks.
+  - `TrashedListRow.svelte`: Restore list + bundle (`trash_reason = 'list_deleted'`), Delete permanently.
+  - `TrashedTaskRow.svelte`: Restore task (disabled if list is in trash with tooltip hint), Delete permanently.
+  - `EmptyTrashButton.svelte` with confirmation dialog.
+
+### Phase 9: Verification & Polish
+- Keyset cursor regression tests (verify pagination safety across deletes).
+- Verify database triggers accurately maintain `live_tasks_count` and `active_tasks_count` with 0 manual counting queries.
+- Strict typecheck (`npm run check`) and production build verification (`npm run build`).
+
 
