@@ -118,7 +118,41 @@
 		let trimmed = raw.trim();
 		if (trimmed.startsWith('|')) trimmed = trimmed.slice(1);
 		if (trimmed.endsWith('|')) trimmed = trimmed.slice(0, -1);
-		return trimmed.split('|').map((c) => c.trim());
+		const cells: string[] = [];
+		let current = '';
+		let inWiki = false;
+		let inCode = false;
+
+		for (let i = 0; i < trimmed.length; i++) {
+			const ch = trimmed[i];
+			const next = trimmed[i + 1];
+
+			if (!inCode && ch === '[' && next === '[') {
+				inWiki = true;
+				current += '[[';
+				i++;
+				continue;
+			}
+			if (inWiki && ch === ']' && next === ']') {
+				inWiki = false;
+				current += ']]';
+				i++;
+				continue;
+			}
+			if (!inWiki && ch === '`') {
+				inCode = !inCode;
+				current += ch;
+				continue;
+			}
+			if (ch === '|' && !inWiki && !inCode) {
+				cells.push(current.trim());
+				current = '';
+				continue;
+			}
+			current += ch;
+		}
+		cells.push(current.trim());
+		return cells;
 	}
 
 	const contentBlocks = $derived.by<ParsedBlock[]>(() => {

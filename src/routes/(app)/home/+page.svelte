@@ -13,12 +13,6 @@
 			icon: 'goal'
 		},
 		{
-			title: 'Tasks',
-			description: 'Action items & checklists',
-			href: '/tasks',
-			icon: 'task'
-		},
-		{
 			title: 'Settings',
 			description: 'Preferences & themes',
 			href: '/settings',
@@ -46,11 +40,6 @@
 							<circle cx="12" cy="12" r="10" />
 							<circle cx="12" cy="12" r="6" />
 							<circle cx="12" cy="12" r="2" />
-						</svg>
-					{:else if feature.icon === 'task'}
-						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-							<rect x="3" y="4" width="18" height="18" rx="2" />
-							<path d="M9 12l2 2 4-4" />
 						</svg>
 					{:else if feature.icon === 'settings'}
 						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">

@@ -118,7 +118,7 @@
 		</div>
 
 		<div class="header-right">
-			<a href="/tasks" class="back-link">Return to App →</a>
+			<a href="/home" class="back-link">Return to App →</a>
 		</div>
 	</header>
 

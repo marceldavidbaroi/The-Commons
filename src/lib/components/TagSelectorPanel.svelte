@@ -7,7 +7,7 @@
 	import { DEFAULT_TAXONOMY } from '$lib/components/tag-management/constants';
 
 	let {
-		feature = 'tasks',
+		feature = 'general',
 		isOpen = false,
 		selectedTags = $bindable([]),
 		title,

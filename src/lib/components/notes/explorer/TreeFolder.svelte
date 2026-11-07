@@ -24,7 +24,7 @@
 		onPromptDeleteFolder: (folder: FolderRecord) => void;
 	}>();
 
-	let isOpen = $state<boolean>(true);
+	let isOpen = $state<boolean>(false);
 	let isEditing = $state<boolean>(false);
 	let editedName = $state<string>(folder.name);
 	let showMenu = $state<boolean>(false);

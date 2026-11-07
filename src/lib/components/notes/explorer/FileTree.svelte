@@ -7,7 +7,7 @@
 	import type { FolderRecord } from '$lib/types/notes';
 
 	let searchQuery = $state<string>('');
-	let isCollapsedAll = $state<boolean>(false);
+	let isCollapsedAll = $state<boolean>(true);
 	let isCreatingRootFolder = $state<boolean>(false);
 	let isCreatingRootNote = $state<boolean>(false);
 	let rootNewItemName = $state<string>('');

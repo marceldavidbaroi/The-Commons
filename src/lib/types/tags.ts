@@ -65,5 +65,5 @@ export interface TagCategory {
 	tag_group?: TagGroup | null;
 }
 
-export type FeatureType = 'tasks' | 'goals' | 'diary' | 'document' | 'homeops' | 'general' | string;
+export type FeatureType = 'goals' | 'diary' | 'document' | 'homeops' | 'general' | string;
 

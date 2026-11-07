@@ -14,11 +14,6 @@
 			desc: 'Set quarterly milestones, track key horizons, and align your daily actions with high-level objectives.'
 		},
 		{
-			title: 'Task Ledgers',
-			tag: 'Execution',
-			desc: 'High-density, structured checklists with subtasks, dependencies, parent hierarchies, and custom tags.'
-		},
-		{
 			title: 'Tag Architecture',
 			tag: 'Organization',
 			desc: 'Organize your thoughts with multi-dimensional categories, hierarchical tags, and colored indicators.'
@@ -61,7 +56,7 @@
 			</h1>
 
 			<p class="hero-desc">
-				Capture daily journals, map long-term milestones, and organize tasks in a clean, high-performance workspace designed for clarity.
+				Capture daily journals, map long-term milestones, and organize knowledge in a clean, high-performance workspace designed for clarity.
 			</p>
 
 			<div class="hero-actions">

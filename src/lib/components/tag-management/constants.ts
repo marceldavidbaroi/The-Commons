@@ -11,40 +11,6 @@ export const PRESET_COLORS = [
 ];
 
 export const DEFAULT_TAXONOMY: Record<string, { name: string; color: string; tags: string[] }[]> = {
-	tasks: [
-		{
-			name: 'Area of Life',
-			color: '#6366F1',
-			tags: [
-				'Chores',
-				'Cleaning',
-				'Groceries',
-				'Home Maintenance',
-				'Workout & Fitness',
-				'Health & Medical',
-				'Hygiene & Self-Care',
-				'Bills & Finance',
-				'Work & Career',
-				'Learning & Study',
-				'Family & Relationships'
-			]
-		},
-		{
-			name: 'Location & Context',
-			color: '#0EA5E9',
-			tags: ['@home', '@desk', '@errand', '@outdoors', '@phone']
-		},
-		{
-			name: 'Energy & Focus',
-			color: '#F59E0B',
-			tags: ['⚡ High Focus', '⚡ Low Focus', '⚡ Quick Hit (<5m)']
-		},
-		{
-			name: 'Action Triggers',
-			color: '#EF4444',
-			tags: ['Today Must', 'This Week', 'Waiting On', 'Someday / Maybe']
-		}
-	],
 	goals: [
 		{
 			name: 'Domain',

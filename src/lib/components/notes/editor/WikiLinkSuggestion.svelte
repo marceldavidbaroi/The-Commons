@@ -5,11 +5,13 @@
 	let {
 		query = '',
 		position = { top: 0, left: 0 },
+		fixed = false,
 		onSelect,
 		onClose
 	} = $props<{
 		query: string;
 		position: { top: number; left: number };
+		fixed?: boolean;
 		onSelect: (noteTitle: string) => void;
 		onClose: () => void;
 	}>();
@@ -95,6 +97,7 @@
 
 <div
 	class="wiki-popup"
+	class:is-fixed={fixed}
 	role="listbox"
 	aria-label="Note link suggestions"
 	style="top: {position.top}px; left: {position.left}px;"
@@ -168,7 +171,7 @@
 <style>
 	.wiki-popup {
 		position: absolute;
-		z-index: 100;
+		z-index: 1000;
 		width: 320px;
 		max-height: 280px;
 		background: var(--bg-tertiary);
@@ -180,6 +183,11 @@
 		overflow: hidden;
 		font-family: var(--font-sans);
 		font-size: 13px;
+	}
+
+	.wiki-popup.is-fixed {
+		position: fixed;
+		z-index: 9999;
 	}
 
 	.wiki-popup-header {

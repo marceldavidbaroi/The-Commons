@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { notesStore } from '$lib/state/notes.svelte';
+	import WikiLinkSuggestion from './WikiLinkSuggestion.svelte';
+	import { tick } from 'svelte';
 
 	let {
 		headers,
@@ -29,6 +31,13 @@
 	let editingCell = $state<{ row: number; col: number } | null>(null);
 	let cellDraftValue = $state<string>('');
 	let cellInputEl = $state<HTMLInputElement | null>(null);
+
+	// Wiki-link autocomplete popup state for table cells
+	let isWikiSuggestOpen = $state<boolean>(false);
+	let wikiQuery = $state<string>('');
+	let wikiTriggerPos = $state<{ top: number; left: number }>({ top: 0, left: 0 });
+	let wikiTriggerIndex = $state<number>(-1);
+	let wikiSuggestComp = $state<{ handleKeyDown: (e: KeyboardEvent) => boolean } | null>(null);
 
 	$effect(() => {
 		if (editingCell && cellInputEl) {
@@ -135,11 +144,72 @@
 	}
 
 	function handleBlur() {
-		commitCurrentCell();
-		editingCell = null;
+		// Delay blur slightly if clicking on suggestion popup
+		setTimeout(() => {
+			if (!isWikiSuggestOpen) {
+				commitCurrentCell();
+				editingCell = null;
+			}
+		}, 120);
+	}
+
+	function checkForWikiTrigger(inputEl: HTMLInputElement) {
+		const cursorPos = inputEl.selectionStart ?? inputEl.value.length;
+		const textBefore = inputEl.value.substring(0, cursorPos);
+		const lastOpen = textBefore.lastIndexOf('[[');
+		const lastClose = textBefore.lastIndexOf(']]');
+
+		if (lastOpen !== -1 && lastOpen > lastClose) {
+			const query = textBefore.substring(lastOpen + 2);
+			wikiQuery = query;
+			wikiTriggerIndex = lastOpen;
+			const rect = inputEl.getBoundingClientRect();
+			wikiTriggerPos = {
+				top: rect.bottom + 4,
+				left: Math.max(10, Math.min(rect.left, window.innerWidth - 330))
+			};
+			isWikiSuggestOpen = true;
+			return;
+		}
+
+		isWikiSuggestOpen = false;
+	}
+
+	function handleCellInput(e: Event) {
+		const target = e.target as HTMLInputElement;
+		cellDraftValue = target.value;
+		checkForWikiTrigger(target);
+	}
+
+	function handleSelectWikiNote(selectedTitle: string) {
+		if (wikiTriggerIndex === -1) return;
+		const textBefore = cellDraftValue.substring(0, wikiTriggerIndex);
+		const rest = cellDraftValue.substring(wikiTriggerIndex);
+		const closeIdx = rest.indexOf(']]');
+		const textAfter = closeIdx !== -1 ? rest.substring(closeIdx + 2) : rest.replace(/^\[\[[^\s]*/, '');
+		const replacement = `[[${selectedTitle}]]`;
+		cellDraftValue = textBefore + replacement + textAfter;
+		isWikiSuggestOpen = false;
+
+		if (editingCell) {
+			onUpdateCell?.(editingCell.row, editingCell.col, cellDraftValue);
+		}
+
+		tick().then(() => {
+			if (cellInputEl) {
+				cellInputEl.focus();
+				const nextCursor = textBefore.length + replacement.length;
+				cellInputEl.setSelectionRange(nextCursor, nextCursor);
+			}
+		});
 	}
 
 	function handleKeyDown(e: KeyboardEvent, row: number, col: number) {
+		if (isWikiSuggestOpen && wikiSuggestComp) {
+			const handled = wikiSuggestComp.handleKeyDown(e);
+			if (handled) return;
+		}
+
 		if (e.key === 'Tab') {
 			e.preventDefault();
 			commitCurrentCell();
@@ -200,8 +270,17 @@
 								bind:this={cellInputEl}
 								type="text"
 								class="table-cell-input header-cell"
-								bind:value={cellDraftValue}
-								onclick={(e) => e.stopPropagation()}
+								value={cellDraftValue}
+								oninput={handleCellInput}
+								onclick={(e) => {
+									e.stopPropagation();
+									if (cellInputEl) checkForWikiTrigger(cellInputEl);
+								}}
+								onkeyup={(e) => {
+									if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown' && e.key !== 'Enter') {
+										if (cellInputEl) checkForWikiTrigger(cellInputEl);
+									}
+								}}
 								onkeydown={(e) => handleKeyDown(e, -1, colIdx)}
 								onblur={handleBlur}
 							/>
@@ -253,8 +332,17 @@
 									bind:this={cellInputEl}
 									type="text"
 									class="table-cell-input"
-									bind:value={cellDraftValue}
-									onclick={(e) => e.stopPropagation()}
+									value={cellDraftValue}
+									oninput={handleCellInput}
+									onclick={(e) => {
+										e.stopPropagation();
+										if (cellInputEl) checkForWikiTrigger(cellInputEl);
+									}}
+									onkeyup={(e) => {
+										if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown' && e.key !== 'Enter') {
+											if (cellInputEl) checkForWikiTrigger(cellInputEl);
+										}
+									}}
 									onkeydown={(e) => handleKeyDown(e, rowIdx, colIdx)}
 									onblur={handleBlur}
 								/>
@@ -311,6 +399,17 @@
 			+ Column
 		</button>
 	</div>
+
+	{#if isWikiSuggestOpen}
+		<WikiLinkSuggestion
+			bind:this={wikiSuggestComp}
+			query={wikiQuery}
+			position={wikiTriggerPos}
+			fixed={true}
+			onSelect={handleSelectWikiNote}
+			onClose={() => (isWikiSuggestOpen = false)}
+		/>
+	{/if}
 </div>
 
 <style>

@@ -25,7 +25,6 @@ export function getBadgeClass(badge: string): string {
 export function getFeatureTableNames(featureName?: string): string[] {
 	if (!featureName) return [];
 	const lower = featureName.toLowerCase();
-	if (lower.includes('task')) return ['tasks'];
 	if (lower.includes('goal')) return ['goals'];
 	if (lower.includes('diary') || lower.includes('journal')) return ['diaries', 'diary_entries'];
 	if (lower.includes('tag')) return ['tags', 'tag_categories'];
@@ -39,7 +38,6 @@ export function getFeatureTableNames(featureName?: string): string[] {
 export function getFeatureRoutePaths(featureName?: string): string[] {
 	if (!featureName) return [];
 	const lower = featureName.toLowerCase();
-	if (lower.includes('task')) return ['/tasks'];
 	if (lower.includes('goal')) return ['/goals'];
 	if (lower.includes('diary') || lower.includes('journal')) return ['/diary', '/diary/[id]'];
 	if (lower.includes('auth') || lower.includes('access')) return ['/login', '/auth/callback', '/admin', '/admin/login'];
@@ -53,6 +51,5 @@ export function getFeatureComponentNames(featureName?: string): string[] {
 	if (!featureName) return [];
 	const lower = featureName.toLowerCase();
 	if (lower.includes('tag')) return ['TagManagementSidePanel.svelte', 'TagPicker.svelte'];
-	if (lower.includes('task')) return ['TaskSidePanel.svelte', 'TagManagementSidePanel.svelte'];
 	return [];
 }

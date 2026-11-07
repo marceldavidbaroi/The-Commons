@@ -38,7 +38,7 @@
 				return;
 			}
 
-			// Member Route Verification (/home, /diaries, /goals, /tasks, etc.)
+			// Member Route Verification (/home, /diaries, /goals, etc.)
 			// Admins are always allowed
 			if (role === 'admin') {
 				window.location.href = next;

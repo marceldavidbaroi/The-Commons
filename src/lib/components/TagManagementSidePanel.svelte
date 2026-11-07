@@ -10,7 +10,7 @@
 	import TagDeleteModal from './tag-management/TagDeleteModal.svelte';
 
 	let {
-		feature = 'tasks',
+		feature = 'general',
 		isOpen = false,
 		onClose,
 		onTagsChange
