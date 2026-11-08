@@ -1,0 +1,219 @@
+-- Migration: Create tasks module tables, enums, triggers, and RLS policies
+-- Phase 1 of Tasks Feature Implementation
+
+-- 1. Create Enums
+DO $$ BEGIN
+    CREATE TYPE public.task_sort_mode AS ENUM ('created', 'priority', 'manual');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE public.task_status AS ENUM ('todo', 'in_progress', 'done', 'cancelled');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE public.task_priority AS ENUM ('urgent', 'high', 'medium', 'low', 'none');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE public.task_trash_reason AS ENUM ('individual', 'bulk', 'list_deleted');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE public.list_trash_reason AS ENUM ('list_deleted');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- 2. Create `lists` table
+CREATE TABLE IF NOT EXISTS public.lists (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+    sort_mode public.task_sort_mode NOT NULL DEFAULT 'created',
+    live_tasks_count INTEGER NOT NULL DEFAULT 0,
+    active_tasks_count INTEGER NOT NULL DEFAULT 0,
+    deleted_at TIMESTAMPTZ,
+    trash_reason public.list_trash_reason,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 3. Create `tasks` table
+CREATE TABLE IF NOT EXISTS public.tasks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    list_id UUID NOT NULL REFERENCES public.lists(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    description_html TEXT NOT NULL DEFAULT '',
+    status public.task_status NOT NULL DEFAULT 'todo',
+    priority public.task_priority NOT NULL DEFAULT 'none',
+    position DOUBLE PRECISION NOT NULL DEFAULT 0,
+    deleted_at TIMESTAMPTZ,
+    trash_reason public.task_trash_reason,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 4. Create `task_links` table
+CREATE TABLE IF NOT EXISTS public.task_links (
+    source_task_id UUID NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
+    target_task_id UUID NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (source_task_id, target_task_id)
+);
+
+-- 5. Indexes for Tasks & Keyset Pagination
+-- Index on lists
+CREATE INDEX IF NOT EXISTS idx_lists_owner_created ON public.lists (owner_id, created_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_lists_owner_deleted ON public.lists (owner_id, deleted_at DESC) WHERE deleted_at IS NOT NULL;
+
+-- Keyset pagination indexes on tasks
+-- Created mode: (created_at ASC, id ASC)
+CREATE INDEX IF NOT EXISTS idx_tasks_list_created ON public.tasks (list_id, created_at ASC, id ASC) WHERE deleted_at IS NULL;
+-- Priority mode: (priority DESC, created_at ASC, id ASC)
+CREATE INDEX IF NOT EXISTS idx_tasks_list_priority ON public.tasks (list_id, priority DESC, created_at ASC, id ASC) WHERE deleted_at IS NULL;
+-- Manual mode: (position ASC, id ASC)
+CREATE INDEX IF NOT EXISTS idx_tasks_list_position ON public.tasks (list_id, position ASC, id ASC) WHERE deleted_at IS NULL;
+
+-- Deleted tasks index
+CREATE INDEX IF NOT EXISTS idx_tasks_list_deleted ON public.tasks (list_id, deleted_at DESC) WHERE deleted_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_tasks_deleted_general ON public.tasks (deleted_at DESC) WHERE deleted_at IS NOT NULL;
+
+-- Task links reverse index
+CREATE INDEX IF NOT EXISTS idx_task_links_target ON public.task_links (target_task_id);
+
+-- 6. Counter Maintenance Trigger for `lists`
+CREATE OR REPLACE FUNCTION public.sync_list_tasks_counts()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_list_id UUID;
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        v_list_id := OLD.list_id;
+    ELSE
+        v_list_id := NEW.list_id;
+    END IF;
+
+    -- Recalculate and update the counts on the associated list
+    UPDATE public.lists
+    SET
+        live_tasks_count = (
+            SELECT count(*)::integer
+            FROM public.tasks
+            WHERE list_id = v_list_id AND deleted_at IS NULL
+        ),
+        active_tasks_count = (
+            SELECT count(*)::integer
+            FROM public.tasks
+            WHERE list_id = v_list_id
+              AND deleted_at IS NULL
+              AND status IN ('todo', 'in_progress')
+        ),
+        updated_at = now()
+    WHERE id = v_list_id;
+
+    -- If list_id changed on UPDATE (rare/edge case)
+    IF TG_OP = 'UPDATE' AND OLD.list_id IS DISTINCT FROM NEW.list_id THEN
+        UPDATE public.lists
+        SET
+            live_tasks_count = (
+                SELECT count(*)::integer
+                FROM public.tasks
+                WHERE list_id = OLD.list_id AND deleted_at IS NULL
+            ),
+            active_tasks_count = (
+                SELECT count(*)::integer
+                FROM public.tasks
+                WHERE list_id = OLD.list_id
+                  AND deleted_at IS NULL
+                  AND status IN ('todo', 'in_progress')
+            ),
+            updated_at = now()
+        WHERE id = OLD.list_id;
+    END IF;
+
+    RETURN NULL;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_tasks_counter_sync ON public.tasks;
+CREATE TRIGGER trg_tasks_counter_sync
+AFTER INSERT OR UPDATE OF status, deleted_at, list_id OR DELETE ON public.tasks
+FOR EACH ROW
+EXECUTE FUNCTION public.sync_list_tasks_counts();
+
+-- 7. Enable RLS
+ALTER TABLE public.lists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.task_links ENABLE ROW LEVEL SECURITY;
+
+-- 8. RLS Policies
+-- lists: owner-scoped
+DROP POLICY IF EXISTS lists_owner_policy ON public.lists;
+CREATE POLICY lists_owner_policy ON public.lists
+    FOR ALL
+    USING (auth.uid() = owner_id)
+    WITH CHECK (auth.uid() = owner_id);
+
+-- tasks: scoped via parent list ownership
+DROP POLICY IF EXISTS tasks_owner_policy ON public.tasks;
+CREATE POLICY tasks_owner_policy ON public.tasks
+    FOR ALL
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.lists
+            WHERE lists.id = tasks.list_id
+              AND lists.owner_id = auth.uid()
+        )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.lists
+            WHERE lists.id = tasks.list_id
+              AND lists.owner_id = auth.uid()
+        )
+    );
+
+-- task_links: scoped via both source and target task ownership
+DROP POLICY IF EXISTS task_links_owner_policy ON public.task_links;
+CREATE POLICY task_links_owner_policy ON public.task_links
+    FOR ALL
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.tasks t1
+            JOIN public.lists l1 ON l1.id = t1.list_id
+            WHERE t1.id = task_links.source_task_id
+              AND l1.owner_id = auth.uid()
+        )
+        AND EXISTS (
+            SELECT 1 FROM public.tasks t2
+            JOIN public.lists l2 ON l2.id = t2.list_id
+            WHERE t2.id = task_links.target_task_id
+              AND l2.owner_id = auth.uid()
+        )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.tasks t1
+            JOIN public.lists l1 ON l1.id = t1.list_id
+            WHERE t1.id = task_links.source_task_id
+              AND l1.owner_id = auth.uid()
+        )
+        AND EXISTS (
+            SELECT 1 FROM public.tasks t2
+            JOIN public.lists l2 ON l2.id = t2.list_id
+            WHERE t2.id = task_links.target_task_id
+              AND l2.owner_id = auth.uid()
+        )
+    );
+
