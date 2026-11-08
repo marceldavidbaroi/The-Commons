@@ -13,8 +13,8 @@
 
   interface Props {
     contentHtml: string;
-    listId: string;
-    excludeTaskId?: string;
+    listId: number | string;
+    excludeTaskId?: number | string;
     onChange: (html: string) => void;
   }
 
@@ -26,7 +26,7 @@
   // Link picker popup state
   let showPicker = $state(false);
   let pickerQuery = $state('');
-  let pickerResults = $state<Array<{ id: string; title: string }>>([]);
+  let pickerResults = $state<Array<{ id: number; title: string }>>([]);
   let pickerCoords = $state<{ top: number; left: number }>({ top: 0, left: 0 });
 
   async function searchTasks(query: string) {
@@ -35,7 +35,7 @@
     pickerResults = res;
   }
 
-  function insertTaskChip(task: { id: string; title: string }) {
+  function insertTaskChip(task: { id: number; title: string }) {
     if (!editor) return;
     showPicker = false;
 

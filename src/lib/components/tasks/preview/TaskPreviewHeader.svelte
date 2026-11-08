@@ -6,7 +6,7 @@
 
   interface Props {
     task: TaskRecord;
-    listId: string;
+    listId: number | string;
     onStatusChange: (status: TaskStatus) => void;
     onPriorityChange: (priority: TaskPriority) => void;
     onTrash: () => Promise<void>;

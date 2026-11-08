@@ -18,14 +18,6 @@ function getClient(customClient?: SupabaseClient<Database>): SupabaseClient<Data
   return customClient || getSupabaseClient();
 }
 
-const PRIORITY_ORDER: Record<TaskPriority, number> = {
-  urgent: 5,
-  high: 4,
-  medium: 3,
-  low: 2,
-  none: 1
-};
-
 export function serializeCursor(payload: TaskCursorPayload): string {
   return btoa(JSON.stringify(payload));
 }
@@ -44,7 +36,7 @@ export function deserializeCursor(cursor: string): TaskCursorPayload | null {
 
 export async function fetchLists(customClient?: SupabaseClient<Database>): Promise<ListRecord[]> {
   const supabase = getClient(customClient);
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('lists')
     .select('id, name, owner_id, sort_mode, live_tasks_count, active_tasks_count, deleted_at, trash_reason, created_at, updated_at')
     .is('deleted_at', null)
@@ -57,12 +49,13 @@ export async function fetchLists(customClient?: SupabaseClient<Database>): Promi
   return (data || []) as ListRecord[];
 }
 
-export async function fetchListById(id: string, customClient?: SupabaseClient<Database>): Promise<ListRecord | null> {
+export async function fetchListById(id: number | string, customClient?: SupabaseClient<Database>): Promise<ListRecord | null> {
   const supabase = getClient(customClient);
-  const { data, error } = await (supabase as any)
+  const numericId = Number(id);
+  const { data, error } = await supabase
     .from('lists')
     .select('id, name, owner_id, sort_mode, live_tasks_count, active_tasks_count, deleted_at, trash_reason, created_at, updated_at')
-    .eq('id', id)
+    .eq('id', numericId)
     .single();
 
   if (error) {
@@ -75,7 +68,7 @@ export async function fetchListById(id: string, customClient?: SupabaseClient<Da
 
 export async function createList(name: string, customClient?: SupabaseClient<Database>): Promise<ListRecord> {
   const supabase = getClient(customClient);
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('lists')
     .insert({ name: name.trim() })
     .select('id, name, owner_id, sort_mode, live_tasks_count, active_tasks_count, deleted_at, trash_reason, created_at, updated_at')
@@ -88,12 +81,13 @@ export async function createList(name: string, customClient?: SupabaseClient<Dat
   return data as ListRecord;
 }
 
-export async function renameList(id: string, name: string, customClient?: SupabaseClient<Database>): Promise<ListRecord> {
+export async function renameList(id: number | string, name: string, customClient?: SupabaseClient<Database>): Promise<ListRecord> {
   const supabase = getClient(customClient);
-  const { data, error } = await (supabase as any)
+  const numericId = Number(id);
+  const { data, error } = await supabase
     .from('lists')
     .update({ name: name.trim(), updated_at: new Date().toISOString() })
-    .eq('id', id)
+    .eq('id', numericId)
     .select('id, name, owner_id, sort_mode, live_tasks_count, active_tasks_count, deleted_at, trash_reason, created_at, updated_at')
     .single();
 
@@ -104,12 +98,13 @@ export async function renameList(id: string, name: string, customClient?: Supaba
   return data as ListRecord;
 }
 
-export async function updateListSortMode(id: string, sort_mode: TaskSortMode, customClient?: SupabaseClient<Database>): Promise<ListRecord> {
+export async function updateListSortMode(id: number | string, sort_mode: TaskSortMode, customClient?: SupabaseClient<Database>): Promise<ListRecord> {
   const supabase = getClient(customClient);
-  const { data, error } = await (supabase as any)
+  const numericId = Number(id);
+  const { data, error } = await supabase
     .from('lists')
     .update({ sort_mode, updated_at: new Date().toISOString() })
-    .eq('id', id)
+    .eq('id', numericId)
     .select('id, name, owner_id, sort_mode, live_tasks_count, active_tasks_count, deleted_at, trash_reason, created_at, updated_at')
     .single();
 
@@ -123,24 +118,25 @@ export async function updateListSortMode(id: string, sort_mode: TaskSortMode, cu
 /**
  * Soft delete list and all its live tasks as a bundle.
  */
-export async function trashListBundle(id: string, customClient?: SupabaseClient<Database>): Promise<void> {
+export async function trashListBundle(id: number | string, customClient?: SupabaseClient<Database>): Promise<void> {
   const supabase = getClient(customClient);
+  const numericId = Number(id);
   const now = new Date().toISOString();
 
   // 1. Soft delete all live tasks in list with trash_reason = 'list_deleted'
-  const { error: tasksErr } = await (supabase as any)
+  const { error: tasksErr } = await supabase
     .from('tasks')
     .update({ deleted_at: now, trash_reason: 'list_deleted', updated_at: now })
-    .eq('list_id', id)
+    .eq('list_id', numericId)
     .is('deleted_at', null);
 
   if (tasksErr) throw tasksErr;
 
   // 2. Soft delete list
-  const { error: listErr } = await (supabase as any)
+  const { error: listErr } = await supabase
     .from('lists')
     .update({ deleted_at: now, trash_reason: 'list_deleted', updated_at: now })
-    .eq('id', id);
+    .eq('id', numericId);
 
   if (listErr) throw listErr;
 }
@@ -155,16 +151,17 @@ export async function fetchTasksPage(
 ): Promise<TasksPageResponse> {
   const supabase = getClient(customClient);
   const { listId, sortMode, statusFilters, priorityFilters, cursor, limit = 10 } = params;
+  const numericListId = Number(listId);
 
   // 1. Fetch current list to get live_tasks_count
-  const list = await fetchListById(listId, customClient);
+  const list = await fetchListById(numericListId, customClient);
   const totalLive = list?.live_tasks_count ?? 0;
 
   // 2. Build base query for tasks
-  let query = (supabase as any)
+  let query = supabase
     .from('tasks')
     .select('id, list_id, title, description_html, status, priority, position, deleted_at, trash_reason, created_at, updated_at')
-    .eq('list_id', listId)
+    .eq('list_id', numericListId)
     .is('deleted_at', null);
 
   if (statusFilters && statusFilters.length > 0) {
@@ -180,22 +177,14 @@ export async function fetchTasksPage(
     const payload = deserializeCursor(cursor);
     if (payload && payload.sort_mode === sortMode) {
       if (sortMode === 'created' && payload.created_at) {
-        // (created_at > payload.created_at) OR (created_at = payload.created_at AND id > payload.id)
         query = query.or(
           `created_at.gt.${payload.created_at},and(created_at.eq.${payload.created_at},id.gt.${payload.id})`
         );
       } else if (sortMode === 'manual' && payload.position !== undefined) {
-        // (position > payload.position) OR (position = payload.position AND id > payload.id)
         query = query.or(
           `position.gt.${payload.position},and(position.eq.${payload.position},id.gt.${payload.id})`
         );
       } else if (sortMode === 'priority' && payload.priority && payload.created_at) {
-        // PostgreSQL enum order: urgent > high > medium > low > none
-        // Keyset condition for mixed direction (priority DESC, created_at ASC, id ASC)
-        // With PostgREST, we can achieve this or fallback to in-memory slicing if needed.
-        // In PostgREST syntax with .or():
-        // Since enum comparison in PostgREST is supported:
-        // priority < p OR (priority = p AND created_at > c) OR (priority = p AND created_at = c AND id > i)
         query = query.or(
           `priority.lt.${payload.priority},and(priority.eq.${payload.priority},created_at.gt.${payload.created_at}),and(priority.eq.${payload.priority},created_at.eq.${payload.created_at},id.gt.${payload.id})`
         );
@@ -203,7 +192,7 @@ export async function fetchTasksPage(
     }
   }
 
-  // Apply sorting
+  // Order by matching the composite index
   if (sortMode === 'created') {
     query = query.order('created_at', { ascending: true }).order('id', { ascending: true });
   } else if (sortMode === 'priority') {
@@ -215,7 +204,6 @@ export async function fetchTasksPage(
     query = query.order('position', { ascending: true }).order('id', { ascending: true });
   }
 
-  // Fetch limit + 1 to detect next page
   query = query.limit(limit + 1);
 
   const { data, error } = await query;
@@ -224,30 +212,32 @@ export async function fetchTasksPage(
     throw error;
   }
 
-  const rows = (data || []) as TaskRecord[];
-  const hasMore = rows.length > limit;
-  const tasks = hasMore ? rows.slice(0, limit) : rows;
-
+  const items = (data || []) as TaskRecord[];
   let nextCursor: string | null = null;
-  if (hasMore && tasks.length > 0) {
-    const last = tasks[tasks.length - 1];
-    nextCursor = serializeCursor({
-      sort_mode: sortMode,
-      created_at: last.created_at,
-      priority: last.priority,
-      position: last.position,
-      id: last.id
-    });
+
+  if (items.length > limit) {
+    const extra = items.pop()!;
+    const last = items[items.length - 1];
+    if (last) {
+      const payload: TaskCursorPayload = {
+        sort_mode: sortMode,
+        id: last.id,
+        created_at: last.created_at,
+        priority: last.priority,
+        position: last.position
+      };
+      nextCursor = serializeCursor(payload);
+    }
   }
 
-  // Determine totalFiltered: if no filters, it equals totalLive. If filters active, count matching rows.
+  // 3. Count total matching filtered (if filters applied)
   let totalFiltered = totalLive;
   const hasFilters = (statusFilters && statusFilters.length > 0) || (priorityFilters && priorityFilters.length > 0);
   if (hasFilters) {
-    let countQuery = (supabase as any)
+    let countQuery = supabase
       .from('tasks')
-      .select('id', { count: 'exact', head: true })
-      .eq('list_id', listId)
+      .select('*', { count: 'exact', head: true })
+      .eq('list_id', numericListId)
       .is('deleted_at', null);
 
     if (statusFilters && statusFilters.length > 0) {
@@ -256,24 +246,28 @@ export async function fetchTasksPage(
     if (priorityFilters && priorityFilters.length > 0) {
       countQuery = countQuery.in('priority', priorityFilters);
     }
-    const { count } = await countQuery;
-    totalFiltered = count ?? tasks.length;
+
+    const { count, error: countErr } = await countQuery;
+    if (!countErr && count !== null) {
+      totalFiltered = count;
+    }
   }
 
   return {
-    tasks,
+    tasks: items,
     nextCursor,
     totalLive,
     totalFiltered
   };
 }
 
-export async function fetchTaskById(id: string, customClient?: SupabaseClient<Database>): Promise<TaskRecord | null> {
+export async function fetchTaskById(id: number | string, customClient?: SupabaseClient<Database>): Promise<TaskRecord | null> {
   const supabase = getClient(customClient);
-  const { data, error } = await (supabase as any)
+  const numericId = Number(id);
+  const { data, error } = await supabase
     .from('tasks')
     .select('id, list_id, title, description_html, status, priority, position, deleted_at, trash_reason, created_at, updated_at')
-    .eq('id', id)
+    .eq('id', numericId)
     .single();
 
   if (error) {
@@ -286,7 +280,7 @@ export async function fetchTaskById(id: string, customClient?: SupabaseClient<Da
 
 export async function createTask(
   payload: {
-    list_id: string;
+    list_id: number | string;
     title: string;
     description_html?: string;
     status?: TaskStatus;
@@ -295,25 +289,27 @@ export async function createTask(
   customClient?: SupabaseClient<Database>
 ): Promise<TaskRecord> {
   const supabase = getClient(customClient);
+  const numericListId = Number(payload.list_id);
 
-  // Determine max position for new task
-  const { data: maxPosData } = await (supabase as any)
+  // Compute position as max(position) + 1 for manual sorting mode
+  const { data: maxPosData } = await supabase
     .from('tasks')
     .select('position')
-    .eq('list_id', payload.list_id)
+    .eq('list_id', numericListId)
     .order('position', { ascending: false })
     .limit(1);
 
   const nextPos = maxPosData && maxPosData.length > 0 ? (maxPosData[0].position || 0) + 1 : 1;
 
-  const { data, error } = await (supabase as any)
+  const descHtml = payload.description_html ?? '';
+  const { data, error } = await supabase
     .from('tasks')
     .insert({
-      list_id: payload.list_id,
+      list_id: numericListId,
       title: payload.title.trim(),
-      description_html: payload.description_html || '',
-      status: payload.status || 'todo',
-      priority: payload.priority || 'none',
+      description_html: descHtml,
+      status: payload.status ?? 'todo',
+      priority: payload.priority ?? 'none',
       position: nextPos
     })
     .select('id, list_id, title, description_html, status, priority, position, deleted_at, trash_reason, created_at, updated_at')
@@ -325,23 +321,35 @@ export async function createTask(
   }
 
   const created = data as TaskRecord;
-  if (created.description_html) {
-    await syncTaskLinks(created.id, created.description_html, customClient);
-  }
+
+  // Sync [[ task links
+  await syncTaskLinks(created.id, descHtml, customClient);
 
   return created;
 }
 
 export async function updateTask(
-  id: string,
-  updates: Partial<Pick<TaskRecord, 'title' | 'description_html' | 'status' | 'priority' | 'position'>>,
+  id: number | string,
+  payload: {
+    title?: string;
+    description_html?: string;
+    status?: TaskStatus;
+    priority?: TaskPriority;
+  },
   customClient?: SupabaseClient<Database>
 ): Promise<TaskRecord> {
   const supabase = getClient(customClient);
-  const { data, error } = await (supabase as any)
+  const numericId = Number(id);
+  const updates: Database['public']['Tables']['tasks']['Update'] = { updated_at: new Date().toISOString() };
+  if (payload.title !== undefined) updates.title = payload.title.trim();
+  if (payload.description_html !== undefined) updates.description_html = payload.description_html;
+  if (payload.status !== undefined) updates.status = payload.status;
+  if (payload.priority !== undefined) updates.priority = payload.priority;
+
+  const { data, error } = await supabase
     .from('tasks')
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', id)
+    .update(updates)
+    .eq('id', numericId)
     .select('id, list_id, title, description_html, status, priority, position, deleted_at, trash_reason, created_at, updated_at')
     .single();
 
@@ -351,118 +359,148 @@ export async function updateTask(
   }
 
   const updated = data as TaskRecord;
-  if (updates.description_html !== undefined) {
-    await syncTaskLinks(updated.id, updated.description_html, customClient);
+
+  if (payload.description_html !== undefined) {
+    await syncTaskLinks(updated.id, payload.description_html, customClient);
   }
 
   return updated;
 }
 
-export async function updateTaskStatus(id: string, status: TaskStatus, customClient?: SupabaseClient<Database>): Promise<TaskRecord> {
+export async function updateTaskStatus(id: number | string, status: TaskStatus, customClient?: SupabaseClient<Database>): Promise<TaskRecord> {
   return updateTask(id, { status }, customClient);
 }
 
-export async function updateTaskPriority(id: string, priority: TaskPriority, customClient?: SupabaseClient<Database>): Promise<TaskRecord> {
+export async function updateTaskPriority(id: number | string, priority: TaskPriority, customClient?: SupabaseClient<Database>): Promise<TaskRecord> {
   return updateTask(id, { priority }, customClient);
 }
 
-export async function updateTaskPosition(id: string, position: number, customClient?: SupabaseClient<Database>): Promise<TaskRecord> {
-  return updateTask(id, { position }, customClient);
+export async function updateTaskPosition(id: number | string, position: number, customClient?: SupabaseClient<Database>): Promise<void> {
+  const supabase = getClient(customClient);
+  const numericId = Number(id);
+  const { error } = await supabase
+    .from('tasks')
+    .update({ position, updated_at: new Date().toISOString() })
+    .eq('id', numericId);
+
+  if (error) {
+    console.error('Error updating task position:', error);
+    throw error;
+  }
 }
 
-export async function trashTask(id: string, customClient?: SupabaseClient<Database>): Promise<void> {
+/**
+ * Soft delete task individually
+ */
+export async function trashTask(id: number | string, customClient?: SupabaseClient<Database>): Promise<void> {
   const supabase = getClient(customClient);
+  const numericId = Number(id);
   const now = new Date().toISOString();
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('tasks')
     .update({ deleted_at: now, trash_reason: 'individual', updated_at: now })
-    .eq('id', id);
+    .eq('id', numericId);
 
-  if (error) throw error;
+  if (error) {
+    console.error('Error trashing task:', error);
+    throw error;
+  }
 }
 
-export async function bulkTrashTasks(ids: string[], customClient?: SupabaseClient<Database>): Promise<void> {
+/**
+ * Soft delete multiple tasks in bulk
+ */
+export async function bulkTrashTasks(ids: (number | string)[], customClient?: SupabaseClient<Database>): Promise<void> {
   if (ids.length === 0) return;
   const supabase = getClient(customClient);
+  const numericIds = ids.map(Number);
   const now = new Date().toISOString();
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('tasks')
     .update({ deleted_at: now, trash_reason: 'bulk', updated_at: now })
-    .in('id', ids);
+    .in('id', numericIds);
 
-  if (error) throw error;
+  if (error) {
+    console.error('Error bulk trashing tasks:', error);
+    throw error;
+  }
 }
 
 // -------------------------------------------------------------
 // TASK LINKS & CHIP RESOLUTION
 // -------------------------------------------------------------
 
-export function extractTaskIdsFromHtml(html: string): string[] {
+export function extractTaskIdsFromHtml(html: string): number[] {
   if (!html) return [];
-  const matches = html.matchAll(/data-task-id="([0-9a-fA-F-]+)"/g);
-  const ids = new Set<string>();
+  const matches = html.matchAll(/data-task-id="([^"]+)"/g);
+  const ids = new Set<number>();
   for (const m of matches) {
-    if (m[1]) ids.add(m[1]);
+    if (m[1]) {
+      const num = Number(m[1]);
+      if (!isNaN(num)) ids.add(num);
+    }
   }
   return Array.from(ids);
 }
 
-export async function syncTaskLinks(sourceTaskId: string, html: string, customClient?: SupabaseClient<Database>): Promise<void> {
+export async function syncTaskLinks(sourceTaskId: number | string, html: string, customClient?: SupabaseClient<Database>): Promise<void> {
   const supabase = getClient(customClient);
+  const numSourceId = Number(sourceTaskId);
   const targetIds = extractTaskIdsFromHtml(html);
 
   // 1. Fetch current links for this source
-  const { data: existing, error: fetchErr } = await (supabase as any)
+  const { data: existing, error: fetchErr } = await supabase
     .from('task_links')
     .select('target_task_id')
-    .eq('source_task_id', sourceTaskId);
+    .eq('source_task_id', numSourceId);
 
   if (fetchErr) throw fetchErr;
 
-  const currentTargets = new Set<string>((existing || []).map((row: any) => row.target_task_id));
-  const newTargets = new Set<string>(targetIds.filter(id => id !== sourceTaskId));
+  const currentTargets = new Set<number>((existing || []).map((row) => row.target_task_id));
+  const newTargets = new Set<number>(targetIds.filter(id => id !== numSourceId));
 
   const toInsert = [...newTargets].filter(id => !currentTargets.has(id));
   const toDelete = [...currentTargets].filter(id => !newTargets.has(id));
 
   if (toDelete.length > 0) {
-    const { error: delErr } = await (supabase as any)
+    const { error: delErr } = await supabase
       .from('task_links')
       .delete()
-      .eq('source_task_id', sourceTaskId)
+      .eq('source_task_id', numSourceId)
       .in('target_task_id', toDelete);
     if (delErr) console.warn('Error deleting stale links:', delErr);
   }
 
   if (toInsert.length > 0) {
     const rows = toInsert.map(target_task_id => ({
-      source_task_id: sourceTaskId,
+      source_task_id: numSourceId,
       target_task_id
     }));
-    const { error: insErr } = await (supabase as any)
+    const { error: insErr } = await supabase
       .from('task_links')
       .insert(rows);
     if (insErr) console.warn('Error inserting new links:', insErr);
   }
 }
 
-export async function resolveChips(taskIds: string[], customClient?: SupabaseClient<Database>): Promise<Map<string, ResolvedChip>> {
-  const map = new Map<string, ResolvedChip>();
+export async function resolveChips(taskIds: (number | string)[], customClient?: SupabaseClient<Database>): Promise<Map<number, ResolvedChip>> {
+  const map = new Map<number, ResolvedChip>();
   if (!taskIds || taskIds.length === 0) return map;
 
+  const numericIds = taskIds.map(Number);
   const supabase = getClient(customClient);
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('tasks')
     .select('id, title, list_id, deleted_at')
-    .in('id', taskIds);
+    .in('id', numericIds);
 
   if (error) {
     console.error('Error resolving chips:', error);
   }
 
-  const foundMap = new Map<string, any>((data || []).map((t: any) => [t.id, t]));
+  const foundMap = new Map<number, any>((data || []).map((t) => [t.id, t]));
 
-  for (const id of taskIds) {
+  for (const id of numericIds) {
     const found = foundMap.get(id);
     if (!found) {
       map.set(id, { id, title: 'Deleted task', list_id: null, state: 'gone' });
@@ -476,9 +514,10 @@ export async function resolveChips(taskIds: string[], customClient?: SupabaseCli
   return map;
 }
 
-export async function fetchBacklinks(targetTaskId: string, customClient?: SupabaseClient<Database>): Promise<TaskBacklink[]> {
+export async function fetchBacklinks(targetTaskId: number | string, customClient?: SupabaseClient<Database>): Promise<TaskBacklink[]> {
   const supabase = getClient(customClient);
-  const { data, error } = await (supabase as any)
+  const numericTargetId = Number(targetTaskId);
+  const { data, error } = await supabase
     .from('task_links')
     .select(`
       source_task_id,
@@ -490,7 +529,7 @@ export async function fetchBacklinks(targetTaskId: string, customClient?: Supaba
         lists(id, name)
       )
     `)
-    .eq('target_task_id', targetTaskId);
+    .eq('target_task_id', numericTargetId);
 
   if (error) {
     console.error('Error fetching backlinks:', error);
@@ -499,7 +538,7 @@ export async function fetchBacklinks(targetTaskId: string, customClient?: Supaba
 
   const backlinks: TaskBacklink[] = [];
   for (const item of (data || [])) {
-    const src = item.tasks;
+    const src = item.tasks as any;
     if (src && src.deleted_at === null) {
       backlinks.push({
         source_task_id: src.id,
@@ -513,16 +552,17 @@ export async function fetchBacklinks(targetTaskId: string, customClient?: Supaba
 }
 
 export async function searchListTasks(
-  listId: string,
+  listId: number | string,
   query: string,
-  excludeId?: string,
+  excludeId?: number | string,
   customClient?: SupabaseClient<Database>
-): Promise<Array<{ id: string; title: string }>> {
+): Promise<Array<{ id: number; title: string }>> {
   const supabase = getClient(customClient);
-  let q = (supabase as any)
+  const numericListId = Number(listId);
+  let q = supabase
     .from('tasks')
     .select('id, title')
-    .eq('list_id', listId)
+    .eq('list_id', numericListId)
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(8);
@@ -531,8 +571,8 @@ export async function searchListTasks(
     q = q.ilike('title', `%${query.trim()}%`);
   }
 
-  if (excludeId) {
-    q = q.neq('id', excludeId);
+  if (excludeId !== undefined) {
+    q = q.neq('id', Number(excludeId));
   }
 
   const { data, error } = await q;
@@ -540,7 +580,7 @@ export async function searchListTasks(
     console.error('Error searching tasks:', error);
     return [];
   }
-  return (data || []) as Array<{ id: string; title: string }>;
+  return (data || []) as Array<{ id: number; title: string }>;
 }
 
 // -------------------------------------------------------------
@@ -554,7 +594,7 @@ export async function fetchTrash(customClient?: SupabaseClient<Database>): Promi
   const supabase = getClient(customClient);
 
   // Trashed lists
-  const { data: trashedLists, error: listsErr } = await (supabase as any)
+  const { data: trashedLists, error: listsErr } = await supabase
     .from('lists')
     .select('id, name, owner_id, sort_mode, live_tasks_count, active_tasks_count, deleted_at, trash_reason, created_at, updated_at')
     .not('deleted_at', 'is', null)
@@ -563,7 +603,7 @@ export async function fetchTrash(customClient?: SupabaseClient<Database>): Promi
   if (listsErr) throw listsErr;
 
   // Trashed tasks (including list name and list.deleted_at to check restore conflicts)
-  const { data: trashedTasks, error: tasksErr } = await (supabase as any)
+  const { data: trashedTasks, error: tasksErr } = await supabase
     .from('tasks')
     .select(`
       id, list_id, title, description_html, status, priority, position, deleted_at, trash_reason, created_at, updated_at,
@@ -596,45 +636,47 @@ export async function fetchTrash(customClient?: SupabaseClient<Database>): Promi
   };
 }
 
-export async function restoreListBundle(listId: string, customClient?: SupabaseClient<Database>): Promise<void> {
+export async function restoreListBundle(listId: number | string, customClient?: SupabaseClient<Database>): Promise<void> {
   const supabase = getClient(customClient);
+  const numericListId = Number(listId);
   const now = new Date().toISOString();
 
   // 1. Restore list
-  const { error: listErr } = await (supabase as any)
+  const { error: listErr } = await supabase
     .from('lists')
     .update({ deleted_at: null, trash_reason: null, updated_at: now })
-    .eq('id', listId);
+    .eq('id', numericListId);
 
   if (listErr) throw listErr;
 
   // 2. Restore tasks where list_id = listId AND trash_reason = 'list_deleted'
-  const { error: tasksErr } = await (supabase as any)
+  const { error: tasksErr } = await supabase
     .from('tasks')
     .update({ deleted_at: null, trash_reason: null, updated_at: now })
-    .eq('list_id', listId)
+    .eq('list_id', numericListId)
     .eq('trash_reason', 'list_deleted');
 
   if (tasksErr) throw tasksErr;
 }
 
-export async function restoreTask(taskId: string, customClient?: SupabaseClient<Database>): Promise<void> {
+export async function restoreTask(taskId: number | string, customClient?: SupabaseClient<Database>): Promise<void> {
   const supabase = getClient(customClient);
+  const numericTaskId = Number(taskId);
 
   // 1. Fetch task and its parent list
-  const { data: task, error: fetchErr } = await (supabase as any)
+  const { data: task, error: fetchErr } = await supabase
     .from('tasks')
     .select('id, list_id, lists(deleted_at)')
-    .eq('id', taskId)
+    .eq('id', numericTaskId)
     .single();
 
   if (fetchErr || !task) throw new Error('Task not found');
-  if (task.lists?.deleted_at !== null) {
+  if ((task.lists as any)?.deleted_at !== null) {
     throw new Error('Restore the list first.');
   }
 
   // 2. Compute max position in list
-  const { data: maxPosData } = await (supabase as any)
+  const { data: maxPosData } = await supabase
     .from('tasks')
     .select('position')
     .eq('list_id', task.list_id)
@@ -644,7 +686,7 @@ export async function restoreTask(taskId: string, customClient?: SupabaseClient<
   const newPos = maxPosData && maxPosData.length > 0 ? (maxPosData[0].position || 0) + 1 : 1;
 
   // 3. Clear deleted_at, set new position
-  const { error: updateErr } = await (supabase as any)
+  const { error: updateErr } = await supabase
     .from('tasks')
     .update({
       deleted_at: null,
@@ -652,29 +694,31 @@ export async function restoreTask(taskId: string, customClient?: SupabaseClient<
       position: newPos,
       updated_at: new Date().toISOString()
     })
-    .eq('id', taskId);
+    .eq('id', numericTaskId);
 
   if (updateErr) throw updateErr;
 }
 
-export async function deleteListPermanent(listId: string, customClient?: SupabaseClient<Database>): Promise<void> {
+export async function deleteListPermanent(listId: number | string, customClient?: SupabaseClient<Database>): Promise<void> {
   const supabase = getClient(customClient);
+  const numericListId = Number(listId);
   // Hard delete on lists cascades to tasks & task_links
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('lists')
     .delete()
-    .eq('id', listId);
+    .eq('id', numericListId);
 
   if (error) throw error;
 }
 
-export async function deleteTaskPermanent(taskId: string, customClient?: SupabaseClient<Database>): Promise<void> {
+export async function deleteTaskPermanent(taskId: number | string, customClient?: SupabaseClient<Database>): Promise<void> {
   const supabase = getClient(customClient);
+  const numericTaskId = Number(taskId);
   // Hard delete on task cascades to task_links
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('tasks')
     .delete()
-    .eq('id', taskId);
+    .eq('id', numericTaskId);
 
   if (error) throw error;
 }
@@ -682,18 +726,17 @@ export async function deleteTaskPermanent(taskId: string, customClient?: Supabas
 export async function emptyTrash(customClient?: SupabaseClient<Database>): Promise<void> {
   const supabase = getClient(customClient);
   // Hard delete all trashed tasks and lists
-  const { error: tasksErr } = await (supabase as any)
+  const { error: tasksErr } = await supabase
     .from('tasks')
     .delete()
     .not('deleted_at', 'is', null);
 
   if (tasksErr) throw tasksErr;
 
-  const { error: listsErr } = await (supabase as any)
+  const { error: listsErr } = await supabase
     .from('lists')
     .delete()
     .not('deleted_at', 'is', null);
 
   if (listsErr) throw listsErr;
 }
-

@@ -4,8 +4,8 @@
 
   interface Props {
     task: TaskRecord & { list_name: string; list_deleted_at: string | null };
-    onRestore: (id: string) => Promise<void>;
-    onDeletePermanent: (id: string) => Promise<void>;
+    onRestore: (id: number | string) => Promise<void>;
+    onDeletePermanent: (id: number | string) => Promise<void>;
   }
 
   let { task, onRestore, onDeletePermanent }: Props = $props();

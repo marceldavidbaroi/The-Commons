@@ -14,7 +14,7 @@
     await tasksStore.addList(name);
   }
 
-  async function handleTrash(id: string) {
+  async function handleTrash(id: number | string) {
     await tasksStore.removeListBundle(id);
   }
 </script>

@@ -1,7 +1,7 @@
 <script lang="ts">
   interface Props {
     isFiltered: boolean;
-    listId: string;
+    listId: number | string;
     onClearFilters: () => void;
   }
 

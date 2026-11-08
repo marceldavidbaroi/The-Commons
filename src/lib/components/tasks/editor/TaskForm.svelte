@@ -8,8 +8,8 @@
     descriptionHtml: string;
     status: TaskStatus;
     priority: TaskPriority;
-    listId: string;
-    excludeTaskId?: string;
+    listId: number | string;
+    excludeTaskId?: number | string;
     isEditing?: boolean;
     onSave: (payload: { title: string; descriptionHtml: string; status: TaskStatus; priority: TaskPriority }) => Promise<void>;
     onCancel: () => void;

@@ -4,7 +4,7 @@
 
   interface Props {
     list: ListRecord;
-    onTrash: (id: string) => void;
+    onTrash: (id: number | string) => void;
   }
 
   let { list, onTrash }: Props = $props();

@@ -584,6 +584,45 @@ export type Database = {
           },
         ]
       }
+      lists: {
+        Row: {
+          active_tasks_count: number
+          created_at: string
+          deleted_at: string | null
+          id: number
+          live_tasks_count: number
+          name: string
+          owner_id: string
+          sort_mode: Database["public"]["Enums"]["task_sort_mode"]
+          trash_reason: Database["public"]["Enums"]["list_trash_reason"] | null
+          updated_at: string
+        }
+        Insert: {
+          active_tasks_count?: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: number
+          live_tasks_count?: number
+          name: string
+          owner_id?: string
+          sort_mode?: Database["public"]["Enums"]["task_sort_mode"]
+          trash_reason?: Database["public"]["Enums"]["list_trash_reason"] | null
+          updated_at?: string
+        }
+        Update: {
+          active_tasks_count?: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: number
+          live_tasks_count?: number
+          name?: string
+          owner_id?: string
+          sort_mode?: Database["public"]["Enums"]["task_sort_mode"]
+          trash_reason?: Database["public"]["Enums"]["list_trash_reason"] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       locations: {
         Row: {
           created_at: string
@@ -927,77 +966,85 @@ export type Database = {
           },
         ]
       }
-      tasks: {
+      task_links: {
         Row: {
-          actual_minutes: number | null
-          completed_at: string | null
           created_at: string
-          description: string | null
-          due_date: string | null
-          id: number
-          parent_id: number | null
-          priority: Database["public"]["Enums"]["task_priority"]
-          scheduled_date: string | null
-          sort_order: number
-          status: Database["public"]["Enums"]["task_status"]
-          tag_ids: number[]
-          tag_slugs: string[]
-          time_estimate_minutes: number | null
-          title: string
-          updated_at: string
-          user_id: number
+          source_task_id: number
+          target_task_id: number
         }
         Insert: {
-          actual_minutes?: number | null
-          completed_at?: string | null
           created_at?: string
-          description?: string | null
-          due_date?: string | null
-          id?: number
-          parent_id?: number | null
-          priority?: Database["public"]["Enums"]["task_priority"]
-          scheduled_date?: string | null
-          sort_order?: number
-          status?: Database["public"]["Enums"]["task_status"]
-          tag_ids?: number[]
-          tag_slugs?: string[]
-          time_estimate_minutes?: number | null
-          title: string
-          updated_at?: string
-          user_id: number
+          source_task_id: number
+          target_task_id: number
         }
         Update: {
-          actual_minutes?: number | null
-          completed_at?: string | null
           created_at?: string
-          description?: string | null
-          due_date?: string | null
-          id?: number
-          parent_id?: number | null
-          priority?: Database["public"]["Enums"]["task_priority"]
-          scheduled_date?: string | null
-          sort_order?: number
-          status?: Database["public"]["Enums"]["task_status"]
-          tag_ids?: number[]
-          tag_slugs?: string[]
-          time_estimate_minutes?: number | null
-          title?: string
-          updated_at?: string
-          user_id?: number
+          source_task_id?: number
+          target_task_id?: number
         }
         Relationships: [
           {
-            foreignKeyName: "tasks_parent_id_fkey"
-            columns: ["parent_id"]
+            foreignKeyName: "task_links_source_task_id_fkey"
+            columns: ["source_task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tasks_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "task_links_target_task_id_fkey"
+            columns: ["target_task_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description_html: string
+          id: number
+          list_id: number
+          position: number
+          priority: Database["public"]["Enums"]["task_priority"]
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+          trash_reason: Database["public"]["Enums"]["task_trash_reason"] | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description_html?: string
+          id?: number
+          list_id: number
+          position?: number
+          priority?: Database["public"]["Enums"]["task_priority"]
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+          trash_reason?: Database["public"]["Enums"]["task_trash_reason"] | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description_html?: string
+          id?: number
+          list_id?: number
+          position?: number
+          priority?: Database["public"]["Enums"]["task_priority"]
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+          trash_reason?: Database["public"]["Enums"]["task_trash_reason"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
             referencedColumns: ["id"]
           },
         ]
@@ -1295,13 +1342,11 @@ export type Database = {
         | "yearly"
         | "milestone"
         | "habit"
-      task_priority: "low" | "normal" | "high" | "urgent"
-      task_status:
-        | "todo"
-        | "in_progress"
-        | "completed"
-        | "cancelled"
-        | "deferred"
+      list_trash_reason: "list_deleted"
+      task_priority: "urgent" | "high" | "medium" | "low" | "none"
+      task_sort_mode: "created" | "priority" | "manual"
+      task_status: "todo" | "in_progress" | "done" | "cancelled"
+      task_trash_reason: "individual" | "bulk" | "list_deleted"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1450,14 +1495,11 @@ export const Constants = {
         "milestone",
         "habit",
       ],
-      task_priority: ["low", "normal", "high", "urgent"],
-      task_status: [
-        "todo",
-        "in_progress",
-        "completed",
-        "cancelled",
-        "deferred",
-      ],
+      list_trash_reason: ["list_deleted"],
+      task_priority: ["urgent", "high", "medium", "low", "none"],
+      task_sort_mode: ["created", "priority", "manual"],
+      task_status: ["todo", "in_progress", "done", "cancelled"],
+      task_trash_reason: ["individual", "bulk", "list_deleted"],
     },
   },
 } as const

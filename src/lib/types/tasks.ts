@@ -5,7 +5,7 @@ export type TaskTrashReason = 'individual' | 'bulk' | 'list_deleted';
 export type ListTrashReason = 'list_deleted';
 
 export interface ListRecord {
-  id: string;
+  id: number;
   name: string;
   owner_id: string;
   sort_mode: TaskSortMode;
@@ -18,8 +18,8 @@ export interface ListRecord {
 }
 
 export interface TaskRecord {
-  id: string;
-  list_id: string;
+  id: number;
+  list_id: number;
   title: string;
   description_html: string;
   status: TaskStatus;
@@ -32,8 +32,8 @@ export interface TaskRecord {
 }
 
 export interface TaskLinkRecord {
-  source_task_id: string;
-  target_task_id: string;
+  source_task_id: number;
+  target_task_id: number;
   created_at: string;
 }
 
@@ -42,11 +42,11 @@ export interface TaskCursorPayload {
   created_at?: string;
   priority?: TaskPriority;
   position?: number;
-  id: string;
+  id: number;
 }
 
 export interface FetchTasksParams {
-  listId: string;
+  listId: number | string;
   sortMode: TaskSortMode;
   statusFilters?: TaskStatus[];
   priorityFilters?: TaskPriority[];
@@ -64,16 +64,15 @@ export interface TasksPageResponse {
 export type ChipState = 'live' | 'trash' | 'gone';
 
 export interface ResolvedChip {
-  id: string;
+  id: number;
   title: string;
-  list_id: string | null;
+  list_id: number | null;
   state: ChipState;
 }
 
 export interface TaskBacklink {
-  source_task_id: string;
+  source_task_id: number;
   source_task_title: string;
-  list_id: string;
+  list_id: number;
   list_name: string;
 }
-

@@ -29,22 +29,22 @@
     loadTrash();
   });
 
-  async function handleRestoreList(id: string) {
+  async function handleRestoreList(id: number | string) {
     await tasksService.restoreListBundle(id);
     await loadTrash();
   }
 
-  async function handleDeleteListPermanent(id: string) {
+  async function handleDeleteListPermanent(id: number | string) {
     await tasksService.deleteListPermanent(id);
     await loadTrash();
   }
 
-  async function handleRestoreTask(id: string) {
+  async function handleRestoreTask(id: number | string) {
     await tasksService.restoreTask(id);
     await loadTrash();
   }
 
-  async function handleDeleteTaskPermanent(id: string) {
+  async function handleDeleteTaskPermanent(id: number | string) {
     await tasksService.deleteTaskPermanent(id);
     await loadTrash();
   }

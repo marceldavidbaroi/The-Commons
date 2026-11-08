@@ -9,7 +9,7 @@
 
   let { html }: Props = $props();
 
-  let resolvedChips = $state<Map<string, ResolvedChip>>(new Map());
+  let resolvedChips = $state<Map<number, ResolvedChip>>(new Map());
   let container: HTMLElement | null = $state(null);
 
   onMount(async () => {
@@ -24,8 +24,10 @@
     if (!container) return;
     const chips = container.querySelectorAll<HTMLElement>("span[data-task-id]");
     chips.forEach((el) => {
-      const id = el.getAttribute("data-task-id");
-      if (!id) return;
+      const idAttr = el.getAttribute("data-task-id");
+      if (!idAttr) return;
+      const id = Number(idAttr);
+      if (isNaN(id)) return;
       const chip = resolvedChips.get(id);
       if (!chip) return;
 

@@ -4,8 +4,8 @@
 
   interface Props {
     list: ListRecord;
-    onRestore: (id: string) => Promise<void>;
-    onDeletePermanent: (id: string) => Promise<void>;
+    onRestore: (id: number | string) => Promise<void>;
+    onDeletePermanent: (id: number | string) => Promise<void>;
   }
 
   let { list, onRestore, onDeletePermanent }: Props = $props();

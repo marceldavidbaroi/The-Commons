@@ -12,16 +12,16 @@
 
   interface Props {
     tasks: TaskRecord[];
-    listId: string;
+    listId: number | string;
     sortMode: TaskSortMode;
     nextCursor: string | null;
     isLoadingMore: boolean;
     isFiltered: boolean;
-    selectedIds: string[];
-    onToggleSelect: (id: string) => void;
+    selectedIds: number[];
+    onToggleSelect: (id: number) => void;
     onToggleSelectAll: () => void;
-    onStatusChange: (id: string, s: TaskStatus) => void;
-    onPriorityChange: (id: string, p: TaskPriority) => void;
+    onStatusChange: (id: number, s: TaskStatus) => void;
+    onPriorityChange: (id: number, p: TaskPriority) => void;
     onLoadMore: () => void;
     onClearFilters: () => void;
     onReorder: (tasks: TaskRecord[]) => void;
@@ -44,24 +44,24 @@
     onReorder,
   }: Props = $props();
 
-  let draggedId = $state<string | null>(null);
+  let draggedId = $state<number | null>(null);
 
-  function handleDragStart(e: DragEvent, id: string) {
+  function handleDragStart(e: DragEvent, id: number) {
     if (sortMode !== "manual") return;
     draggedId = id;
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", id);
+      e.dataTransfer.setData("text/plain", String(id));
     }
   }
 
-  function handleDragOver(e: DragEvent, id: string) {
+  function handleDragOver(e: DragEvent, id: number) {
     if (sortMode !== "manual" || draggedId === id) return;
     e.preventDefault();
     if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
   }
 
-  async function handleDrop(e: DragEvent, targetId: string) {
+  async function handleDrop(e: DragEvent, targetId: number) {
     if (sortMode !== "manual" || !draggedId || draggedId === targetId) return;
     e.preventDefault();
 

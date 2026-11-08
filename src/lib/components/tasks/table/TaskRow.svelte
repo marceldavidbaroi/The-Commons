@@ -10,15 +10,15 @@
 
   interface Props {
     task: TaskRecord;
-    listId: string;
+    listId: number | string;
     sortMode: TaskSortMode;
     isSelected: boolean;
-    onToggleSelect: (id: string) => void;
-    onStatusChange: (id: string, s: TaskStatus) => void;
-    onPriorityChange: (id: string, p: TaskPriority) => void;
-    onDragStart?: (e: DragEvent, id: string) => void;
-    onDragOver?: (e: DragEvent, id: string) => void;
-    onDrop?: (e: DragEvent, id: string) => void;
+    onToggleSelect: (id: number) => void;
+    onStatusChange: (id: number, s: TaskStatus) => void;
+    onPriorityChange: (id: number, p: TaskPriority) => void;
+    onDragStart?: (e: DragEvent, id: number) => void;
+    onDragOver?: (e: DragEvent, id: number) => void;
+    onDrop?: (e: DragEvent, id: number) => void;
   }
 
   let {

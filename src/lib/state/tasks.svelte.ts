@@ -22,7 +22,7 @@ export function createTasksStore() {
   let priorityFilters = $state<TaskPriority[]>([]);
 
   // Selection for bulk actions
-  let selectedTaskIds = $state<string[]>([]);
+  let selectedTaskIds = $state<number[]>([]);
 
   // Actions
   async function loadLists() {
@@ -40,18 +40,20 @@ export function createTasksStore() {
     return newList;
   }
 
-  async function removeListBundle(id: string) {
-    await tasksService.trashListBundle(id);
-    lists = lists.filter((l) => l.id !== id);
+  async function removeListBundle(id: number | string) {
+    const numId = Number(id);
+    await tasksService.trashListBundle(numId);
+    lists = lists.filter((l) => l.id !== numId);
   }
 
-  async function initList(listId: string, initialStatus?: TaskStatus[], initialPriority?: TaskPriority[]) {
+  async function initList(listId: number | string, initialStatus?: TaskStatus[], initialPriority?: TaskPriority[]) {
     isLoading = true;
     selectedTaskIds = [];
     statusFilters = initialStatus || [];
     priorityFilters = initialPriority || [];
+    const numListId = Number(listId);
     try {
-      const listData = await tasksService.fetchListById(listId);
+      const listData = await tasksService.fetchListById(numListId);
       currentList = listData;
       if (!listData) {
         tasks = [];
@@ -62,7 +64,7 @@ export function createTasksStore() {
       }
 
       const res = await tasksService.fetchTasksPage({
-        listId,
+        listId: numListId,
         sortMode: listData.sort_mode,
         statusFilters,
         priorityFilters,
@@ -94,20 +96,17 @@ export function createTasksStore() {
 
       tasks = [...tasks, ...res.tasks];
       nextCursor = res.nextCursor;
-      totalLive = res.totalLive;
-      totalFiltered = res.totalFiltered;
     } finally {
       isLoadingMore = false;
     }
   }
 
-  async function applyFilters(newStatus: TaskStatus[], newPriority: TaskPriority[]) {
+  async function applyFilters(newStatusFilters: TaskStatus[], newPriorityFilters: TaskPriority[]) {
     if (!currentList) return;
-    statusFilters = newStatus;
-    priorityFilters = newPriority;
-    selectedTaskIds = [];
     isLoading = true;
-
+    selectedTaskIds = [];
+    statusFilters = newStatusFilters;
+    priorityFilters = newPriorityFilters;
     try {
       const res = await tasksService.fetchTasksPage({
         listId: currentList.id,
@@ -120,25 +119,23 @@ export function createTasksStore() {
 
       tasks = res.tasks;
       nextCursor = res.nextCursor;
-      totalLive = res.totalLive;
       totalFiltered = res.totalFiltered;
     } finally {
       isLoading = false;
     }
   }
 
-  async function setSortMode(sort_mode: TaskSortMode) {
-    if (!currentList) return;
+  async function setSortMode(mode: TaskSortMode) {
+    if (!currentList || currentList.sort_mode === mode) return;
     isLoading = true;
     selectedTaskIds = [];
+    currentList.sort_mode = mode;
+    await tasksService.updateListSortMode(currentList.id, mode);
 
     try {
-      const updatedList = await tasksService.updateListSortMode(currentList.id, sort_mode);
-      currentList = updatedList;
-
       const res = await tasksService.fetchTasksPage({
         listId: currentList.id,
-        sortMode: currentList.sort_mode,
+        sortMode: mode,
         statusFilters,
         priorityFilters,
         cursor: null,
@@ -155,24 +152,25 @@ export function createTasksStore() {
   }
 
   // Inline status update (optimistic, row stays in place)
-  async function patchTaskStatus(taskId: string, status: TaskStatus) {
-    // 1. Optimistic update
-    tasks = tasks.map((t) => (t.id === taskId ? { ...t, status } : t));
-    await tasksService.updateTaskStatus(taskId, status);
+  async function patchTaskStatus(taskId: number | string, status: TaskStatus) {
+    const numTaskId = Number(taskId);
+    tasks = tasks.map((t) => (t.id === numTaskId ? { ...t, status } : t));
+    await tasksService.updateTaskStatus(numTaskId, status);
   }
 
   // Inline priority update (optimistic, row stays in place)
-  async function patchTaskPriority(taskId: string, priority: TaskPriority) {
-    // 1. Optimistic update
-    tasks = tasks.map((t) => (t.id === taskId ? { ...t, priority } : t));
-    await tasksService.updateTaskPriority(taskId, priority);
+  async function patchTaskPriority(taskId: number | string, priority: TaskPriority) {
+    const numTaskId = Number(taskId);
+    tasks = tasks.map((t) => (t.id === numTaskId ? { ...t, priority } : t));
+    await tasksService.updateTaskPriority(numTaskId, priority);
   }
 
   // Soft delete task
-  async function removeTask(taskId: string) {
-    await tasksService.trashTask(taskId);
-    tasks = tasks.filter((t) => t.id !== taskId);
-    selectedTaskIds = selectedTaskIds.filter((id) => id !== taskId);
+  async function removeTask(taskId: number | string) {
+    const numTaskId = Number(taskId);
+    await tasksService.trashTask(numTaskId);
+    tasks = tasks.filter((t) => t.id !== numTaskId);
+    selectedTaskIds = selectedTaskIds.filter((id) => id !== numTaskId);
     totalLive = Math.max(0, totalLive - 1);
     totalFiltered = Math.max(0, totalFiltered - 1);
   }
@@ -188,11 +186,12 @@ export function createTasksStore() {
     totalFiltered = Math.max(0, totalFiltered - toTrash.length);
   }
 
-  function toggleTaskSelection(taskId: string) {
-    if (selectedTaskIds.includes(taskId)) {
-      selectedTaskIds = selectedTaskIds.filter((id) => id !== taskId);
+  function toggleTaskSelection(taskId: number | string) {
+    const numTaskId = Number(taskId);
+    if (selectedTaskIds.includes(numTaskId)) {
+      selectedTaskIds = selectedTaskIds.filter((id) => id !== numTaskId);
     } else {
-      selectedTaskIds = [...selectedTaskIds, taskId];
+      selectedTaskIds = [...selectedTaskIds, numTaskId];
     }
   }
 
@@ -243,4 +242,3 @@ export function createTasksStore() {
 }
 
 export const tasksStore = createTasksStore();
-
