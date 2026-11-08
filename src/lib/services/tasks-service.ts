@@ -50,8 +50,10 @@ export async function fetchLists(customClient?: SupabaseClient<Database>): Promi
 }
 
 export async function fetchListById(id: number | string, customClient?: SupabaseClient<Database>): Promise<ListRecord | null> {
-  const supabase = getClient(customClient);
   const numericId = Number(id);
+  if (isNaN(numericId)) return null;
+
+  const supabase = getClient(customClient);
   const { data, error } = await supabase
     .from('lists')
     .select('id, name, owner_id, sort_mode, live_tasks_count, active_tasks_count, deleted_at, trash_reason, created_at, updated_at')
@@ -59,7 +61,7 @@ export async function fetchListById(id: number | string, customClient?: Supabase
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null;
+    if (error.code === 'PGRST116' || error.code === '22P02') return null;
     console.error('Error fetching list by id:', error);
     throw error;
   }
@@ -262,8 +264,10 @@ export async function fetchTasksPage(
 }
 
 export async function fetchTaskById(id: number | string, customClient?: SupabaseClient<Database>): Promise<TaskRecord | null> {
-  const supabase = getClient(customClient);
   const numericId = Number(id);
+  if (isNaN(numericId)) return null;
+
+  const supabase = getClient(customClient);
   const { data, error } = await supabase
     .from('tasks')
     .select('id, list_id, title, description_html, status, priority, position, deleted_at, trash_reason, created_at, updated_at')
@@ -271,7 +275,7 @@ export async function fetchTaskById(id: number | string, customClient?: Supabase
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null;
+    if (error.code === 'PGRST116' || error.code === '22P02') return null;
     console.error('Error fetching task by id:', error);
     throw error;
   }
