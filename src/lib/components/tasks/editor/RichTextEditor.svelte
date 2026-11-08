@@ -75,8 +75,7 @@
       content: contentHtml,
       editorProps: {
         attributes: {
-          class:
-            'prose prose-sm dark:prose-invert max-w-none min-h-[160px] p-3 focus:outline-none text-slate-800 dark:text-slate-200'
+          class: 'tasks-tiptap-content'
         },
         handleKeyDown: (view, event) => {
           if (event.key === '[' && view.state.selection.empty) {
@@ -109,13 +108,14 @@
   });
 </script>
 
-<div class="relative rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+<div class="tasks-table-wrapper" style="overflow: visible; position: relative;">
   <!-- Minimal Toolbar -->
-  <div class="flex flex-wrap items-center gap-1 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 p-1.5 text-xs">
+  <div class="tasks-table-header" style="gap: 0.25rem;">
     <button
       type="button"
       onclick={() => editor?.chain().focus().toggleBold().run()}
-      class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 font-bold"
+      class="tasks-btn tasks-btn-ghost"
+      style="padding: 0.2rem 0.4rem; font-weight: bold;"
       title="Bold"
     >
       B
@@ -123,7 +123,8 @@
     <button
       type="button"
       onclick={() => editor?.chain().focus().toggleItalic().run()}
-      class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 italic"
+      class="tasks-btn tasks-btn-ghost"
+      style="padding: 0.2rem 0.4rem; font-style: italic;"
       title="Italic"
     >
       I
@@ -131,16 +132,18 @@
     <button
       type="button"
       onclick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
-      class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 font-semibold"
+      class="tasks-btn tasks-btn-ghost"
+      style="padding: 0.2rem 0.4rem; font-weight: 600;"
       title="Heading"
     >
       H2
     </button>
-    <div class="h-3.5 w-px bg-slate-300 dark:bg-slate-700"></div>
+    <div style="height: 1rem; width: 1px; background-color: var(--border-subtle); margin: 0 0.25rem;"></div>
     <button
       type="button"
       onclick={() => editor?.chain().focus().toggleBulletList().run()}
-      class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800"
+      class="tasks-btn tasks-btn-ghost"
+      style="padding: 0.2rem 0.4rem;"
       title="Bullet list"
     >
       • List
@@ -148,7 +151,8 @@
     <button
       type="button"
       onclick={() => editor?.chain().focus().toggleTaskList().run()}
-      class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800"
+      class="tasks-btn tasks-btn-ghost"
+      style="padding: 0.2rem 0.4rem;"
       title="Checklist"
     >
       ☑ Check
@@ -156,27 +160,30 @@
     <button
       type="button"
       onclick={() => editor?.chain().focus().insertTable({ rows: 2, cols: 2, withHeaderRow: true }).run()}
-      class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800"
+      class="tasks-btn tasks-btn-ghost"
+      style="padding: 0.2rem 0.4rem;"
       title="Insert Table"
     >
       ▦ Table
     </button>
-    <span class="ml-auto text-[11px] text-slate-400">Type <kbd class="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono">[[</kbd> to link tasks</span>
+    <span style="margin-left: auto; font-size: 0.75rem; color: var(--text-muted);">
+      Type <kbd style="padding: 0.1rem 0.3rem; background: var(--bg-tertiary); border-radius: var(--radius-sm); font-family: monospace;">[[</kbd> to link tasks
+    </span>
   </div>
 
-  <div bind:this={element} class="min-h-[200px]"></div>
+  <div bind:this={element} style="min-height: 200px; padding: 0.75rem;"></div>
 
   {#if showPicker}
     <div
-      class="fixed inset-0 z-40"
+      style="position: fixed; inset: 0; z-index: 40;"
       onclick={() => (showPicker = false)}
       role="button"
       tabindex="-1"
     ></div>
 
     <div
-      class="fixed z-50 w-64 rounded-md bg-white dark:bg-slate-900 p-2 shadow-xl border border-slate-200 dark:border-slate-800 text-xs"
-      style={`top: ${pickerCoords.top + 4}px; left: ${pickerCoords.left}px;`}
+      class="tasks-dropdown-menu"
+      style="position: fixed; top: {pickerCoords.top + 4}px; left: {pickerCoords.left}px; width: 260px; padding: 0.5rem; z-index: 50;"
     >
       <input
         type="text"
@@ -184,18 +191,19 @@
         bind:value={pickerQuery}
         oninput={(e) => searchTasks(e.currentTarget.value)}
         autofocus
-        class="w-full rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary mb-2"
+        class="tasks-input"
+        style="width: 100%; margin-bottom: 0.5rem;"
       />
 
-      <div class="max-h-40 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+      <div style="max-height: 160px; overflow-y: auto;">
         {#if pickerResults.length === 0}
-          <div class="py-2 text-center text-slate-400">No matching tasks</div>
+          <div style="padding: 0.5rem 0; text-align: center; color: var(--text-muted); font-size: 0.75rem;">No matching tasks</div>
         {:else}
           {#each pickerResults as task}
             <button
               type="button"
               onclick={() => insertTaskChip(task)}
-              class="flex w-full items-center px-2 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors text-slate-800 dark:text-slate-200 truncate"
+              class="tasks-dropdown-item"
             >
               # {task.title}
             </button>
@@ -206,3 +214,37 @@
   {/if}
 </div>
 
+<style>
+  :global(.tasks-tiptap-content) {
+    min-height: 180px;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+  :global(.tasks-tiptap-content p) {
+    margin-bottom: 0.5rem;
+  }
+  :global(.tasks-tiptap-content ul) {
+    padding-left: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+  :global(.tasks-tiptap-content ul[data-type="taskList"]) {
+    list-style: none;
+    padding-left: 0;
+  }
+  :global(.tasks-tiptap-content li[data-type="taskItem"]) {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  :global(.tasks-tiptap-content table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+  }
+  :global(.tasks-tiptap-content th, .tasks-tiptap-content td) {
+    border: 1px solid var(--border-subtle);
+    padding: 0.4rem 0.6rem;
+  }
+</style>

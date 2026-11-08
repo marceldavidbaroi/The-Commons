@@ -8,28 +8,29 @@
   let { backlinks }: Props = $props();
 </script>
 
-<div class="mt-8 border-t border-slate-200 dark:border-slate-800 pt-6">
+<div style="margin-top: 2rem; border-top: 1px solid var(--border-subtle); padding-top: 1.5rem;">
   <h3
-    class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3"
+    style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 0.75rem;"
   >
     Backlinks ({backlinks.length})
   </h3>
 
   {#if backlinks.length === 0}
-    <p class="text-xs text-slate-400">No other tasks link to this task.</p>
+    <p style="font-size: 0.8125rem; color: var(--text-muted);">No other tasks link to this task.</p>
   {:else}
-    <div class="space-y-2">
+    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
       {#each backlinks as link}
         <a
           href={`/tasks/lists/${link.list_id}/tasks/${link.source_task_id}`}
-          class="flex items-center justify-between p-2.5 rounded border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 transition-colors"
+          class="tasks-table-row"
+          style="border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); text-decoration: none;"
         >
           <span
-            class="text-xs font-medium text-slate-800 dark:text-slate-200 hover:text-primary"
+            style="font-size: 0.8125rem; font-weight: 500; color: var(--text-primary);"
           >
             # {link.source_task_title}
           </span>
-          <span class="text-[11px] text-slate-400">
+          <span style="font-size: 0.75rem; color: var(--text-muted);">
             {link.list_name}
           </span>
         </a>

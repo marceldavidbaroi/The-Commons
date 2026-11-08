@@ -63,18 +63,20 @@
   const hasItems = $derived(trashedLists.length > 0 || trashedTasks.length > 0);
 </script>
 
-<div class="mx-auto max-w-4xl px-4 py-6 sm:px-6">
-  <div
-    class="flex items-center justify-between pb-6 border-b border-slate-200 dark:border-slate-800"
-  >
-    <div class="flex items-center gap-3">
+<svelte:head>
+  <title>Trash — Tasks — The Commons</title>
+</svelte:head>
+
+<div class="tasks-container" style="max-width: 900px;">
+  <header class="tasks-header">
+    <div class="tasks-header-left">
       <a
         href="/tasks"
-        class="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        class="tasks-icon-btn"
         title="Back to tasks"
       >
         <svg
-          class="w-5 h-5"
+          style="width: 1.25rem; height: 1.25rem;"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -89,12 +91,8 @@
       </a>
 
       <div>
-        <h1
-          class="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100"
-        >
-          Trash
-        </h1>
-        <p class="text-xs text-slate-500">
+        <h1 class="tasks-title">Trash</h1>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">
           Deleted lists and tasks are kept here until permanently deleted.
         </p>
       </div>
@@ -104,41 +102,37 @@
       <button
         type="button"
         onclick={() => (showEmptyConfirm = true)}
-        class="px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded transition-colors"
+        class="tasks-btn tasks-btn-danger"
       >
         Empty trash
       </button>
     {/if}
-  </div>
+  </header>
 
-  <div class="mt-6 space-y-8">
+  <div style="display: flex; flex-direction: column; gap: 2rem;">
     {#if isLoading}
-      <div class="py-12 text-center text-sm text-slate-500">
-        Loading trash...
-      </div>
+      <div class="tasks-empty"><p>Loading trash...</p></div>
     {:else if !hasItems}
-      <div class="py-16 text-center text-sm text-slate-400">
-        Trash is empty.
-      </div>
+      <div class="tasks-empty"><p>Trash is empty.</p></div>
     {:else}
       <!-- Trashed Lists Section -->
       {#if trashedLists.length > 0}
         <div>
           <h2
-            class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2"
+            style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 0.5rem;"
           >
             Lists ({trashedLists.length})
           </h2>
-          <div
-            class="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden"
-          >
-            {#each trashedLists as list (list.id)}
-              <TrashedListRow
-                {list}
-                onRestore={handleRestoreList}
-                onDeletePermanent={handleDeleteListPermanent}
-              />
-            {/each}
+          <div class="tasks-table-wrapper">
+            <div class="tasks-table-body">
+              {#each trashedLists as list (list.id)}
+                <TrashedListRow
+                  {list}
+                  onRestore={handleRestoreList}
+                  onDeletePermanent={handleDeleteListPermanent}
+                />
+              {/each}
+            </div>
           </div>
         </div>
       {/if}
@@ -147,20 +141,20 @@
       {#if trashedTasks.length > 0}
         <div>
           <h2
-            class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2"
+            style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 0.5rem;"
           >
             Tasks ({trashedTasks.length})
           </h2>
-          <div
-            class="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden"
-          >
-            {#each trashedTasks as task (task.id)}
-              <TrashedTaskRow
-                {task}
-                onRestore={handleRestoreTask}
-                onDeletePermanent={handleDeleteTaskPermanent}
-              />
-            {/each}
+          <div class="tasks-table-wrapper">
+            <div class="tasks-table-body">
+              {#each trashedTasks as task (task.id)}
+                <TrashedTaskRow
+                  {task}
+                  onRestore={handleRestoreTask}
+                  onDeletePermanent={handleDeleteTaskPermanent}
+                />
+              {/each}
+            </div>
           </div>
         </div>
       {/if}

@@ -12,24 +12,19 @@
   let showDeleteConfirm = $state(false);
 </script>
 
-<div
-  class="group relative flex flex-col justify-between rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 transition-all hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm"
->
-  <div class="flex items-start justify-between gap-2">
-    <a
-      href={`/tasks/lists/${list.id}`}
-      class="flex-1 font-medium text-slate-900 dark:text-slate-100 hover:text-primary transition-colors"
-    >
-      <span class="text-sm font-semibold">{list.name}</span>
+<div class="tasks-card">
+  <div class="tasks-card-header">
+    <a href={`/tasks/lists/${list.id}`} class="tasks-card-title">
+      {list.name}
     </a>
     <button
       type="button"
       onclick={() => (showDeleteConfirm = true)}
-      class="text-slate-400 opacity-0 group-hover:opacity-100 hover:text-rose-600 transition-opacity p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+      class="tasks-icon-btn"
       title="Move to trash"
     >
       <svg
-        class="w-4 h-4"
+        style="width: 1rem; height: 1rem;"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -44,19 +39,15 @@
     </button>
   </div>
 
-  <div
-    class="mt-4 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400"
-  >
-    <div class="flex items-center gap-1.5">
-      <span
-        class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
-      >
+  <div class="tasks-card-footer">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <span class="tasks-badge">
         {list.active_tasks_count} active
       </span>
       <span>•</span>
       <span>{list.live_tasks_count} total</span>
     </div>
-    <span class="capitalize text-[11px] text-slate-400">{list.sort_mode}</span>
+    <span style="text-transform: capitalize;">{list.sort_mode}</span>
   </div>
 </div>
 

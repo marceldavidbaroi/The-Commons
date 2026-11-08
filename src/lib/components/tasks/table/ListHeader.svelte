@@ -11,17 +11,15 @@
   let { list, totalFiltered, totalLive, hasActiveFilters }: Props = $props();
 </script>
 
-<div
-  class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800"
->
-  <div class="flex items-center gap-3">
+<header class="tasks-header">
+  <div class="tasks-header-left">
     <a
       href="/tasks"
-      class="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+      class="tasks-icon-btn"
       title="Back to lists"
     >
       <svg
-        class="w-5 h-5"
+        style="width: 1.25rem; height: 1.25rem;"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -35,33 +33,27 @@
       </svg>
     </a>
 
-    <div>
-      <div class="flex items-center gap-2">
-        <h1
-          class="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100"
-        >
-          {list.name}
-        </h1>
-        <span
-          class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-        >
-          {#if hasActiveFilters}
-            {totalFiltered} of {totalLive} tasks
-          {:else}
-            {totalLive} tasks
-          {/if}
-        </span>
-      </div>
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <h1 class="tasks-title">
+        {list.name}
+      </h1>
+      <span class="tasks-badge">
+        {#if hasActiveFilters}
+          {totalFiltered} of {totalLive} tasks
+        {:else}
+          {totalLive} tasks
+        {/if}
+      </span>
     </div>
   </div>
 
-  <div class="flex items-center gap-2">
+  <div class="tasks-header-actions">
     <a
       href={`/tasks/lists/${list.id}/tasks/new`}
-      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-primary hover:bg-primary/90 rounded shadow-sm transition-colors"
+      class="tasks-btn tasks-btn-primary"
     >
       <svg
-        class="w-3.5 h-3.5"
+        style="width: 0.875rem; height: 0.875rem;"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -76,4 +68,4 @@
       <span>New task</span>
     </a>
   </div>
-</div>
+</header>

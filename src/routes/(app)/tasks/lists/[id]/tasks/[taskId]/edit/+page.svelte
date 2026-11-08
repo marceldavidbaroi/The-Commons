@@ -53,25 +53,28 @@
   }
 </script>
 
-<div class="mx-auto max-w-3xl px-4 py-6 sm:px-6">
-  <div class="mb-6 flex items-center gap-2">
+<svelte:head>
+  <title>Edit {title || "Task"} — The Commons</title>
+</svelte:head>
+
+<div class="tasks-container" style="max-width: 800px;">
+  <div style="margin-bottom: 0.5rem;">
     <a
       href={`/tasks/lists/${listId}/tasks/${taskId}`}
-      class="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+      class="tasks-btn tasks-btn-ghost"
+      style="padding: 0; font-size: 0.75rem;"
     >
       ← Back to preview
     </a>
   </div>
 
-  <div
-    class="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm"
-  >
-    <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100 mb-6">
+  <div class="tasks-card" style="padding: 1.5rem;">
+    <h2 class="tasks-title" style="font-size: 1.25rem; margin-bottom: 1.5rem;">
       Edit task
     </h2>
 
     {#if isLoading}
-      <div class="py-8 text-center text-xs text-slate-500">Loading task...</div>
+      <div class="tasks-empty"><p>Loading task...</p></div>
     {:else if task}
       <TaskForm
         bind:title
@@ -85,7 +88,7 @@
         onCancel={handleCancel}
       />
     {:else}
-      <div class="py-8 text-center text-xs text-slate-500">Task not found.</div>
+      <div class="tasks-empty"><p>Task not found.</p></div>
     {/if}
   </div>
 </div>

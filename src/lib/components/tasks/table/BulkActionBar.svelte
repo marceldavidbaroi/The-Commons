@@ -23,19 +23,18 @@
   }
 </script>
 
-<div
-  class="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-4 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2.5 shadow-xl"
->
-  <span class="text-xs font-medium">
+<div class="tasks-bulk-bar">
+  <span style="font-weight: 600;">
     {selectedCount} selected
   </span>
 
-  <div class="h-4 w-px bg-slate-700 dark:bg-slate-300"></div>
+  <div style="height: 1rem; width: 1px; background-color: var(--border-subtle);"></div>
 
   <button
     type="button"
     onclick={() => (showConfirm = true)}
-    class="text-xs font-medium text-rose-400 dark:text-rose-600 hover:opacity-80 transition-opacity"
+    class="tasks-btn tasks-btn-danger"
+    style="padding: 0.25rem 0.6rem; font-size: 0.75rem;"
   >
     Move to trash
   </button>
@@ -43,7 +42,8 @@
   <button
     type="button"
     onclick={onClear}
-    class="text-xs text-slate-400 dark:text-slate-500 hover:text-white dark:hover:text-slate-900 transition-colors"
+    class="tasks-btn tasks-btn-ghost"
+    style="padding: 0.25rem 0.6rem; font-size: 0.75rem;"
   >
     Clear
   </button>

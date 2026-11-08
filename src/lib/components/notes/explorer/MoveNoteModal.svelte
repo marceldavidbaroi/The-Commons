@@ -1,15 +1,15 @@
-<script lang="ts">
-	import { fade, scale } from 'svelte/transition';
-	import { cubicOut } from 'svelte/easing';
-	import type { FolderRecord } from '$lib/types/notes';
+opt<script lang="ts">
+	import { fade, scale } from "svelte/transition";
+	import { cubicOut } from "svelte/easing";
+	import type { FolderRecord } from "$lib/types/notes";
 
 	let {
 		isOpen = false,
-		noteTitle = '',
+		noteTitle = "",
 		currentFolderId = null,
 		folders = [],
 		onCancel,
-		onConfirm
+		onConfirm,
 	} = $props<{
 		isOpen: boolean;
 		noteTitle?: string;
@@ -23,11 +23,11 @@
 	let currentNavFolderId = $state<string | null>(null);
 	// Single-click selection for the destination
 	let selectedTargetFolderId = $state<string | null>(null);
-	let searchQuery = $state<string>('');
+	let searchQuery = $state<string>("");
 
 	$effect(() => {
 		if (isOpen) {
-			searchQuery = '';
+			searchQuery = "";
 			// Default viewed location to the note's current folder or root
 			currentNavFolderId = currentFolderId ?? null;
 			// Default selection to current folder
@@ -36,20 +36,26 @@
 	});
 
 	// Breadcrumb path from Root down to currentNavFolderId
-	const breadcrumbs = $derived.by<{ id: string | null; name: string }[]>(() => {
-		const crumbs: { id: string | null; name: string }[] = [{ id: null, name: 'Root' }];
-		if (!currentNavFolderId) return crumbs;
+	const breadcrumbs = $derived.by<{ id: string | null; name: string }[]>(
+		() => {
+			const crumbs: { id: string | null; name: string }[] = [
+				{ id: null, name: "Root" },
+			];
+			if (!currentNavFolderId) return crumbs;
 
-		const chain: { id: string; name: string }[] = [];
-		let currId: string | null = currentNavFolderId;
-		while (currId) {
-			const folder = folders.find((f: FolderRecord) => f.id === currId);
-			if (!folder) break;
-			chain.unshift({ id: folder.id, name: folder.name });
-			currId = folder.parent_id;
-		}
-		return [...crumbs, ...chain];
-	});
+			const chain: { id: string; name: string }[] = [];
+			let currId: string | null = currentNavFolderId;
+			while (currId) {
+				const folder = folders.find(
+					(f: FolderRecord) => f.id === currId,
+				);
+				if (!folder) break;
+				chain.unshift({ id: folder.id, name: folder.name });
+				currId = folder.parent_id;
+			}
+			return [...crumbs, ...chain];
+		},
+	);
 
 	// Items to show in file manager view
 	// When searching: flat search across all folders
@@ -57,19 +63,28 @@
 	const visibleFolders = $derived.by<FolderRecord[]>(() => {
 		if (searchQuery.trim()) {
 			const q = searchQuery.toLowerCase().trim();
-			return folders.filter((f: FolderRecord) => f.name.toLowerCase().includes(q));
+			return folders.filter((f: FolderRecord) =>
+				f.name.toLowerCase().includes(q),
+			);
 		}
-		return folders.filter((f: FolderRecord) => f.parent_id === currentNavFolderId);
+		return folders.filter(
+			(f: FolderRecord) => f.parent_id === currentNavFolderId,
+		);
 	});
 
 	// Current folder object
 	const activeNavFolder = $derived(
-		currentNavFolderId ? folders.find((f: FolderRecord) => f.id === currentNavFolderId) || null : null
+		currentNavFolderId
+			? folders.find((f: FolderRecord) => f.id === currentNavFolderId) ||
+					null
+			: null,
 	);
 
 	function navigateUp() {
 		if (!currentNavFolderId) return;
-		const curr = folders.find((f: FolderRecord) => f.id === currentNavFolderId);
+		const curr = folders.find(
+			(f: FolderRecord) => f.id === currentNavFolderId,
+		);
 		currentNavFolderId = curr ? curr.parent_id : null;
 		selectedTargetFolderId = currentNavFolderId;
 	}
@@ -83,19 +98,22 @@
 		// Double click: open folder into file manager
 		currentNavFolderId = folderId;
 		selectedTargetFolderId = folderId;
-		searchQuery = '';
+		searchQuery = "";
 	}
 
 	function handleKeyDown(e: KeyboardEvent) {
-		if (e.key === 'Escape') {
+		if (e.key === "Escape") {
 			e.preventDefault();
 			onCancel();
-		} else if (e.key === 'Enter') {
+		} else if (e.key === "Enter") {
 			e.preventDefault();
 			if (selectedTargetFolderId !== currentFolderId) {
 				onConfirm(selectedTargetFolderId);
 			}
-		} else if (e.key === 'Backspace' && (e.target as HTMLElement)?.tagName !== 'INPUT') {
+		} else if (
+			e.key === "Backspace" &&
+			(e.target as HTMLElement)?.tagName !== "INPUT"
+		) {
 			if (currentNavFolderId) {
 				e.preventDefault();
 				navigateUp();
@@ -119,20 +137,34 @@
 		role="dialog"
 		aria-labelledby="move-note-title"
 		aria-modal="true"
-		transition:scale={{ start: 0.95, duration: 220, opacity: 0, easing: cubicOut }}
+		transition:scale={{
+			start: 0.95,
+			duration: 220,
+			opacity: 0,
+			easing: cubicOut,
+		}}
 	>
 		<!-- Modal Header -->
 		<div class="modal-header">
 			<div class="header-icon">
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+				<svg
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+				>
+					<path
+						d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+					/>
 					<line x1="12" y1="11" x2="12" y2="17" />
 					<line x1="9" y1="14" x2="15" y2="14" />
 				</svg>
 			</div>
 			<div class="header-text">
 				<h3 id="move-note-title" class="modal-title">Move Note</h3>
-				<span class="note-name-tag">"{noteTitle || 'Selected Note'}"</span>
+				<span class="note-name-tag"
+					>"{noteTitle || "Selected Note"}"</span
+				>
 			</div>
 		</div>
 
@@ -145,7 +177,12 @@
 				disabled={currentNavFolderId === null}
 				onclick={navigateUp}
 			>
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<svg
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+				>
 					<line x1="19" y1="12" x2="5" y2="12" />
 					<polyline points="12 19 5 12 12 5" />
 				</svg>
@@ -164,7 +201,7 @@
 						onclick={() => {
 							currentNavFolderId = crumb.id;
 							selectedTargetFolderId = crumb.id;
-							searchQuery = '';
+							searchQuery = "";
 						}}
 					>
 						{crumb.name}
@@ -180,13 +217,21 @@
 				onclick={() => (selectedTargetFolderId = currentNavFolderId)}
 				title="Select this open folder as destination"
 			>
-				{selectedTargetFolderId === currentNavFolderId ? '✓ Target' : 'Select here'}
+				{selectedTargetFolderId === currentNavFolderId
+					? "✓ Target"
+					: "Select here"}
 			</button>
 		</div>
 
 		<!-- Search filter -->
 		<div class="search-input-wrapper">
-			<svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+			<svg
+				class="search-icon"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+			>
 				<circle cx="11" cy="11" r="8" />
 				<path d="m21 21-4.3-4.3" />
 			</svg>
@@ -214,8 +259,15 @@
 						onclick={() => (selectedTargetFolderId = null)}
 					>
 						<div class="row-icon root-icon">
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-								<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+							<svg
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<path
+									d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+								/>
 								<polyline points="9 22 9 12 15 12 15 22" />
 							</svg>
 						</div>
@@ -224,7 +276,9 @@
 							<span class="row-hint">Place at top-level</span>
 						</div>
 						{#if isCurrent}
-							<span class="badge current-badge">Current location</span>
+							<span class="badge current-badge"
+								>Current location</span
+							>
 						{/if}
 					</div>
 				{/if}
@@ -232,10 +286,21 @@
 
 			{#if visibleFolders.length === 0}
 				<div class="empty-folder-state">
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-						<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+					<svg
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.5"
+					>
+						<path
+							d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+						/>
 					</svg>
-					<span>{searchQuery ? 'No matching folders' : 'This folder is empty'}</span>
+					<span
+						>{searchQuery
+							? "No matching folders"
+							: "This folder is empty"}</span
+					>
 				</div>
 			{:else}
 				{#each visibleFolders as folder (folder.id)}
@@ -251,8 +316,15 @@
 						ondblclick={() => handleFolderDblClick(folder.id)}
 					>
 						<div class="row-icon folder-icon">
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-								<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+							<svg
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<path
+									d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+								/>
 							</svg>
 						</div>
 
@@ -261,7 +333,9 @@
 							{#if searchQuery}
 								<span class="row-hint">Direct match</span>
 							{:else}
-								<span class="row-hint">Double-click to open</span>
+								<span class="row-hint"
+									>Double-click to open</span
+								>
 							{/if}
 						</div>
 
@@ -278,7 +352,12 @@
 								handleFolderDblClick(folder.id);
 							}}
 						>
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<svg
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
 								<polyline points="9 18 15 12 9 6" />
 							</svg>
 						</button>
@@ -295,8 +374,11 @@
 					{#if selectedTargetFolderId === null}
 						📁 Root
 					{:else}
-						{@const dest = folders.find((f: FolderRecord) => f.id === selectedTargetFolderId)}
-						📁 {dest ? dest.name : 'Unknown'}
+						{@const dest = folders.find(
+							(f: FolderRecord) =>
+								f.id === selectedTargetFolderId,
+						)}
+						📁 {dest ? dest.name : "Unknown"}
 					{/if}
 				</span>
 			</div>
@@ -552,7 +634,9 @@
 		padding: 0.5rem 0.625rem;
 		border-radius: var(--radius-sm);
 		cursor: pointer;
-		transition: background-color 0.12s ease, border-color 0.12s ease;
+		transition:
+			background-color 0.12s ease,
+			border-color 0.12s ease;
 		user-select: none;
 		border: 1px solid transparent;
 	}

@@ -43,8 +43,8 @@ export const TaskChipNode = Node.create({
       'span',
       mergeAttributes(
         {
-          class:
-            'inline-flex items-center gap-1 rounded bg-slate-100 dark:bg-slate-800 text-primary px-1.5 py-0.5 text-xs font-medium cursor-pointer border border-slate-200 dark:border-slate-700'
+          class: 'tasks-badge',
+          style: 'color: var(--primary); cursor: pointer; text-decoration: none;'
         },
         HTMLAttributes
       ),
@@ -52,4 +52,3 @@ export const TaskChipNode = Node.create({
     ];
   }
 });
-

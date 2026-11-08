@@ -30,8 +30,9 @@
       if (!chip) return;
 
       if (chip.state === "live") {
-        el.className =
-          "inline-flex items-center gap-1 rounded bg-slate-100 dark:bg-slate-800 text-primary px-1.5 py-0.5 text-xs font-medium cursor-pointer border border-slate-200 dark:border-slate-700 hover:underline";
+        el.className = "tasks-badge";
+        el.style.color = "var(--primary)";
+        el.style.cursor = "pointer";
         el.textContent = `# ${chip.title}`;
         el.onclick = () => {
           if (chip.list_id) {
@@ -39,8 +40,10 @@
           }
         };
       } else if (chip.state === "trash") {
-        el.className =
-          "inline-flex items-center gap-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 px-1.5 py-0.5 text-xs font-medium cursor-pointer border border-dashed border-slate-300 dark:border-slate-700 hover:opacity-80";
+        el.className = "tasks-badge";
+        el.style.color = "var(--text-muted)";
+        el.style.border = "1px dashed var(--border-subtle)";
+        el.style.cursor = "pointer";
         el.textContent = `🗑 ${chip.title}`;
         el.onclick = () => {
           if (chip.list_id) {
@@ -48,8 +51,10 @@
           }
         };
       } else {
-        el.className =
-          "inline-flex items-center gap-1 rounded bg-rose-50 dark:bg-rose-950/40 text-rose-500 px-1.5 py-0.5 text-xs font-medium border border-rose-200 dark:border-rose-900 cursor-not-allowed";
+        el.className = "tasks-badge";
+        el.style.color = "var(--danger)";
+        el.style.border = "1px solid var(--danger)";
+        el.style.cursor = "not-allowed";
         el.textContent = "⚠ Deleted task";
         el.onclick = null;
       }
@@ -59,8 +64,28 @@
 
 <div
   bind:this={container}
-  class="prose prose-sm dark:prose-invert max-w-none text-slate-800 dark:text-slate-200 py-4"
+  class="tasks-rendered-desc"
+  style="padding: 1rem 0; line-height: 1.6; color: var(--text-primary);"
 >
   {@html html ||
-    '<p class="text-slate-400 italic">No description provided.</p>'}
+    '<p style="color: var(--text-muted); font-style: italic;">No description provided.</p>'}
 </div>
+
+<style>
+  :global(.tasks-rendered-desc p) {
+    margin-bottom: 0.5rem;
+  }
+  :global(.tasks-rendered-desc ul) {
+    padding-left: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+  :global(.tasks-rendered-desc table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+  }
+  :global(.tasks-rendered-desc th, .tasks-rendered-desc td) {
+    border: 1px solid var(--border-subtle);
+    padding: 0.4rem 0.6rem;
+  }
+</style>

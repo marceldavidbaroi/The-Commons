@@ -15,11 +15,11 @@
     TaskPriority,
     { label: string; color: string }
   > = {
-    urgent: { label: "Urgent", color: "text-rose-600 dark:text-rose-400" },
-    high: { label: "High", color: "text-amber-600 dark:text-amber-400" },
-    medium: { label: "Medium", color: "text-blue-600 dark:text-blue-400" },
-    low: { label: "Low", color: "text-slate-500 dark:text-slate-400" },
-    none: { label: "None", color: "text-slate-300 dark:text-slate-600" },
+    urgent: { label: "Urgent", color: "var(--danger)" },
+    high: { label: "High", color: "var(--warning)" },
+    medium: { label: "Medium", color: "#3b82f6" },
+    low: { label: "Low", color: "var(--text-secondary)" },
+    none: { label: "None", color: "var(--text-muted)" },
   };
 
   const priorities: TaskPriority[] = [
@@ -37,18 +37,17 @@
   }
 </script>
 
-<div class="relative inline-block text-left">
+<div class="tasks-dropdown">
   <button
     type="button"
     disabled={readonly}
     onclick={() => !readonly && (isOpen = !isOpen)}
-    class="inline-flex items-center justify-center p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors {PRIORITY_CONFIG[
-      priority
-    ].color}"
+    class="tasks-priority-flag"
+    style="color: {PRIORITY_CONFIG[priority].color};"
     title="Priority: {PRIORITY_CONFIG[priority].label}"
   >
     <svg
-      class="w-4 h-4"
+      style="width: 1rem; height: 1rem;"
       fill={priority === "none" ? "none" : "currentColor"}
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -64,27 +63,23 @@
 
   {#if isOpen && !readonly}
     <div
-      class="fixed inset-0 z-40"
+      style="position: fixed; inset: 0; z-index: 40;"
       onclick={() => (isOpen = false)}
       onkeydown={(e) => e.key === "Escape" && (isOpen = false)}
       role="button"
       tabindex="-1"
     ></div>
 
-    <div
-      class="absolute left-0 mt-1 w-32 origin-top-left rounded-md bg-white dark:bg-slate-900 shadow-lg ring-1 ring-black/10 dark:ring-white/10 z-50 py-1 text-xs focus:outline-none"
-    >
+    <div class="tasks-dropdown-menu">
       {#each priorities as p}
         <button
           type="button"
           onclick={() => selectPriority(p)}
-          class="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left {p ===
-          priority
-            ? 'font-semibold text-primary'
-            : 'text-slate-700 dark:text-slate-300'}"
+          class="tasks-dropdown-item"
+          style={p === priority ? "font-weight: 600; color: var(--primary);" : ""}
         >
           <svg
-            class="w-3.5 h-3.5 {PRIORITY_CONFIG[p].color}"
+            style="width: 0.875rem; height: 0.875rem; color: {PRIORITY_CONFIG[p].color};"
             fill={p === "none" ? "none" : "currentColor"}
             stroke="currentColor"
             viewBox="0 0 24 24"

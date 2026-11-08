@@ -46,7 +46,7 @@
   }
 </script>
 
-<form onsubmit={handleSubmit} class="space-y-4">
+<form onsubmit={handleSubmit} style="display: flex; flex-direction: column; gap: 1.25rem;">
   <div>
     <input
       type="text"
@@ -54,7 +54,8 @@
       bind:value={title}
       required
       autofocus
-      class="w-full text-lg font-semibold border-b border-slate-200 dark:border-slate-800 bg-transparent pb-2 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-primary"
+      class="tasks-input"
+      style="width: 100%; font-size: 1.15rem; font-weight: 600; padding: 0.6rem 0.75rem;"
     />
   </div>
 
@@ -65,8 +66,8 @@
     onPriorityChange={(p) => (priority = p)}
   />
 
-  <div>
-    <label class="block text-xs font-medium text-slate-500 mb-1">Description</label>
+  <div class="tasks-form-group">
+    <label class="tasks-form-label">Description</label>
     <RichTextEditor
       contentHtml={descriptionHtml}
       {listId}
@@ -75,19 +76,19 @@
     />
   </div>
 
-  <div class="flex items-center justify-end gap-2 pt-4">
+  <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle);">
     <button
       type="button"
       onclick={onCancel}
       disabled={isSubmitting}
-      class="px-3.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+      class="tasks-btn tasks-btn-secondary"
     >
       Cancel
     </button>
     <button
       type="submit"
       disabled={!title.trim() || isSubmitting}
-      class="px-4 py-1.5 text-xs font-medium text-white bg-primary hover:bg-primary/90 disabled:opacity-50 rounded shadow-sm transition-colors"
+      class="tasks-btn tasks-btn-primary"
     >
       {isSubmitting ? 'Saving...' : isEditing ? 'Save changes' : 'Create task'}
     </button>

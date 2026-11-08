@@ -55,12 +55,17 @@
   }
 </script>
 
-<div class="mx-auto max-w-3xl px-4 py-6 sm:px-6">
+<svelte:head>
+  <title>{task?.title ?? "Task"} — The Commons</title>
+</svelte:head>
+
+<div class="tasks-container" style="max-width: 800px;">
   {#if isLoading}
-    <div class="py-12 text-center text-sm text-slate-500">Loading task...</div>
+    <div class="tasks-empty"><p>Loading task...</p></div>
   {:else if task}
     <div
-      class="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm"
+      class="tasks-card"
+      style="padding: 1.5rem; gap: 1.25rem;"
     >
       <TaskPreviewHeader
         {task}
@@ -75,6 +80,6 @@
       <BacklinksPanel {backlinks} />
     </div>
   {:else}
-    <div class="py-12 text-center text-sm text-slate-500">Task not found.</div>
+    <div class="tasks-empty"><p>Task not found.</p></div>
   {/if}
 </div>

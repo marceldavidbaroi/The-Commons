@@ -28,45 +28,42 @@
   }
 </script>
 
-<div
-  class="flex items-start justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800"
->
-  <div class="space-y-2">
-    <div class="flex items-center gap-2">
+<div class="tasks-header" style="align-items: flex-start;">
+  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+    <div>
       <a
         href={`/tasks/lists/${listId}`}
-        class="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+        class="tasks-btn tasks-btn-ghost"
+        style="padding: 0; font-size: 0.75rem;"
       >
         ← Back to list
       </a>
     </div>
 
-    <h1
-      class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100"
-    >
+    <h1 class="tasks-title" style="font-size: 1.5rem;">
       {task.title}
     </h1>
 
-    <div class="flex items-center gap-3 pt-1">
+    <div style="display: flex; align-items: center; gap: 1rem; padding-top: 0.25rem;">
       <StatusPill status={task.status} onChange={onStatusChange} />
-      <div class="flex items-center gap-1.5 text-xs text-slate-500">
+      <div style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; color: var(--text-secondary);">
         <span>Priority:</span>
         <PriorityFlag priority={task.priority} onChange={onPriorityChange} />
       </div>
     </div>
   </div>
 
-  <div class="flex items-center gap-2">
+  <div class="tasks-header-actions">
     <a
       href={`/tasks/lists/${listId}/tasks/${task.id}/edit`}
-      class="px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+      class="tasks-btn tasks-btn-secondary"
     >
       Edit
     </a>
     <button
       type="button"
       onclick={() => (showDeleteConfirm = true)}
-      class="px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition-colors"
+      class="tasks-btn tasks-btn-danger-ghost"
     >
       Move to trash
     </button>

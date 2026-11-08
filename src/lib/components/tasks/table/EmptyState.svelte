@@ -8,9 +8,9 @@
   let { isFiltered, listId, onClearFilters }: Props = $props();
 </script>
 
-<div class="py-16 text-center">
+<div class="tasks-empty">
   <svg
-    class="mx-auto h-10 w-10 text-slate-300 dark:text-slate-700"
+    style="width: 2.5rem; height: 2.5rem; opacity: 0.5;"
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
@@ -24,32 +24,33 @@
   </svg>
 
   {#if isFiltered}
-    <h3 class="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+    <div class="tasks-empty-title">
       No matching tasks
-    </h3>
-    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+    </div>
+    <p style="font-size: 0.8125rem; margin: 0;">
       No tasks match the active filters.
     </p>
-    <div class="mt-4">
+    <div style="margin-top: 0.75rem;">
       <button
         type="button"
         onclick={onClearFilters}
-        class="text-xs font-medium text-primary hover:underline"
+        class="tasks-btn tasks-btn-ghost"
+        style="color: var(--primary);"
       >
         Clear filters
       </button>
     </div>
   {:else}
-    <h3 class="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+    <div class="tasks-empty-title">
       No tasks in this list
-    </h3>
-    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+    </div>
+    <p style="font-size: 0.8125rem; margin: 0;">
       Add your first task to get started.
     </p>
-    <div class="mt-4">
+    <div style="margin-top: 0.75rem;">
       <a
         href={`/tasks/lists/${listId}/tasks/new`}
-        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-primary hover:bg-primary/90 rounded shadow-sm transition-colors"
+        class="tasks-btn tasks-btn-primary"
       >
         + New task
       </a>

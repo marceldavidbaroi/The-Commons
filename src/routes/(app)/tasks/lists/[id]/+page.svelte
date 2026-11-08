@@ -77,7 +77,11 @@
   );
 </script>
 
-<div class="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+<svelte:head>
+  <title>{tasksStore.currentList?.name ?? "Tasks"} — The Commons</title>
+</svelte:head>
+
+<div class="tasks-container">
   {#if tasksStore.currentList}
     <ListHeader
       list={tasksStore.currentList}
@@ -120,8 +124,12 @@
       />
     {/if}
   {:else if tasksStore.isLoading}
-    <div class="py-12 text-center text-sm text-slate-500">Loading list...</div>
+    <div class="tasks-empty">
+      <p>Loading list...</p>
+    </div>
   {:else}
-    <div class="py-12 text-center text-sm text-slate-500">List not found.</div>
+    <div class="tasks-empty">
+      <p>List not found.</p>
+    </div>
   {/if}
 </div>

@@ -43,31 +43,28 @@
   }
 </script>
 
-<div
-  class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 p-3 text-xs"
->
-  <div class="min-w-0 flex-1">
-    <div class="flex items-center gap-2">
-      <span class="font-medium text-slate-800 dark:text-slate-200 truncate"
-        >{list.name}</span
-      >
-      <span
-        class="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-500"
-      >
+<div class="tasks-table-row">
+  <div style="min-width: 0; flex: 1;">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <span style="font-weight: 500; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+        {list.name}
+      </span>
+      <span class="tasks-badge" style="font-size: 0.625rem;">
         List + tasks bundle
       </span>
     </div>
-    <span class="text-[11px] text-slate-400"
-      >Trashed: {formatTime(list.deleted_at)}</span
-    >
+    <span style="font-size: 0.6875rem; color: var(--text-muted);">
+      Trashed: {formatTime(list.deleted_at)}
+    </span>
   </div>
 
-  <div class="flex items-center gap-2 shrink-0 ml-4">
+  <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; margin-left: 1rem;">
     <button
       type="button"
       disabled={isProcessing}
       onclick={handleRestore}
-      class="px-2.5 py-1 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+      class="tasks-btn tasks-btn-secondary"
+      style="padding: 0.25rem 0.6rem; font-size: 0.75rem;"
     >
       Restore
     </button>
@@ -75,7 +72,8 @@
       type="button"
       disabled={isProcessing}
       onclick={() => (showDeleteConfirm = true)}
-      class="px-2.5 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition-colors"
+      class="tasks-btn tasks-btn-danger-ghost"
+      style="padding: 0.25rem 0.6rem; font-size: 0.75rem;"
     >
       Delete permanently
     </button>

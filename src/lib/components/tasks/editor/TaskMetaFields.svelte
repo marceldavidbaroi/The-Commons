@@ -26,14 +26,14 @@
   ];
 </script>
 
-<div class="flex flex-wrap items-center gap-4 py-2 text-xs">
-  <div class="flex items-center gap-2">
-    <label for="task-status" class="font-medium text-slate-500">Status:</label>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; padding: 0.5rem 0;">
+  <div style="display: flex; align-items: center; gap: 0.5rem;">
+    <label for="task-status" class="tasks-form-label">Status:</label>
     <select
       id="task-status"
       value={status}
       onchange={(e) => onStatusChange(e.currentTarget.value as TaskStatus)}
-      class="rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2 py-1 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary"
+      class="tasks-select"
     >
       {#each STATUSES as s}
         <option value={s.id}>{s.label}</option>
@@ -41,15 +41,13 @@
     </select>
   </div>
 
-  <div class="flex items-center gap-2">
-    <label for="task-priority" class="font-medium text-slate-500"
-      >Priority:</label
-    >
+  <div style="display: flex; align-items: center; gap: 0.5rem;">
+    <label for="task-priority" class="tasks-form-label">Priority:</label>
     <select
       id="task-priority"
       value={priority}
       onchange={(e) => onPriorityChange(e.currentTarget.value as TaskPriority)}
-      class="rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2 py-1 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary"
+      class="tasks-select"
     >
       {#each PRIORITIES as p}
         <option value={p.id}>{p.label}</option>

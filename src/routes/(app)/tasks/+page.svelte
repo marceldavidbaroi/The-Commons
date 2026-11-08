@@ -19,31 +19,24 @@
   }
 </script>
 
-<div class="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+<svelte:head>
+  <title>Tasks — The Commons</title>
+</svelte:head>
+
+<div class="tasks-container">
   <!-- Header Tier 1 -->
-  <div
-    class="flex items-center justify-between pb-6 border-b border-slate-200 dark:border-slate-800"
-  >
-    <div class="flex items-center gap-3">
-      <h1
-        class="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100"
-      >
-        Tasks
-      </h1>
-      <span
-        class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-      >
-        {tasksStore.lists.length} lists
+  <header class="tasks-header">
+    <div class="tasks-header-left">
+      <h1 class="tasks-title">Tasks</h1>
+      <span class="tasks-badge">
+        {tasksStore.lists.length} {tasksStore.lists.length === 1 ? "list" : "lists"}
       </span>
     </div>
 
-    <div class="flex items-center gap-3">
-      <a
-        href="/tasks/trash"
-        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
-      >
+    <div class="tasks-header-actions">
+      <a href="/tasks/trash" class="tasks-btn tasks-btn-ghost">
         <svg
-          class="w-4 h-4"
+          style="width: 1rem; height: 1rem;"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -61,10 +54,10 @@
       <button
         type="button"
         onclick={() => (showCreateModal = true)}
-        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-primary hover:bg-primary/90 rounded shadow-sm transition-colors"
+        class="tasks-btn tasks-btn-primary"
       >
         <svg
-          class="w-3.5 h-3.5"
+          style="width: 0.875rem; height: 0.875rem;"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -79,18 +72,18 @@
         <span>New list</span>
       </button>
     </div>
-  </div>
+  </header>
 
   <!-- Body -->
-  <div class="mt-6">
+  <div>
     {#if tasksStore.isLoading && tasksStore.lists.length === 0}
-      <div class="py-12 text-center text-sm text-slate-500">
-        Loading lists...
+      <div class="tasks-empty">
+        <p>Loading lists...</p>
       </div>
     {:else if tasksStore.lists.length === 0}
-      <div class="py-16 text-center">
+      <div class="tasks-empty">
         <svg
-          class="mx-auto h-12 w-12 text-slate-400"
+          style="width: 3rem; height: 3rem; opacity: 0.5;"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -102,26 +95,20 @@
             d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
           />
         </svg>
-        <h3
-          class="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100"
-        >
-          No task lists yet
-        </h3>
-        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          Create your first list to start tracking tasks.
-        </p>
-        <div class="mt-4">
+        <div class="tasks-empty-title">No task lists yet</div>
+        <p style="font-size: 0.8125rem; margin: 0;">Create your first list to start tracking tasks.</p>
+        <div style="margin-top: 0.75rem;">
           <button
             type="button"
             onclick={() => (showCreateModal = true)}
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-primary hover:bg-primary/90 rounded shadow-sm transition-colors"
+            class="tasks-btn tasks-btn-primary"
           >
             + New list
           </button>
         </div>
       </div>
     {:else}
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="tasks-grid">
         {#each tasksStore.lists as list (list.id)}
           <ListCard {list} onTrash={handleTrash} />
         {/each}

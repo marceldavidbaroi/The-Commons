@@ -27,9 +27,9 @@
   }: Props = $props();
 </script>
 
-<div class="flex flex-wrap items-center gap-2 py-3">
+<div class="tasks-toolbar" style="padding: 0.75rem 0;">
   <SortSelect {sortMode} onSelect={onSortChange} />
-  <div class="h-4 w-px bg-slate-200 dark:bg-slate-800"></div>
+  <div style="height: 1rem; width: 1px; background-color: var(--border-subtle); margin: 0 0.25rem;"></div>
   <StatusFilter selected={statusFilters} onChange={onStatusChange} />
   <PriorityFilter selected={priorityFilters} onChange={onPriorityChange} />
 </div>

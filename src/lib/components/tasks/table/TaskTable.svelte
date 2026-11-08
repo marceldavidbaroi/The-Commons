@@ -96,25 +96,20 @@
   );
 </script>
 
-<div
-  class="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden"
->
+<div class="tasks-table-wrapper">
   {#if tasks.length === 0}
     <EmptyState {isFiltered} {listId} {onClearFilters} />
   {:else}
     <!-- Table Header Row -->
-    <div
-      class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 px-3 py-2 text-[11px] font-semibold text-slate-500"
-    >
-      <div class="flex items-center gap-2.5">
+    <div class="tasks-table-header">
+      <div style="display: flex; align-items: center; gap: 0.625rem;">
         {#if sortMode === "manual"}
-          <span class="w-3"></span>
+          <span style="width: 0.75rem;"></span>
         {/if}
         <input
           type="checkbox"
           checked={allSelected}
           onchange={onToggleSelectAll}
-          class="rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary h-3.5 w-3.5"
           title="Select all loaded"
         />
         <span>Title</span>
@@ -123,7 +118,7 @@
     </div>
 
     <!-- Table Rows -->
-    <div class="divide-y divide-slate-100 dark:divide-slate-800/60">
+    <div class="tasks-table-body">
       {#each tasks as task (task.id)}
         <TaskRow
           {task}

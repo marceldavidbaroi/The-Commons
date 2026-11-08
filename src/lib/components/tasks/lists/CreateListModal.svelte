@@ -22,47 +22,37 @@
   }
 </script>
 
-<div
-  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
->
-  <div
-    class="w-full max-w-sm rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 shadow-xl transition-all"
-    role="dialog"
-    aria-modal="true"
-  >
-    <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">
-      Create new list
-    </h3>
+<div class="tasks-modal-backdrop">
+  <div class="tasks-modal-dialog" role="dialog" aria-modal="true">
+    <h3 class="tasks-modal-title">Create new list</h3>
 
-    <form onsubmit={handleSubmit} class="mt-4">
-      <label
-        for="list-name"
-        class="block text-xs font-medium text-slate-700 dark:text-slate-300"
-        >List name</label
-      >
-      <input
-        id="list-name"
-        type="text"
-        bind:value={name}
-        placeholder="e.g. Website Redesign"
-        autofocus
-        required
-        class="mt-1 block w-full rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-primary"
-      />
+    <form onsubmit={handleSubmit} style="display: flex; flex-direction: column; gap: 1rem;">
+      <div class="tasks-form-group">
+        <label for="list-name" class="tasks-form-label">List name</label>
+        <input
+          id="list-name"
+          type="text"
+          bind:value={name}
+          placeholder="e.g. Website Redesign"
+          autofocus
+          required
+          class="tasks-input"
+        />
+      </div>
 
-      <div class="mt-5 flex justify-end gap-2">
+      <div class="tasks-modal-actions">
         <button
           type="button"
           onclick={onClose}
           disabled={isSubmitting}
-          class="px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+          class="tasks-btn tasks-btn-secondary"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={!name.trim() || isSubmitting}
-          class="px-3 py-1.5 text-xs font-medium text-white bg-primary hover:bg-primary/90 disabled:opacity-50 rounded transition-colors"
+          class="tasks-btn tasks-btn-primary"
         >
           {isSubmitting ? "Creating..." : "Create list"}
         </button>
