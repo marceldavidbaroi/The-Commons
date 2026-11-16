@@ -118,7 +118,7 @@
     </div>
 
     <!-- Table Rows -->
-    <div class="tasks-table-body">
+    <div class="tasks-table-body" role="list">
       {#each tasks as task (task.id)}
         <TaskRow
           {task}

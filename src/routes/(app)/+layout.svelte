@@ -131,6 +131,14 @@
 		isMobileNavOpen = false;
 	}
 
+	$effect(() => {
+		if (typeof document === "undefined") return;
+		document.body.style.overflow = isMobileNavOpen ? "hidden" : "";
+		return () => {
+			document.body.style.overflow = "";
+		};
+	});
+
 	async function handleSignOut() {
 		isLoggingOut = true;
 		try {
@@ -497,7 +505,7 @@
 
 <style>
 	.app-layout {
-		min-height: 100vh;
+		min-height: 100dvh;
 		display: flex;
 		background-color: var(--bg-primary);
 	}
@@ -517,7 +525,7 @@
 		flex-direction: column;
 		position: sticky;
 		top: 0;
-		height: 100vh;
+		height: 100dvh;
 		box-sizing: border-box;
 		z-index: 40;
 		transition:
@@ -1040,7 +1048,10 @@
 			top: 0;
 			left: 0;
 			bottom: 0;
-			height: 100%;
+			width: min(260px, 82vw);
+			height: 100dvh;
+			overflow-y: auto;
+			padding-bottom: env(safe-area-inset-bottom, 0px);
 			transform: translateX(-100%);
 			transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 			z-index: 60;
@@ -1050,6 +1061,18 @@
 		.app-sidebar.open {
 			transform: translateX(0);
 			box-shadow: 0 0 24px rgba(0, 0, 0, 0.15);
+		}
+
+		.app-sidebar .brand-text,
+		.app-sidebar .nav-section-label,
+		.app-sidebar .nav-label,
+		.app-sidebar .theme-label,
+		.app-sidebar .theme-row,
+		.app-sidebar .user-meta,
+		.app-sidebar .chevron-icon {
+			opacity: 1;
+			width: auto;
+			pointer-events: auto;
 		}
 
 		.sidebar-backdrop {

@@ -2,7 +2,7 @@
 	import type { WorkspacePane } from '$lib/types/notes';
 	import { notesStore } from '$lib/state/notes.svelte';
 	import TabBar from './TabBar.svelte';
-	import LivePreviewEditor from '../editor/LivePreviewEditor.svelte';
+	import TipTapNoteEditor from '../editor/TipTapNoteEditor.svelte';
 	import GraphView from '../graph/GraphView.svelte';
 	import type { Snippet } from 'svelte';
 
@@ -77,7 +77,7 @@
 						<span>Loading note...</span>
 					</div>
 				{:else}
-					<LivePreviewEditor
+					<TipTapNoteEditor
 						note={currentNote}
 						onSplitRight={(id) => notesStore.splitPaneRight(id)}
 					/>

@@ -9,6 +9,10 @@
   let name = $state("");
   let isSubmitting = $state(false);
 
+  function focusOnMount(node: HTMLInputElement) {
+    node.focus();
+  }
+
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     if (!name.trim() || isSubmitting) return;
@@ -32,9 +36,9 @@
         <input
           id="list-name"
           type="text"
+          use:focusOnMount
           bind:value={name}
           placeholder="e.g. Website Redesign"
-          autofocus
           required
           class="tasks-input"
         />

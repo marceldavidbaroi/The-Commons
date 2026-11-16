@@ -37,6 +37,7 @@
 
 <div
   class="tasks-table-row"
+  role="listitem"
   draggable={sortMode === "manual"}
   ondragstart={(e) => onDragStart?.(e, task.id)}
   ondragover={(e) => onDragOver?.(e, task.id)}

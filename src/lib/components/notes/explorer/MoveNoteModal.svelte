@@ -1,7 +1,16 @@
-opt<script lang="ts">
+<script lang="ts">
 	import { fade, scale } from "svelte/transition";
 	import { cubicOut } from "svelte/easing";
 	import type { FolderRecord } from "$lib/types/notes";
+
+	interface MoveNoteModalProps {
+		isOpen: boolean;
+		noteTitle?: string;
+		currentFolderId?: string | null;
+		folders: FolderRecord[];
+		onCancel: () => void;
+		onConfirm: (targetFolderId: string | null) => void;
+	}
 
 	let {
 		isOpen = false,
@@ -10,14 +19,7 @@ opt<script lang="ts">
 		folders = [],
 		onCancel,
 		onConfirm,
-	} = $props<{
-		isOpen: boolean;
-		noteTitle?: string;
-		currentFolderId?: string | null;
-		folders: FolderRecord[];
-		onCancel: () => void;
-		onConfirm: (targetFolderId: string | null) => void;
-	}>();
+	}: MoveNoteModalProps = $props();
 
 	// Navigation state: current directory being viewed in the file manager
 	let currentNavFolderId = $state<string | null>(null);
@@ -255,8 +257,15 @@ opt<script lang="ts">
 						class:selected={isSelected}
 						class:current={isCurrent}
 						role="option"
+						tabindex="0"
 						aria-selected={isSelected}
 						onclick={() => (selectedTargetFolderId = null)}
+						onkeydown={(e) => {
+							if (e.key === "Enter" || e.key === " ") {
+								e.preventDefault();
+								selectedTargetFolderId = null;
+							}
+						}}
 					>
 						<div class="row-icon root-icon">
 							<svg
@@ -311,9 +320,19 @@ opt<script lang="ts">
 						class:selected={isSelected}
 						class:current={isCurrent}
 						role="option"
+						tabindex="0"
 						aria-selected={isSelected}
 						onclick={() => handleFolderClick(folder.id)}
 						ondblclick={() => handleFolderDblClick(folder.id)}
+						onkeydown={(e) => {
+							if (e.key === "Enter") {
+								e.preventDefault();
+								handleFolderDblClick(folder.id);
+							} else if (e.key === " ") {
+								e.preventDefault();
+								handleFolderClick(folder.id);
+							}
+						}}
 					>
 						<div class="row-icon folder-icon">
 							<svg
