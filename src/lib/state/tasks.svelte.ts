@@ -20,6 +20,7 @@ export function createTasksStore() {
   // Filters
   let statusFilters = $state<TaskStatus[]>([]);
   let priorityFilters = $state<TaskPriority[]>([]);
+  let dueTab = $state<tasksService.DueTab>('all');
 
   // Selection for bulk actions
   let selectedTaskIds = $state<number[]>([]);
@@ -40,10 +41,23 @@ export function createTasksStore() {
     return newList;
   }
 
+  async function renameList(id: number | string, name: string): Promise<ListRecord> {
+    const numId = Number(id);
+    const updated = await tasksService.renameList(numId, name);
+    lists = lists.map((l) => (l.id === numId ? updated : l));
+    if (currentList?.id === numId) {
+      currentList = updated;
+    }
+    return updated;
+  }
+
   async function removeListBundle(id: number | string) {
     const numId = Number(id);
     await tasksService.trashListBundle(numId);
     lists = lists.filter((l) => l.id !== numId);
+    if (currentList?.id === numId) {
+      currentList = null;
+    }
   }
 
   async function initList(listId: number | string, initialStatus?: TaskStatus[], initialPriority?: TaskPriority[]) {
@@ -101,6 +115,11 @@ export function createTasksStore() {
     }
   }
 
+  async function setDueTab(tab: tasksService.DueTab) {
+    dueTab = tab;
+    await applyFilters(statusFilters, priorityFilters);
+  }
+
   async function applyFilters(newStatusFilters: TaskStatus[], newPriorityFilters: TaskPriority[]) {
     if (!currentList) return;
     isLoading = true;
@@ -113,9 +132,10 @@ export function createTasksStore() {
         sortMode: currentList.sort_mode,
         statusFilters,
         priorityFilters,
+        dueTab,
         cursor: null,
         limit: 10
-      });
+      } as Parameters<typeof tasksService.fetchTasksPage>[0]);
 
       tasks = res.tasks;
       nextCursor = res.nextCursor;
@@ -163,6 +183,13 @@ export function createTasksStore() {
     const numTaskId = Number(taskId);
     tasks = tasks.map((t) => (t.id === numTaskId ? { ...t, priority } : t));
     await tasksService.updateTaskPriority(numTaskId, priority);
+  }
+
+  // Inline due date update (optimistic)
+  async function patchTaskDueDate(taskId: number | string, dueDate: string | null) {
+    const numTaskId = Number(taskId);
+    tasks = tasks.map((t) => (t.id === numTaskId ? { ...t, due_date: dueDate } : t));
+    await tasksService.updateTaskDueDate(numTaskId, dueDate);
   }
 
   // Soft delete task
@@ -222,16 +249,20 @@ export function createTasksStore() {
     get isLoadingMore() { return isLoadingMore; },
     get statusFilters() { return statusFilters; },
     get priorityFilters() { return priorityFilters; },
+    get dueTab() { return dueTab; },
     get selectedTaskIds() { return selectedTaskIds; },
     loadLists,
     addList,
+    renameList,
     removeListBundle,
     initList,
     loadMore,
     applyFilters,
+    setDueTab,
     setSortMode,
     patchTaskStatus,
     patchTaskPriority,
+    patchTaskDueDate,
     removeTask,
     bulkTrashSelected,
     toggleTaskSelection,

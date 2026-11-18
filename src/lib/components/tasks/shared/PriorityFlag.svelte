@@ -43,7 +43,7 @@
     disabled={readonly}
     onclick={() => !readonly && (isOpen = !isOpen)}
     class="tasks-priority-flag"
-    style="color: {PRIORITY_CONFIG[priority].color};"
+    style="border-radius: 0.375rem; color: {PRIORITY_CONFIG[priority].color};"
     title="Priority: {PRIORITY_CONFIG[priority].label}"
   >
     <svg

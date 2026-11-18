@@ -1,4 +1,4 @@
-export type TaskSortMode = 'created' | 'priority' | 'manual';
+export type TaskSortMode = 'created' | 'priority' | 'due_date' | 'manual';
 export type TaskStatus = 'todo' | 'in_progress' | 'done' | 'cancelled';
 export type TaskPriority = 'urgent' | 'high' | 'medium' | 'low' | 'none';
 export type TaskTrashReason = 'individual' | 'bulk' | 'list_deleted';
@@ -24,6 +24,7 @@ export interface TaskRecord {
   description_html: string;
   status: TaskStatus;
   priority: TaskPriority;
+  due_date: string | null;
   position: number;
   deleted_at: string | null;
   trash_reason: TaskTrashReason | null;

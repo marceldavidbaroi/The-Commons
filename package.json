@@ -49,11 +49,5 @@
 		"katex": "^0.19.1",
 		"mermaid": "^12.1.0",
 		"turndown": "^7.2.4"
-	},
-	"pnpm": {
-		"onlyBuiltDependencies": [
-			"esbuild",
-			"workerd"
-		]
 	}
 }

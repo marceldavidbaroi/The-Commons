@@ -1,13 +1,65 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { tasksStore } from "$lib/state/tasks.svelte";
+  import * as tasksService from "$lib/services/tasks-service";
+  import type { DueTab, DueTabCursor, DueTabTask } from "$lib/services/tasks-service";
+  import type { TaskPriority, TaskStatus } from "$lib/types/tasks";
   import ListCard from "$lib/components/tasks/lists/ListCard.svelte";
   import CreateListModal from "$lib/components/tasks/lists/CreateListModal.svelte";
+  import PriorityFlag from "$lib/components/tasks/shared/PriorityFlag.svelte";
+  import StatusPill from "$lib/components/tasks/shared/StatusPill.svelte";
 
   let showCreateModal = $state(false);
+  let activeTab = $state<DueTab>("all");
+  let tabTasks = $state<DueTabTask[]>([]);
+  let tabCursor = $state<DueTabCursor | null>(null);
+  let isLoadingTab = $state(false);
+  let isLoadingMoreTab = $state(false);
+
+  async function loadDueTab(tab: DueTab) {
+    activeTab = tab;
+    isLoadingTab = true;
+    try {
+      const res = await tasksService.fetchTasksByDueTab(tab, null);
+      if (activeTab === tab) {
+        tabTasks = res.items;
+        tabCursor = res.nextCursor;
+      }
+    } finally {
+      if (activeTab === tab) {
+        isLoadingTab = false;
+      }
+    }
+  }
+
+  async function loadMoreDueTab() {
+    if (!tabCursor || isLoadingMoreTab) return;
+    isLoadingMoreTab = true;
+    const tab = activeTab;
+    try {
+      const res = await tasksService.fetchTasksByDueTab(tab, tabCursor);
+      if (activeTab === tab) {
+        tabTasks = [...tabTasks, ...res.items];
+        tabCursor = res.nextCursor;
+      }
+    } finally {
+      isLoadingMoreTab = false;
+    }
+  }
+
+  async function handleTabStatusChange(taskId: number, status: TaskStatus) {
+    tabTasks = tabTasks.map((t) => (t.id === taskId ? { ...t, status } : t));
+    await tasksService.updateTaskStatus(taskId, status);
+  }
+
+  async function handleTabPriorityChange(taskId: number, priority: TaskPriority) {
+    tabTasks = tabTasks.map((t) => (t.id === taskId ? { ...t, priority } : t));
+    await tasksService.updateTaskPriority(taskId, priority);
+  }
 
   onMount(() => {
     tasksStore.loadLists();
+    loadDueTab("all");
   });
 
   async function handleCreate(name: string) {
@@ -115,6 +167,89 @@
       </div>
     {/if}
   </div>
+
+  <!-- Section 2: Today / Tomorrow / Due -->
+  <section style="margin-top: 2rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem;">
+      {#each [
+        { id: "all", label: "All" },
+        { id: "today", label: "Today" },
+        { id: "yesterday", label: "Yesterday" },
+        { id: "later", label: "Later" },
+        { id: "due", label: "Due" },
+        { id: "no_due", label: "No due" },
+      ] as tab (tab.id)}
+        <button
+          type="button"
+          onclick={() => loadDueTab(tab.id as DueTab)}
+          class="tasks-btn {activeTab === tab.id ? 'tasks-btn-primary' : 'tasks-btn-ghost'}"
+          style="padding: 0.375rem 0.75rem; font-size: 0.875rem;"
+        >
+          {tab.label}
+        </button>
+      {/each}
+    </div>
+
+    {#if isLoadingTab}
+      <div class="tasks-empty">
+        <p>Loading tasks...</p>
+      </div>
+    {:else if tabTasks.length === 0}
+      <div class="tasks-empty">
+        <p style="margin: 0; font-size: 0.875rem;">
+          No {activeTab === "due" ? "overdue" : activeTab} tasks.
+        </p>
+      </div>
+    {:else}
+      <div class="tasks-table-wrapper" style="overflow: visible;">
+        <div class="tasks-table-body" role="list">
+          {#each tabTasks as task (task.id)}
+            <div class="tasks-table-row" role="listitem">
+              <div style="display: flex; align-items: center; gap: 0.625rem; min-width: 0; flex: 1;">
+                <PriorityFlag
+                  priority={task.priority}
+                  onChange={(p) => handleTabPriorityChange(task.id, p)}
+                />
+                <a
+                  href={`/tasks/lists/${task.list_id}/tasks/${task.id}`}
+                  style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; color: var(--text-primary); text-decoration: none; flex: 1;"
+                >
+                  {task.title}
+                </a>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; margin-left: 1rem;">
+                <a
+                  href={`/tasks/lists/${task.list_id}`}
+                  class="tasks-badge"
+                  style="text-decoration: none;"
+                >
+                  {task.list_name}
+                </a>
+                <StatusPill
+                  status={task.status}
+                  onChange={(s) => handleTabStatusChange(task.id, s)}
+                />
+              </div>
+            </div>
+          {/each}
+        </div>
+      </div>
+
+      {#if tabCursor}
+        <div style="display: flex; justify-content: center; margin-top: 0.75rem;">
+          <button
+            type="button"
+            onclick={loadMoreDueTab}
+            disabled={isLoadingMoreTab}
+            class="tasks-btn tasks-btn-secondary"
+          >
+            {isLoadingMoreTab ? "Loading..." : "Load more"}
+          </button>
+        </div>
+      {/if}
+    {/if}
+  </section>
 </div>
 
 {#if showCreateModal}

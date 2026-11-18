@@ -11,12 +11,14 @@
   let descriptionHtml = $state("");
   let status = $state<TaskStatus>("todo");
   let priority = $state<TaskPriority>("none");
+  let dueDate = $state<string | null>(null);
 
   async function handleSave(payload: {
     title: string;
     descriptionHtml: string;
     status: TaskStatus;
     priority: TaskPriority;
+    dueDate: string | null;
   }) {
     const created = await tasksService.createTask({
       list_id: listId,
@@ -24,6 +26,7 @@
       description_html: payload.descriptionHtml,
       status: payload.status,
       priority: payload.priority,
+      due_date: payload.dueDate,
     });
 
     goto(`/tasks/lists/${listId}/tasks/${created.id}`);
@@ -59,6 +62,7 @@
       bind:descriptionHtml
       bind:status
       bind:priority
+      bind:dueDate
       {listId}
       onSave={handleSave}
       onCancel={handleCancel}

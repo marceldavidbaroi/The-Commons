@@ -22,6 +22,7 @@
     onToggleSelectAll: () => void;
     onStatusChange: (id: number, s: TaskStatus) => void;
     onPriorityChange: (id: number, p: TaskPriority) => void;
+    onDueDateChange?: (id: number, d: string | null) => void;
     onLoadMore: () => void;
     onClearFilters: () => void;
     onReorder: (tasks: TaskRecord[]) => void;
@@ -39,6 +40,7 @@
     onToggleSelectAll,
     onStatusChange,
     onPriorityChange,
+    onDueDateChange,
     onLoadMore,
     onClearFilters,
     onReorder,
@@ -96,7 +98,7 @@
   );
 </script>
 
-<div class="tasks-table-wrapper">
+<div class="tasks-table-wrapper" style="overflow: visible;">
   {#if tasks.length === 0}
     <EmptyState {isFiltered} {listId} {onClearFilters} />
   {:else}
@@ -128,6 +130,7 @@
           {onToggleSelect}
           {onStatusChange}
           {onPriorityChange}
+          {onDueDateChange}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
           onDrop={handleDrop}

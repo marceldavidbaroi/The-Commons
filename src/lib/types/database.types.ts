@@ -1004,6 +1004,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           description_html: string
+          due_date: string | null
           id: number
           list_id: number
           position: number
@@ -1017,6 +1018,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           description_html?: string
+          due_date?: string | null
           id?: number
           list_id: number
           position?: number
@@ -1030,6 +1032,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           description_html?: string
+          due_date?: string | null
           id?: number
           list_id?: number
           position?: number
@@ -1344,7 +1347,7 @@ export type Database = {
         | "habit"
       list_trash_reason: "list_deleted"
       task_priority: "urgent" | "high" | "medium" | "low" | "none"
-      task_sort_mode: "created" | "priority" | "manual"
+      task_sort_mode: "created" | "priority" | "due_date" | "manual"
       task_status: "todo" | "in_progress" | "done" | "cancelled"
       task_trash_reason: "individual" | "bulk" | "list_deleted"
     }
@@ -1497,7 +1500,7 @@ export const Constants = {
       ],
       list_trash_reason: ["list_deleted"],
       task_priority: ["urgent", "high", "medium", "low", "none"],
-      task_sort_mode: ["created", "priority", "manual"],
+      task_sort_mode: ["created", "priority", "due_date", "manual"],
       task_status: ["todo", "in_progress", "done", "cancelled"],
       task_trash_reason: ["individual", "bulk", "list_deleted"],
     },

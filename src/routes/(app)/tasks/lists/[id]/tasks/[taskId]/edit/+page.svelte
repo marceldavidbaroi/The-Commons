@@ -14,6 +14,7 @@
   let descriptionHtml = $state("");
   let status = $state<TaskStatus>("todo");
   let priority = $state<TaskPriority>("none");
+  let dueDate = $state<string | null>(null);
   let isLoading = $state(true);
 
   onMount(async () => {
@@ -26,6 +27,7 @@
         descriptionHtml = data.description_html;
         status = data.status;
         priority = data.priority;
+        dueDate = data.due_date;
       }
     } finally {
       isLoading = false;
@@ -37,12 +39,14 @@
     descriptionHtml: string;
     status: TaskStatus;
     priority: TaskPriority;
+    dueDate: string | null;
   }) {
     await tasksService.updateTask(taskId, {
       title: payload.title,
       description_html: payload.descriptionHtml,
       status: payload.status,
       priority: payload.priority,
+      due_date: payload.dueDate,
     });
 
     goto(`/tasks/lists/${listId}/tasks/${taskId}`);
@@ -81,6 +85,7 @@
         bind:descriptionHtml
         bind:status
         bind:priority
+        bind:dueDate
         {listId}
         excludeTaskId={taskId}
         isEditing={true}

@@ -152,7 +152,7 @@ export async function fetchTasksPage(
   customClient?: SupabaseClient<Database>
 ): Promise<TasksPageResponse> {
   const supabase = getClient(customClient);
-  const { listId, sortMode, statusFilters, priorityFilters, cursor, limit = 10 } = params;
+  const { listId, sortMode, statusFilters, priorityFilters, dueTab, cursor, limit = 10 } = params as typeof params & { dueTab?: DueTab };
   const numericListId = Number(listId);
 
   // 1. Fetch current list to get live_tasks_count
@@ -162,7 +162,7 @@ export async function fetchTasksPage(
   // 2. Build base query for tasks
   let query = supabase
     .from('tasks')
-    .select('id, list_id, title, description_html, status, priority, position, deleted_at, trash_reason, created_at, updated_at')
+    .select('id, list_id, title, description_html, status, priority, due_date, position, deleted_at, trash_reason, created_at, updated_at')
     .eq('list_id', numericListId)
     .is('deleted_at', null);
 
@@ -172,6 +172,24 @@ export async function fetchTasksPage(
 
   if (priorityFilters && priorityFilters.length > 0) {
     query = query.in('priority', priorityFilters);
+  }
+
+  if (dueTab && dueTab !== 'all') {
+    const now = new Date();
+    const todayStr = toLocalDateStr(now);
+    if (dueTab === 'today') {
+      query = query.eq('due_date', todayStr);
+    } else if (dueTab === 'yesterday') {
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+      query = query.eq('due_date', toLocalDateStr(yesterday));
+    } else if (dueTab === 'later') {
+      query = query.gt('due_date', todayStr);
+    } else if (dueTab === 'due') {
+      query = query.lt('due_date', todayStr).neq('status', 'done');
+    } else if (dueTab === 'no_due') {
+      query = query.is('due_date', null);
+    }
   }
 
   // Handle keyset cursor if present
@@ -204,6 +222,10 @@ export async function fetchTasksPage(
       .order('id', { ascending: true });
   } else if (sortMode === 'manual') {
     query = query.order('position', { ascending: true }).order('id', { ascending: true });
+  } else if (sortMode === 'due_date') {
+    query = query
+      .order('due_date', { ascending: true, nullsFirst: false })
+      .order('id', { ascending: true });
   }
 
   query = query.limit(limit + 1);
@@ -270,7 +292,7 @@ export async function fetchTaskById(id: number | string, customClient?: Supabase
   const supabase = getClient(customClient);
   const { data, error } = await supabase
     .from('tasks')
-    .select('id, list_id, title, description_html, status, priority, position, deleted_at, trash_reason, created_at, updated_at')
+    .select('id, list_id, title, description_html, status, priority, due_date, position, deleted_at, trash_reason, created_at, updated_at')
     .eq('id', numericId)
     .single();
 
@@ -289,6 +311,7 @@ export async function createTask(
     description_html?: string;
     status?: TaskStatus;
     priority?: TaskPriority;
+    due_date?: string | null;
   },
   customClient?: SupabaseClient<Database>
 ): Promise<TaskRecord> {
@@ -314,9 +337,10 @@ export async function createTask(
       description_html: descHtml,
       status: payload.status ?? 'todo',
       priority: payload.priority ?? 'none',
+      due_date: payload.due_date ?? null,
       position: nextPos
     })
-    .select('id, list_id, title, description_html, status, priority, position, deleted_at, trash_reason, created_at, updated_at')
+    .select('id, list_id, title, description_html, status, priority, due_date, position, deleted_at, trash_reason, created_at, updated_at')
     .single();
 
   if (error) {
@@ -339,6 +363,7 @@ export async function updateTask(
     description_html?: string;
     status?: TaskStatus;
     priority?: TaskPriority;
+    due_date?: string | null;
   },
   customClient?: SupabaseClient<Database>
 ): Promise<TaskRecord> {
@@ -349,12 +374,13 @@ export async function updateTask(
   if (payload.description_html !== undefined) updates.description_html = payload.description_html;
   if (payload.status !== undefined) updates.status = payload.status;
   if (payload.priority !== undefined) updates.priority = payload.priority;
+  if (payload.due_date !== undefined) updates.due_date = payload.due_date;
 
   const { data, error } = await supabase
     .from('tasks')
     .update(updates)
     .eq('id', numericId)
-    .select('id, list_id, title, description_html, status, priority, position, deleted_at, trash_reason, created_at, updated_at')
+    .select('id, list_id, title, description_html, status, priority, due_date, position, deleted_at, trash_reason, created_at, updated_at')
     .single();
 
   if (error) {
@@ -377,6 +403,10 @@ export async function updateTaskStatus(id: number | string, status: TaskStatus, 
 
 export async function updateTaskPriority(id: number | string, priority: TaskPriority, customClient?: SupabaseClient<Database>): Promise<TaskRecord> {
   return updateTask(id, { priority }, customClient);
+}
+
+export async function updateTaskDueDate(id: number | string, due_date: string | null, customClient?: SupabaseClient<Database>): Promise<TaskRecord> {
+  return updateTask(id, { due_date }, customClient);
 }
 
 export async function updateTaskPosition(id: number | string, position: number, customClient?: SupabaseClient<Database>): Promise<void> {
@@ -625,6 +655,7 @@ export async function fetchTrash(customClient?: SupabaseClient<Database>): Promi
     description_html: t.description_html,
     status: t.status,
     priority: t.priority,
+    due_date: t.due_date ?? null,
     position: t.position,
     deleted_at: t.deleted_at,
     trash_reason: t.trash_reason,
@@ -743,4 +774,110 @@ export async function emptyTrash(customClient?: SupabaseClient<Database>): Promi
     .not('deleted_at', 'is', null);
 
   if (listsErr) throw listsErr;
+}
+
+export type DueTab = 'all' | 'today' | 'yesterday' | 'later' | 'due' | 'no_due';
+
+export interface DueTabCursor {
+  due_date: string | null;
+  id: number;
+}
+
+export type DueTabTask = TaskRecord & { list_name: string };
+
+function toLocalDateStr(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export async function fetchTasksByDueTab(
+  tab: DueTab,
+  cursor: DueTabCursor | null = null,
+  limit = 20,
+  customClient?: SupabaseClient<Database>
+): Promise<{ items: DueTabTask[]; nextCursor: DueTabCursor | null }> {
+  const supabase = getClient(customClient);
+  const now = new Date();
+  const todayStr = toLocalDateStr(now);
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const yesterdayStr = toLocalDateStr(yesterday);
+
+  let query = supabase
+    .from('tasks')
+    .select(
+      'id, list_id, title, description_html, status, priority, due_date, position, deleted_at, trash_reason, created_at, updated_at, lists!inner(name, deleted_at)'
+    )
+    .is('deleted_at', null)
+    .is('lists.deleted_at', null);
+
+  if (tab === 'all') {
+    query = query.order('id', { ascending: false });
+    if (cursor) {
+      query = query.lt('id', cursor.id);
+    }
+  } else if (tab === 'today') {
+    query = query.eq('due_date', todayStr).order('id', { ascending: true });
+    if (cursor) {
+      query = query.gt('id', cursor.id);
+    }
+  } else if (tab === 'yesterday') {
+    query = query.eq('due_date', yesterdayStr).order('id', { ascending: true });
+    if (cursor) {
+      query = query.gt('id', cursor.id);
+    }
+  } else if (tab === 'later') {
+    query = query
+      .gt('due_date', todayStr)
+      .order('due_date', { ascending: true })
+      .order('id', { ascending: true });
+    if (cursor && cursor.due_date) {
+      query = query.or(
+        `due_date.gt.${cursor.due_date},and(due_date.eq.${cursor.due_date},id.gt.${cursor.id})`
+      );
+    }
+  } else if (tab === 'due') {
+    query = query
+      .lt('due_date', todayStr)
+      .neq('status', 'done')
+      .order('due_date', { ascending: true })
+      .order('id', { ascending: true });
+    if (cursor && cursor.due_date) {
+      query = query.or(
+        `due_date.gt.${cursor.due_date},and(due_date.eq.${cursor.due_date},id.gt.${cursor.id})`
+      );
+    }
+  } else {
+    query = query.is('due_date', null).order('id', { ascending: true });
+    if (cursor) {
+      query = query.gt('id', cursor.id);
+    }
+  }
+
+  const { data, error } = await query.limit(limit + 1);
+  if (error) throw error;
+
+  const rows = (data || []) as unknown as Array<
+    TaskRecord & { lists?: { name: string } | null }
+  >;
+  const hasMore = rows.length > limit;
+  const pageRows = hasMore ? rows.slice(0, limit) : rows;
+
+  const items: DueTabTask[] = pageRows.map((row) => {
+    const { lists, ...task } = row;
+    return {
+      ...task,
+      list_name: lists?.name ?? 'Untitled List'
+    };
+  });
+
+  const last = items[items.length - 1];
+  const nextCursor: DueTabCursor | null =
+    hasMore && last
+      ? { due_date: last.due_date, id: last.id }
+      : null;
+
+  return { items, nextCursor };
 }

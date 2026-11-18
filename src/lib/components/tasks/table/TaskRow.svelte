@@ -7,6 +7,7 @@
   } from "$lib/types/tasks";
   import StatusPill from "../shared/StatusPill.svelte";
   import PriorityFlag from "../shared/PriorityFlag.svelte";
+  import DatePicker from "$lib/components/DatePicker.svelte";
 
   interface Props {
     task: TaskRecord;
@@ -16,6 +17,7 @@
     onToggleSelect: (id: number) => void;
     onStatusChange: (id: number, s: TaskStatus) => void;
     onPriorityChange: (id: number, p: TaskPriority) => void;
+    onDueDateChange?: (id: number, d: string | null) => void;
     onDragStart?: (e: DragEvent, id: number) => void;
     onDragOver?: (e: DragEvent, id: number) => void;
     onDrop?: (e: DragEvent, id: number) => void;
@@ -29,6 +31,7 @@
     onToggleSelect,
     onStatusChange,
     onPriorityChange,
+    onDueDateChange,
     onDragStart,
     onDragOver,
     onDrop,
@@ -72,6 +75,12 @@
   </div>
 
   <div style="display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; margin-left: 1rem;">
+    <DatePicker
+      value={task.due_date ?? ""}
+      label=""
+      placeholder="Due date"
+      onchange={(val) => onDueDateChange?.(task.id, val || null)}
+    />
     <StatusPill
       status={task.status}
       onChange={(s) => onStatusChange(task.id, s)}

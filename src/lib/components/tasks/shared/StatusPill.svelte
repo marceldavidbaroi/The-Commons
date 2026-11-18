@@ -48,7 +48,7 @@
     disabled={readonly}
     onclick={() => !readonly && (isOpen = !isOpen)}
     class="tasks-status-pill"
-    style="background-color: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-subtle);"
+    style="border-radius: 0.375rem; background-color: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-subtle);"
   >
     <span
       style="width: 6px; height: 6px; border-radius: 50%; background-color: {STATUS_CONFIG[status].dotColor}; display: inline-block;"

@@ -49,6 +49,12 @@
     await tasksService.updateTaskPriority(taskId, priority);
   }
 
+  async function handleDueDateChange(dueDate: string | null) {
+    if (!task) return;
+    task.due_date = dueDate;
+    await tasksService.updateTaskDueDate(taskId, dueDate);
+  }
+
   async function handleTrash() {
     await tasksService.trashTask(taskId);
     goto(`/tasks/lists/${listId}`);
@@ -72,6 +78,7 @@
         {listId}
         onStatusChange={handleStatusChange}
         onPriorityChange={handlePriorityChange}
+        onDueDateChange={handleDueDateChange}
         onTrash={handleTrash}
       />
 

@@ -2,6 +2,7 @@
   import type { TaskRecord, TaskStatus, TaskPriority } from "$lib/types/tasks";
   import StatusPill from "../shared/StatusPill.svelte";
   import PriorityFlag from "../shared/PriorityFlag.svelte";
+  import DatePicker from "$lib/components/DatePicker.svelte";
   import ConfirmDialog from "../shared/ConfirmDialog.svelte";
 
   interface Props {
@@ -9,10 +10,11 @@
     listId: number | string;
     onStatusChange: (status: TaskStatus) => void;
     onPriorityChange: (priority: TaskPriority) => void;
+    onDueDateChange?: (dueDate: string | null) => void;
     onTrash: () => Promise<void>;
   }
 
-  let { task, listId, onStatusChange, onPriorityChange, onTrash }: Props =
+  let { task, listId, onStatusChange, onPriorityChange, onDueDateChange, onTrash }: Props =
     $props();
 
   let showDeleteConfirm = $state(false);
@@ -49,6 +51,12 @@
       <div style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; color: var(--text-secondary);">
         <span>Priority:</span>
         <PriorityFlag priority={task.priority} onChange={onPriorityChange} />
+        <DatePicker
+          value={task.due_date ?? ""}
+          label=""
+          placeholder="Due date"
+          onchange={(val) => onDueDateChange?.(val || null)}
+        />
       </div>
     </div>
   </div>

@@ -13,6 +13,7 @@
   const OPTIONS: Array<{ mode: TaskSortMode; label: string }> = [
     { mode: "created", label: "Created" },
     { mode: "priority", label: "Priority" },
+    { mode: "due_date", label: "Due date" },
     { mode: "manual", label: "Manual" },
   ];
 

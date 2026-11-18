@@ -2,16 +2,18 @@
   import type { TaskStatus, TaskPriority } from '$lib/types/tasks';
   import TaskMetaFields from './TaskMetaFields.svelte';
   import RichTextEditor from './RichTextEditor.svelte';
+  import DatePicker from '$lib/components/DatePicker.svelte';
 
   interface Props {
     title: string;
     descriptionHtml: string;
     status: TaskStatus;
     priority: TaskPriority;
+    dueDate?: string | null;
     listId: number | string;
     excludeTaskId?: number | string;
     isEditing?: boolean;
-    onSave: (payload: { title: string; descriptionHtml: string; status: TaskStatus; priority: TaskPriority }) => Promise<void>;
+    onSave: (payload: { title: string; descriptionHtml: string; status: TaskStatus; priority: TaskPriority; dueDate: string | null }) => Promise<void>;
     onCancel: () => void;
   }
 
@@ -20,6 +22,7 @@
     descriptionHtml = $bindable(),
     status = $bindable(),
     priority = $bindable(),
+    dueDate = $bindable(null),
     listId,
     excludeTaskId,
     isEditing = false,
@@ -38,7 +41,8 @@
         title: title.trim(),
         descriptionHtml,
         status,
-        priority
+        priority,
+        dueDate: dueDate || null
       });
     } finally {
       isSubmitting = false;
@@ -53,7 +57,6 @@
       placeholder="Task title..."
       bind:value={title}
       required
-      autofocus
       class="tasks-input"
       style="width: 100%; font-size: 1.15rem; font-weight: 600; padding: 0.6rem 0.75rem;"
     />
@@ -66,8 +69,17 @@
     onPriorityChange={(p) => (priority = p)}
   />
 
+  <div>
+    <DatePicker
+      value={dueDate ?? ""}
+      label="Due date"
+      placeholder="Select due date..."
+      onchange={(val) => (dueDate = val || null)}
+    />
+  </div>
+
   <div class="tasks-form-group">
-    <label class="tasks-form-label">Description</label>
+    <span class="tasks-form-label">Description</span>
     <RichTextEditor
       contentHtml={descriptionHtml}
       {listId}

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { page } from "$app/state";
-  import { replaceState } from "$app/navigation";
+  import { goto, replaceState } from "$app/navigation";
   import { tasksStore } from "$lib/state/tasks.svelte";
   import type {
     TaskSortMode,
@@ -88,6 +88,11 @@
       totalFiltered={tasksStore.totalFiltered}
       totalLive={tasksStore.totalLive}
       {hasActiveFilters}
+      onRename={(name) => tasksStore.renameList(listId, name)}
+      onDelete={async () => {
+        await tasksStore.removeListBundle(listId);
+        goto("/tasks");
+      }}
     />
 
     <Toolbar
@@ -98,6 +103,26 @@
       onStatusChange={handleStatusChange}
       onPriorityChange={handlePriorityChange}
     />
+
+    <div style="display: flex; align-items: center; gap: 0.375rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+      {#each [
+        { id: "all", label: "All" },
+        { id: "today", label: "Today" },
+        { id: "yesterday", label: "Yesterday" },
+        { id: "later", label: "Later" },
+        { id: "due", label: "Due" },
+        { id: "no_due", label: "No due" },
+      ] as tab (tab.id)}
+        <button
+          type="button"
+          onclick={() => tasksStore.setDueTab(tab.id as "all" | "today" | "yesterday" | "later" | "due" | "no_due")}
+          class="tasks-btn {tasksStore.dueTab === tab.id ? 'tasks-btn-primary' : 'tasks-btn-ghost'}"
+          style="padding: 0.3125rem 0.75rem; font-size: 0.8125rem;"
+        >
+          {tab.label}
+        </button>
+      {/each}
+    </div>
 
     <TaskTable
       tasks={tasksStore.tasks}
@@ -111,6 +136,7 @@
       onToggleSelectAll={tasksStore.toggleSelectAllLoaded}
       onStatusChange={tasksStore.patchTaskStatus}
       onPriorityChange={tasksStore.patchTaskPriority}
+      onDueDateChange={tasksStore.patchTaskDueDate}
       onLoadMore={tasksStore.loadMore}
       onClearFilters={handleClearFilters}
       onReorder={tasksStore.reorderTasksLocally}
