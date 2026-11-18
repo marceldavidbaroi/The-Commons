@@ -165,4 +165,10 @@
 		width: 17px;
 		height: 17px;
 	}
+
+	@media (max-width: 768px) {
+		.activity-ribbon {
+			display: none;
+		}
+	}
 </style>

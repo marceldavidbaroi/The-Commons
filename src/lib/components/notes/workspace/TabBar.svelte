@@ -280,4 +280,27 @@
 		width: 15px;
 		height: 15px;
 	}
+
+	@media (hover: none), (max-width: 768px) {
+		.tab-item.active .tab-btn,
+		.tab-item .close-btn {
+			opacity: 1;
+		}
+
+		.tab-btn {
+			width: 22px;
+			height: 22px;
+		}
+	}
+
+	@media (max-width: 768px) {
+		.tab-bar {
+			height: 40px;
+			min-height: 40px;
+		}
+
+		.pane-controls {
+			display: none;
+		}
+	}
 </style>

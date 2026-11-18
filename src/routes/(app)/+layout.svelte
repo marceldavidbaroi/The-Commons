@@ -497,7 +497,7 @@
 
 	<!-- Main Content Area -->
 	<main class="main-content">
-		<div class="content-wrapper">
+		<div class="content-wrapper" class:full-bleed={page.url.pathname.startsWith("/notes")}>
 			{@render children()}
 		</div>
 	</main>
@@ -986,6 +986,15 @@
 		box-sizing: border-box;
 	}
 
+	.content-wrapper.full-bleed {
+		max-width: none;
+		padding: 0;
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+	}
+
 	/* Mobile responsive styles */
 	@media (max-width: 768px) {
 		.app-layout {
@@ -1087,6 +1096,10 @@
 
 		.content-wrapper {
 			padding: 0.875rem 1rem calc(env(safe-area-inset-bottom, 0px) + 2rem);
+		}
+
+		.content-wrapper.full-bleed {
+			padding: 0;
 		}
 	}
 </style>

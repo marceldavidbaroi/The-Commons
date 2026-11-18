@@ -12,6 +12,12 @@
 </script>
 
 {#if isOpen}
+	<button
+		type="button"
+		class="dock-mobile-backdrop"
+		aria-label="Close Inspector"
+		onclick={toggleDock}
+	></button>
 	<aside class="context-dock" aria-label="Context Inspector Dock">
 		<div class="dock-header">
 			<div class="header-left">
@@ -122,5 +128,35 @@
 		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
+	}
+
+	.dock-mobile-backdrop {
+		display: none;
+	}
+
+	@media (max-width: 768px) {
+		.dock-mobile-backdrop {
+			display: block;
+			position: fixed;
+			inset: 48px 0 0 0;
+			background: rgba(0, 0, 0, 0.35);
+			z-index: 40;
+			border: none;
+			padding: 0;
+			cursor: pointer;
+		}
+
+		.context-dock {
+			position: fixed;
+			top: 48px;
+			right: 0;
+			bottom: calc(50px + env(safe-area-inset-bottom, 0px));
+			width: min(360px, 92vw);
+			min-width: 0;
+			max-width: none;
+			height: auto;
+			z-index: 45;
+			box-shadow: -4px 0 16px rgba(0, 0, 0, 0.15);
+		}
 	}
 </style>

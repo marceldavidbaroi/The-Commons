@@ -277,4 +277,19 @@
 		margin-bottom: 12px;
 		color: var(--text-muted);
 	}
+
+	@media (max-width: 768px) {
+		.pane-container {
+			min-width: 0;
+			border-right: none;
+		}
+
+		.pane-container:not(.focused) {
+			display: none;
+		}
+
+		.pane-container.focused {
+			box-shadow: none;
+		}
+	}
 </style>

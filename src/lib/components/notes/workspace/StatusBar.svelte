@@ -193,4 +193,10 @@
 		width: 12px;
 		height: 12px;
 	}
+
+	@media (max-width: 768px) {
+		.status-bar {
+			display: none;
+		}
+	}
 </style>
