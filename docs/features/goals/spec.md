@@ -34,7 +34,7 @@ goals (1)
  ├──< milestones (N)
  │     ├──< definition_of_done_items (N)   [Milestone-level exit criteria]
  │     └──< goal_modules (N)               [Workstreams / Epics]
- │           └──< tasks (N)                [1–3 hr atomic work packages]
+ │           └──< goal_tasks (N)           [1–3 hr atomic work packages]
  └──< definition_of_done_items (N)         [Project-level final outcome DoD]
 ```
 
@@ -43,7 +43,7 @@ goals (1)
 | Column | Type | Constraints / Notes |
 | --- | --- | --- |
 | id | bigint | PK, GENERATED ALWAYS AS IDENTITY |
-| user_id | bigint | FK → users(id), NOT NULL |
+| user_id | uuid | FK → auth.users(id), NOT NULL |
 | title | text | NOT NULL |
 | north_star | text | NOT NULL (Qualitative objective / "Why") |
 | final_outcome | text | NOT NULL (Description of the final capstone deliverable) |
