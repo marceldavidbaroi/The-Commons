@@ -38,7 +38,7 @@
 		// Initialize vault notes, folders, and connections
 		notesStore.initialize();
 
-		// Keyboard shortcut handler for Cmd/Ctrl+P, Cmd/Ctrl+O, Cmd/Ctrl+B
+		// Keyboard shortcut handler for Cmd/Ctrl+P, Cmd/Ctrl+O
 		function handleGlobalKeydown(e: KeyboardEvent) {
 			const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 			const modifier = isMac ? e.metaKey : e.ctrlKey;
@@ -46,9 +46,6 @@
 			if (modifier && (e.key === 'p' || e.key === 'P' || e.key === 'o' || e.key === 'O')) {
 				e.preventDefault();
 				notesStore.commandPaletteOpen = !notesStore.commandPaletteOpen;
-			} else if (modifier && (e.key === 'b' || e.key === 'B')) {
-				e.preventDefault();
-				explorerOpen = !explorerOpen;
 			} else if (e.key === 'Escape') {
 				if (notesStore.commandPaletteOpen) {
 					notesStore.commandPaletteOpen = false;

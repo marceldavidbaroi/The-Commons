@@ -1,3 +1,7 @@
+<script module lang="ts">
+	const noteScrollPositions = new Map<string, number>();
+</script>
+
 <script lang="ts">
 	import { onMount, onDestroy, untrack } from 'svelte';
 	import { Editor } from '@tiptap/core';
@@ -181,7 +185,24 @@
 				notesStore.updateNoteContentLocal(note.id, md);
 			}
 		});
+		restoreScroll(note.id);
 	});
+
+	let scrollAreaEl: HTMLDivElement | null = null;
+
+	function handleScroll() {
+		if (scrollAreaEl) {
+			noteScrollPositions.set(note.id, scrollAreaEl.scrollTop);
+		}
+	}
+
+	function restoreScroll(id: string) {
+		requestAnimationFrame(() => {
+			if (scrollAreaEl) {
+				scrollAreaEl.scrollTop = noteScrollPositions.get(id) ?? 0;
+			}
+		});
+	}
 
 	// Sync when switching to a different note in the same pane
 	$effect(() => {
@@ -195,6 +216,7 @@
 			if (editor) {
 				editor.commands.setContent(mdToHtml(nextContent), { emitUpdate: false });
 			}
+			restoreScroll(nextId);
 		} else if (nextTitle !== titleInput && document.activeElement?.tagName !== 'INPUT') {
 			titleInput = nextTitle;
 		}
@@ -299,7 +321,7 @@
 		</div>
 	{/if}
 
-	<div class="editor-scroll-area">
+	<div class="editor-scroll-area" bind:this={scrollAreaEl} onscroll={handleScroll}>
 		<div bind:this={editorEl} class="editor-mount"></div>
 	</div>
 </div>
