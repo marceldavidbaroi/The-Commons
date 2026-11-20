@@ -75,6 +75,10 @@
 
 # Common & List Page Design System Rules
 
+## 0. Global Container Padding (No Module-Level Outer Padding)
+- **Single Source of Truth**: `.content-wrapper` in `src/routes/(app)/+layout.svelte` controls all outer page padding dynamically via `clamp()`.
+- **No Module Internal Padding**: Feature modules (`tasks`, `goals`, `flashcards`, etc.) and route containers (`.tasks-container`, `.goals-page`, etc.) must **never** add their own outer `padding` or vertical `margin` around the page wrapper. Use `full-bleed` on `.content-wrapper` only when a module genuinely needs edge-to-edge rendering (e.g. `notes`).
+
 ## 1. Vertical Budget & Information Density (Anti-Layer-Cake)
 - **Max 2 Tiers Above Content**: The header area above any list or working canvas must NEVER exceed 2 compact vertical tiers (~80–90px total height combined):
   - **Tier 1 (Header & Primary Action)**: Page title / breadcrumb context + item count badge on the left; primary CTA (e.g. `+ Inscribe Goal`, `+ New Entry`) on the right (~40–44px).

@@ -382,8 +382,7 @@
 	.builder-content {
 		max-width: 680px;
 		width: 100%;
-		margin: 1.25rem auto;
-		padding: 0 1rem;
+		margin: 0 auto;
 		box-sizing: border-box;
 		display: flex;
 		flex-direction: column;
