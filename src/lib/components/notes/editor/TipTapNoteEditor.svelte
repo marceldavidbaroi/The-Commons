@@ -150,6 +150,10 @@
 				attributes: {
 					class: 'tiptap-prose'
 				},
+				transformPastedHTML: (html: string) =>
+					html
+						.replace(/<p[^>]*>(?:\s|<br\s*\/?>|&nbsp;)*<\/p>/gi, '')
+						.replace(/(<\/(?:p|ul|ol|li|h[1-6]|blockquote|pre|div)>)\s*(?:<br\s*\/?>\s*)+/gi, '$1'),
 				handleClick: (_view, _pos, event) => {
 					const target = (event.target as HTMLElement)?.closest?.('[data-wiki-target]');
 					if (!target) return false;
@@ -434,6 +438,15 @@
 	:global(.tiptap-prose ol) {
 		padding-left: 1.5rem;
 		margin: 0.4rem 0;
+	}
+
+	:global(.tiptap-prose li p) {
+		margin: 0;
+	}
+
+	:global(.tiptap-prose li > ul),
+	:global(.tiptap-prose li > ol) {
+		margin: 0.15rem 0 0;
 	}
 
 	:global(.tiptap-prose ul[data-type='taskList']) {
