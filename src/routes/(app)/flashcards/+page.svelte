@@ -689,12 +689,16 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		height: 40px;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		min-height: 40px;
 	}
 
 	.header-left {
 		display: flex;
 		align-items: center;
+		flex-wrap: wrap;
+		min-width: 0;
 		gap: 0.625rem;
 	}
 
@@ -721,7 +725,14 @@
 	.header-actions {
 		display: flex;
 		align-items: center;
+		flex-wrap: wrap;
 		gap: 0.5rem;
+	}
+
+	@media (max-width: 640px) {
+		.page-title {
+			font-size: 1.15rem;
+		}
 	}
 
 	/* Working Canvas */

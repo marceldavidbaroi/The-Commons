@@ -16,6 +16,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid var(--border-subtle);
 }
@@ -23,7 +25,23 @@
 .tasks-header-left {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
   gap: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .tasks-header {
+    padding-bottom: 0.75rem;
+  }
+
+  .tasks-header-left {
+    gap: 0.5rem;
+  }
+
+  .tasks-title {
+    font-size: 1.15rem;
+  }
 }
 
 .tasks-title {
