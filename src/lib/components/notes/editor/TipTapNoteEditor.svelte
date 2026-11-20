@@ -112,11 +112,20 @@
 	}
 
 	const isUnsaved = $derived(notesStore.unsavedNotes.has(note.id));
+	let showClearConfirm = $state(false);
 
 	async function handleSave() {
 		if (!editor) return;
 		const md = htmlToMd(editor.getHTML());
 		await notesStore.saveNoteContent(note.id, md);
+	}
+
+	function confirmClear() {
+		const restored = notesStore.discardUnsavedChanges(note.id);
+		if (restored !== null && editor) {
+			editor.commands.setContent(mdToHtml(restored), { emitUpdate: false });
+		}
+		showClearConfirm = false;
 	}
 
 	function handleTitleBlur() {
@@ -314,6 +323,18 @@
 				</button>
 			{/if}
 
+			{#if isUnsaved}
+				<button
+					type="button"
+					class="action-btn clear-btn"
+					disabled={notesStore.isSaving}
+					onclick={() => (showClearConfirm = true)}
+					title="Discard unsaved changes"
+				>
+					Clear
+				</button>
+			{/if}
+
 			<button
 				type="button"
 				class="action-btn save-btn"
@@ -331,6 +352,40 @@
 			</button>
 		</div>
 	</div>
+
+	{#if showClearConfirm}
+		<div
+			class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="clear-confirm-title"
+		>
+			<div class="w-full max-w-sm rounded-lg border border-border bg-card p-5 shadow-lg">
+				<h3 id="clear-confirm-title" class="text-base font-semibold text-foreground">
+					Discard unsaved changes?
+				</h3>
+				<p class="mt-2 text-sm text-muted-foreground">
+					This will revert all unsaved edits in this note back to the last saved version.
+				</p>
+				<div class="mt-4 flex justify-end gap-2">
+					<button
+						type="button"
+						class="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
+						onclick={() => (showClearConfirm = false)}
+					>
+						Cancel
+					</button>
+					<button
+						type="button"
+						class="rounded-md bg-destructive px-3 py-1.5 text-sm font-medium text-destructive-foreground hover:bg-destructive/90"
+						onclick={confirmClear}
+					>
+						Discard
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
 
 	{#if inTable}
 		<div class="table-toolbar">

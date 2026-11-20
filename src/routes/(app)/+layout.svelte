@@ -44,6 +44,11 @@
 			icon: "tasks",
 		},
 		{
+			path: "/goals",
+			label: "Goals",
+			icon: "tasks",
+		},
+		{
 			path: "/flashcards",
 			label: "Flashcards",
 			icon: "flashcards",

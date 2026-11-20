@@ -476,6 +476,7 @@ export class NotesStore {
 
   // Set of note IDs that have local changes waiting to be saved
   unsavedNotes = $state<Set<string>>(new Set());
+  private savedContentSnapshots = new Map<string, string>();
 
   /**
    * Update note content locally immediately without auto-calling the API
@@ -483,6 +484,10 @@ export class NotesStore {
   updateNoteContentLocal(noteId: string, newContent: string) {
     const existing = this.activeNotesCache.get(noteId);
     if (!existing) return;
+
+    if (!this.unsavedNotes.has(noteId)) {
+      this.savedContentSnapshots.set(noteId, existing.content ?? '');
+    }
 
     // 1. Immediate in-memory update
     const updated: NoteDetail = {
@@ -518,6 +523,7 @@ export class NotesStore {
       const nextUnsaved = new Set(this.unsavedNotes);
       nextUnsaved.delete(noteId);
       this.unsavedNotes = nextUnsaved;
+      this.savedContentSnapshots.delete(noteId);
       return true;
     } catch (err) {
       console.error('Failed to save note:', err);
@@ -525,6 +531,32 @@ export class NotesStore {
     } finally {
       this.isSaving = false;
     }
+  }
+
+  /**
+   * Discard unsaved local changes and restore the last saved content
+   */
+  discardUnsavedChanges(noteId: string): string | null {
+    const existing = this.activeNotesCache.get(noteId);
+    const originalContent = this.savedContentSnapshots.get(noteId);
+
+    if (existing && originalContent !== undefined) {
+      const restored: NoteDetail = {
+        ...existing,
+        content: originalContent
+      };
+      const nextCache = new Map(this.activeNotesCache);
+      nextCache.set(noteId, restored);
+      this.activeNotesCache = nextCache;
+      this.parseOutgoingWikiLinks(noteId, originalContent);
+    }
+
+    const nextUnsaved = new Set(this.unsavedNotes);
+    nextUnsaved.delete(noteId);
+    this.unsavedNotes = nextUnsaved;
+    this.savedContentSnapshots.delete(noteId);
+
+    return originalContent ?? null;
   }
 
   /**
