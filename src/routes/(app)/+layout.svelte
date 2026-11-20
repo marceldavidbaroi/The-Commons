@@ -49,21 +49,6 @@
 			icon: "flashcards",
 		},
 		{
-			path: "/diaries",
-			label: "Journals",
-			icon: "journals",
-		},
-		{
-			path: "/goals",
-			label: "Goals",
-			icon: "goals",
-		},
-		{
-			path: "/homeops",
-			label: "HomeOps",
-			icon: "homeops",
-		},
-		{
 			path: "/settings",
 			label: "Settings",
 			icon: "settings",
@@ -210,54 +195,6 @@
 		>
 			<rect x="2" y="7" width="16" height="13" rx="2" />
 			<path d="M6 3h14a2 2 0 0 1 2 2v12" />
-		</svg>
-	{:else if iconName === "journals"}
-		<svg
-			class="sidebar-icon"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-		>
-			<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-			<path
-				d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"
-			/>
-		</svg>
-	{:else if iconName === "goals"}
-		<svg
-			class="sidebar-icon"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-		>
-			<circle cx="12" cy="12" r="10" />
-			<circle cx="12" cy="12" r="6" />
-			<circle cx="12" cy="12" r="2" />
-		</svg>
-	{:else if iconName === "homeops"}
-		<svg
-			class="sidebar-icon"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-		>
-			<path d="M12 2v4" />
-			<path d="M12 18v4" />
-			<path d="m4.93 4.93 2.83 2.83" />
-			<path d="m16.24 16.24 2.83 2.83" />
-			<path d="M2 12h4" />
-			<path d="M18 12h4" />
-			<path d="m4.93 19.07 2.83-2.83" />
-			<path d="m16.24 7.76 2.83-2.83" />
 		</svg>
 	{:else if iconName === "settings"}
 		<svg

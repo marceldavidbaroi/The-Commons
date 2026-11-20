@@ -1,6 +1,25 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { getSupabaseClient } from '$lib/supabase';
 	import CommonsLogo from '$lib/components/brand/CommonsLogo.svelte';
 	import ThemeSelector from '$lib/components/ThemeSelector.svelte';
+
+	let checkingAuth = $state(true);
+
+	onMount(async () => {
+		try {
+			const supabase = getSupabaseClient();
+			const { data } = await supabase.auth.getSession();
+			if (data?.session) {
+				await goto('/home', { replaceState: true });
+				return;
+			}
+		} catch (err) {
+			console.error('Auth session check failed:', err);
+		}
+		checkingAuth = false;
+	});
 
 	const features = [
 		{
@@ -25,6 +44,7 @@
 	<title>The Commons - Personal Workspace & Archival Journal</title>
 </svelte:head>
 
+{#if !checkingAuth}
 <div class="landing">
 	<!-- Top Editorial Header -->
 	<header class="landing-nav">
@@ -128,6 +148,7 @@
 		</div>
 	</footer>
 </div>
+{/if}
 
 <style>
 	.landing {

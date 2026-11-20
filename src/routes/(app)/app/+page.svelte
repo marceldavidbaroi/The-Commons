@@ -9,8 +9,6 @@
 			<p class="page-subtitle">Welcome back, citizen. Here is your ledger summary for today.</p>
 		</div>
 		<div class="header-actions">
-			<a href="/app/my-diaries" class="btn btn-secondary">Open Diary</a>
-			<a href="/app/goals" class="btn btn-primary">+ Inscribe Goal</a>
 		</div>
 	</header>
 
