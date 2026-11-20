@@ -18,6 +18,22 @@
 	// Local editable state
 	let title = $state<string>(note.title);
 	let content = $state<string>(note.content);
+	let copied = $state(false);
+	let copyTimeout: ReturnType<typeof setTimeout> | null = null;
+
+	async function handleCopyMarkdown() {
+		const markdown = title.trim() ? `# ${title.trim()}\n\n${content}` : content;
+		try {
+			await navigator.clipboard.writeText(markdown);
+			copied = true;
+			if (copyTimeout) clearTimeout(copyTimeout);
+			copyTimeout = setTimeout(() => {
+				copied = false;
+			}, 2000);
+		} catch (err) {
+			console.error('Failed to copy markdown:', err);
+		}
+	}
 
 	// History stack for Undo/Redo
 	let history = $state<string[]>([note.content]);
@@ -687,6 +703,27 @@
 		/>
 
 		<div class="editor-actions">
+			<!-- Copy as Markdown button -->
+			<button
+				type="button"
+				class="btn-action-outline"
+				onclick={handleCopyMarkdown}
+				title="Copy note as Markdown"
+			>
+				{#if copied}
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="action-icon">
+						<polyline points="20 6 9 17 4 12"></polyline>
+					</svg>
+					<span>Copied</span>
+				{:else}
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="action-icon">
+						<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+						<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+					</svg>
+					<span>Copy</span>
+				{/if}
+			</button>
+
 			<!-- Move to Folder button -->
 			<button
 				type="button"

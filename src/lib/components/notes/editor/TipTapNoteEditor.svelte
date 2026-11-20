@@ -28,6 +28,24 @@
 	let editorEl: HTMLDivElement | undefined = $state();
 	let editor: Editor | undefined = $state();
 	let titleInput = $state(untrack(() => note.title));
+	let copied = $state(false);
+	let copyTimeout: ReturnType<typeof setTimeout> | null = null;
+
+	async function handleCopyMarkdown() {
+		const body = editor ? htmlToMd(editor.getHTML()) : (note.content ?? '');
+		const trimmedTitle = titleInput.trim();
+		const markdown = trimmedTitle ? `# ${trimmedTitle}\n\n${body}` : body;
+		try {
+			await navigator.clipboard.writeText(markdown);
+			copied = true;
+			if (copyTimeout) clearTimeout(copyTimeout);
+			copyTimeout = setTimeout(() => {
+				copied = false;
+			}, 2000);
+		} catch (err) {
+			console.error('Failed to copy markdown:', err);
+		}
+	}
 	let currentNoteId = $state(untrack(() => note.id));
 	let inTable = $state(false);
 
@@ -250,6 +268,15 @@
 		/>
 
 		<div class="editor-actions">
+			<button
+				type="button"
+				class="action-btn"
+				title="Copy note as Markdown"
+				onclick={handleCopyMarkdown}
+			>
+				{copied ? 'Copied' : 'Copy'}
+			</button>
+
 			<button
 				type="button"
 				class="action-btn"
