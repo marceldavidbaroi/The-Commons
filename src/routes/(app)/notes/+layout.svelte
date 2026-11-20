@@ -17,15 +17,30 @@
 
 	let explorerOpen = $state<boolean>(true);
 	let lastActiveNoteId = $state<string | null>(null);
+	let initialized = $state<boolean>(false);
 
 	const isGraphRoute = $derived(page.url.pathname.includes('/notes/graph'));
 
 	$effect(() => {
-		const currentId = notesStore.activeNote?.id ?? null;
+		const currentId =
+			notesStore.activeTab?.type === 'note' ? (notesStore.activeTab.noteId ?? null) : null;
 		if (currentId !== lastActiveNoteId) {
 			lastActiveNoteId = currentId;
 			if (typeof window !== 'undefined' && window.innerWidth <= 768 && currentId) {
 				explorerOpen = false;
+			}
+		}
+
+		if (initialized && !isGraphRoute) {
+			const urlNoteId = page.url.searchParams.get('note');
+			if (urlNoteId !== currentId) {
+				const url = new URL(page.url);
+				if (currentId) {
+					url.searchParams.set('note', currentId);
+				} else {
+					url.searchParams.delete('note');
+				}
+				goto(url, { replaceState: true, keepFocus: true, noScroll: true });
 			}
 		}
 	});
@@ -35,8 +50,15 @@
 			explorerOpen = false;
 		}
 
+		const initialNoteId = page.url.searchParams.get('note');
+
 		// Initialize vault notes, folders, and connections
-		notesStore.initialize();
+		notesStore.initialize().then(() => {
+			if (initialNoteId && notesStore.notes.some((n) => n.id === initialNoteId)) {
+				notesStore.openNoteInActivePane(initialNoteId);
+			}
+			initialized = true;
+		});
 
 		// Keyboard shortcut handler for Cmd/Ctrl+P, Cmd/Ctrl+O
 		function handleGlobalKeydown(e: KeyboardEvent) {
