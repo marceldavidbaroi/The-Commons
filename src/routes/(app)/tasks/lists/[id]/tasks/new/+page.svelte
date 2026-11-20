@@ -3,7 +3,7 @@
   import { goto } from "$app/navigation";
   import type { TaskStatus, TaskPriority } from "$lib/types/tasks";
   import TaskForm from "$lib/components/tasks/editor/TaskForm.svelte";
-  import * as tasksService from "$lib/services/tasks-service";
+  import { tasksStore } from "$lib/state/tasks.svelte";
 
   const listId = $derived(page.params.id as string);
 
@@ -20,7 +20,7 @@
     priority: TaskPriority;
     dueDate: string | null;
   }) {
-    const created = await tasksService.createTask({
+    await tasksStore.addTask({
       list_id: listId,
       title: payload.title,
       description_html: payload.descriptionHtml,
@@ -29,7 +29,7 @@
       due_date: payload.dueDate,
     });
 
-    goto(`/tasks/lists/${listId}/tasks/${created.id}`);
+    goto(`/tasks/lists/${listId}`);
   }
 
   function handleCancel() {

@@ -61,13 +61,27 @@ export function createTasksStore() {
   }
 
   async function initList(listId: number | string, initialStatus?: TaskStatus[], initialPriority?: TaskPriority[]) {
+    const numListId = Number(listId);
+    const nextStatus = initialStatus || [];
+    const nextPriority = initialPriority || [];
+
+    const sameFilters =
+      statusFilters.length === nextStatus.length &&
+      priorityFilters.length === nextPriority.length &&
+      statusFilters.every((s, i) => s === nextStatus[i]) &&
+      priorityFilters.every((p, i) => p === nextPriority[i]);
+
+    if (currentList?.id === numListId && sameFilters) {
+      selectedTaskIds = [];
+      return;
+    }
+
     isLoading = true;
     selectedTaskIds = [];
-    statusFilters = initialStatus || [];
-    priorityFilters = initialPriority || [];
-    const numListId = Number(listId);
+    statusFilters = nextStatus;
+    priorityFilters = nextPriority;
     try {
-      const listData = await tasksService.fetchListById(numListId);
+      const listData = lists.find((l) => l.id === numListId) ?? await tasksService.fetchListById(numListId);
       currentList = listData;
       if (!listData) {
         tasks = [];
@@ -171,6 +185,34 @@ export function createTasksStore() {
     }
   }
 
+  async function addTask(payload: {
+    list_id: number | string;
+    title: string;
+    description_html?: string;
+    status?: TaskStatus;
+    priority?: TaskPriority;
+    due_date?: string | null;
+  }): Promise<TaskRecord> {
+    const numListId = Number(payload.list_id);
+    const isCurrentList = currentList?.id === numListId;
+    const nextPos = isCurrentList
+      ? tasks.reduce((max, t) => Math.max(max, t.position || 0), 0) + 1
+      : undefined;
+
+    const created = await tasksService.createTask({
+      ...payload,
+      position: nextPos
+    });
+
+    if (isCurrentList) {
+      tasks = [...tasks, created];
+      totalLive += 1;
+      totalFiltered += 1;
+    }
+
+    return created;
+  }
+
   // Inline status update (optimistic, row stays in place)
   async function patchTaskStatus(taskId: number | string, status: TaskStatus) {
     const numTaskId = Number(taskId);
@@ -256,6 +298,7 @@ export function createTasksStore() {
     renameList,
     removeListBundle,
     initList,
+    addTask,
     loadMore,
     applyFilters,
     setDueTab,

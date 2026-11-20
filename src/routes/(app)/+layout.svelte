@@ -924,7 +924,7 @@
 		width: 100%;
 		max-width: 1100px;
 		margin: 0 auto;
-		padding: 1.25rem 1.75rem 3rem;
+		padding: clamp(0.375rem, 1.5vw, 1.25rem) clamp(0.375rem, 2vw, 1.75rem) clamp(1rem, 4vw, 3rem);
 		box-sizing: border-box;
 	}
 

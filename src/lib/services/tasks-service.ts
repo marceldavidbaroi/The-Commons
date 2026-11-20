@@ -312,21 +312,25 @@ export async function createTask(
     status?: TaskStatus;
     priority?: TaskPriority;
     due_date?: string | null;
+    position?: number;
   },
   customClient?: SupabaseClient<Database>
 ): Promise<TaskRecord> {
   const supabase = getClient(customClient);
   const numericListId = Number(payload.list_id);
 
-  // Compute position as max(position) + 1 for manual sorting mode
-  const { data: maxPosData } = await supabase
-    .from('tasks')
-    .select('position')
-    .eq('list_id', numericListId)
-    .order('position', { ascending: false })
-    .limit(1);
+  let nextPos = payload.position;
+  if (nextPos === undefined) {
+    // Compute position as max(position) + 1 for manual sorting mode
+    const { data: maxPosData } = await supabase
+      .from('tasks')
+      .select('position')
+      .eq('list_id', numericListId)
+      .order('position', { ascending: false })
+      .limit(1);
 
-  const nextPos = maxPosData && maxPosData.length > 0 ? (maxPosData[0].position || 0) + 1 : 1;
+    nextPos = maxPosData && maxPosData.length > 0 ? (maxPosData[0].position || 0) + 1 : 1;
+  }
 
   const descHtml = payload.description_html ?? '';
   const { data, error } = await supabase
@@ -350,8 +354,10 @@ export async function createTask(
 
   const created = data as TaskRecord;
 
-  // Sync [[ task links
-  await syncTaskLinks(created.id, descHtml, customClient);
+  // Sync [[ task links only if any exist in description
+  if (extractTaskIdsFromHtml(descHtml).length > 0) {
+    await syncTaskLinks(created.id, descHtml, customClient);
+  }
 
   return created;
 }
