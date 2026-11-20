@@ -171,13 +171,13 @@
 				<div style="display: flex; flex-direction: column; gap: 16px;">
 					<div class="goals-modules-header">
 						<h2 class="goals-section-title">Modules ({draft.modules.length})</h2>
-						<form onsubmit={handleAddModule} style="display: flex; align-items: center; gap: 8px;">
+						<form onsubmit={handleAddModule} class="goals-inline-form" style="padding-top: 0; flex: 1; justify-content: flex-end;">
 							<input
 								type="text"
 								bind:value={newModuleTitle}
 								placeholder="New module title..."
 								class="goals-input"
-								style="width: 220px;"
+								style="flex: 1; min-width: 180px; max-width: 320px;"
 							/>
 							<button
 								type="submit"

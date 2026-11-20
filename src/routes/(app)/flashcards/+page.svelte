@@ -31,6 +31,8 @@
 	// Cards inside the current deck folder
 	let folderCards = $state<DueTodayItem[]>([]);
 	let isLoadingFolderCards = $state(false);
+	let isLoadingMoreFolderCards = $state(false);
+	let hasMoreFolderCards = $state(false);
 	let selectedFolderCardIds = $state<(number | string)[]>([]);
 	let isDeletingBulkCards = $state(false);
 
@@ -43,18 +45,48 @@
 			loadFolderCards(currentDeckFolderId);
 		} else {
 			folderCards = [];
+			hasMoreFolderCards = false;
 		}
 	});
 
 	async function loadFolderCards(deckId: number | string) {
 		isLoadingFolderCards = true;
+		hasMoreFolderCards = false;
 		selectedFolderCardIds = [];
 		try {
-			folderCards = await fetchCardsForDeck(deckId);
+			const batch = await fetchCardsForDeck(deckId, { limit: 20 });
+			folderCards = batch;
+			hasMoreFolderCards = batch.length === 20;
 		} catch (err) {
 			console.error("Failed to load cards for deck:", err);
 		} finally {
 			isLoadingFolderCards = false;
+		}
+	}
+
+	async function loadMoreFolderCards() {
+		if (
+			!currentDeckFolderId ||
+			isLoadingMoreFolderCards ||
+			!hasMoreFolderCards ||
+			folderCards.length === 0
+		) {
+			return;
+		}
+		isLoadingMoreFolderCards = true;
+		try {
+			const lastCard = folderCards[folderCards.length - 1];
+			const nextBatch = await fetchCardsForDeck(currentDeckFolderId, {
+				limit: 20,
+				cursorCreatedAt: lastCard.created_at,
+				cursorId: lastCard.id,
+			});
+			folderCards = [...folderCards, ...nextBatch];
+			hasMoreFolderCards = nextBatch.length === 20;
+		} catch (err) {
+			console.error("Failed to load more cards for deck:", err);
+		} finally {
+			isLoadingMoreFolderCards = false;
 		}
 	}
 
@@ -218,14 +250,12 @@
 		cardTypeId: number | string,
 		items: Record<string, string>[],
 	) {
-		for (const fields of items) {
-			await flashcardsStore.createFlashcardNote(
-				deckId,
-				cardTypeId,
-				fields,
-				["csv-import"],
-			);
-		}
+		await flashcardsStore.bulkCreateFlashcardNotes(
+			deckId,
+			cardTypeId,
+			items,
+			["csv-import"],
+		);
 		if (
 			currentDeckFolderId &&
 			String(currentDeckFolderId) === String(deckId)
@@ -563,6 +593,20 @@
 									isPreviewDrawerOpen = true;
 								}}
 							/>
+							{#if hasMoreFolderCards}
+								<div class="load-more-row">
+									<button
+										type="button"
+										class="btn btn-secondary compact"
+										disabled={isLoadingMoreFolderCards}
+										onclick={loadMoreFolderCards}
+									>
+										{isLoadingMoreFolderCards
+											? "Loading..."
+											: "Load More"}
+									</button>
+								</div>
+							{/if}
 						{/if}
 					</div>
 				{/if}
@@ -696,8 +740,10 @@
 
 	.section-header {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
+		gap: 0.5rem;
 		padding-bottom: 0.375rem;
 		border-bottom: 1px solid var(--border-subtle);
 	}
@@ -706,6 +752,7 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
+		min-width: 0;
 	}
 
 	.btn-folder-back {
@@ -734,6 +781,7 @@
 
 	.section-actions-right {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 0.375rem;
 	}
@@ -745,6 +793,9 @@
 		letter-spacing: 0.04em;
 		color: var(--text-secondary);
 		margin: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.section-tally {
@@ -755,6 +806,12 @@
 		background-color: var(--bg-tertiary);
 		padding: 0.0625rem 0.375rem;
 		border-radius: var(--radius-full);
+	}
+
+	.load-more-row {
+		display: flex;
+		justify-content: center;
+		margin-top: 0.75rem;
 	}
 
 	.compact-empty {
