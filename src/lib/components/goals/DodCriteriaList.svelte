@@ -48,20 +48,20 @@
 	}
 </script>
 
-<div class="space-y-2">
+<div style="display: flex; flex-direction: column; gap: 8px;">
 	{#if items.length === 0}
-		<p class="text-sm text-stone-500 dark:text-stone-400">No Definition of Done criteria yet.</p>
+		<p class="goals-muted">No Definition of Done criteria yet.</p>
 	{:else}
-		<ul class="space-y-1.5">
+		<ul class="goals-dod-list">
 			{#each items as item, idx (item.id)}
-				<li class="flex items-center gap-2 rounded-md border border-stone-200 bg-white px-2.5 py-1.5 dark:border-stone-700 dark:bg-stone-900">
-					<div class="flex flex-col">
+				<li class="goals-dod-item">
+					<div class="goals-dod-reorder">
 						<button
 							type="button"
 							onclick={() => moveItem(idx, -1)}
 							disabled={idx === 0}
 							aria-label="Move up"
-							class="text-[10px] leading-none text-stone-400 hover:text-stone-700 disabled:opacity-30 dark:hover:text-stone-200"
+							class="goals-dod-arrow"
 						>
 							▲
 						</button>
@@ -70,7 +70,7 @@
 							onclick={() => moveItem(idx, 1)}
 							disabled={idx === items.length - 1}
 							aria-label="Move down"
-							class="text-[10px] leading-none text-stone-400 hover:text-stone-700 disabled:opacity-30 dark:hover:text-stone-200"
+							class="goals-dod-arrow"
 						>
 							▼
 						</button>
@@ -80,13 +80,13 @@
 						value={item.criterion}
 						oninput={(e) => updateCriterion(item.id, e.currentTarget.value)}
 						placeholder="Binary pass/fail condition..."
-						class="min-w-0 flex-1 bg-transparent text-sm text-stone-900 focus:outline-none dark:text-stone-100"
+						class="goals-inline-input"
 					/>
 					<button
 						type="button"
 						onclick={() => removeCriterion(item.id)}
 						aria-label="Delete criterion"
-						class="rounded px-1.5 py-0.5 text-xs text-stone-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+						class="goals-btn-icon"
 					>
 						✕
 					</button>
@@ -100,19 +100,16 @@
 			e.preventDefault();
 			addCriterion();
 		}}
-		class="flex items-center gap-2 pt-1"
+		class="goals-inline-form"
 	>
 		<input
 			type="text"
 			bind:value={newCriterion}
 			placeholder="+ Add Criterion..."
-			class="min-w-0 flex-1 rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-stone-500 focus:outline-none dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
+			class="goals-input"
+			style="flex: 1;"
 		/>
-		<button
-			type="submit"
-			disabled={!newCriterion.trim()}
-			class="rounded-md border border-stone-300 bg-stone-50 px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-100 disabled:opacity-40 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
-		>
+		<button type="submit" disabled={!newCriterion.trim()} class="goals-btn-secondary">
 			Add
 		</button>
 	</form>

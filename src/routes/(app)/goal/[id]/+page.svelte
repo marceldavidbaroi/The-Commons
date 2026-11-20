@@ -55,25 +55,19 @@
 	const GOAL_STATUSES: GoalStatus[] = ['draft', 'active', 'completed', 'archived'];
 </script>
 
-<div class="min-h-screen pb-16">
-	<!-- Sticky Action Bar (solid background, no blur) -->
-	<div class="sticky top-0 z-30 border-b border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-950">
-		<div class="mx-auto flex max-w-4xl items-center justify-between px-4 py-2.5">
-			<a
-				href="/goals"
-				class="text-sm font-medium text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
-			>
-				← Goals
-			</a>
-			<div class="flex items-center gap-2">
+<div class="goals-detail-page">
+	<div class="goals-sticky-bar">
+		<div class="goals-sticky-bar-inner">
+			<a href="/goals" class="goals-back-link">← Goals</a>
+			<div class="goals-bar-actions">
 				{#if goalsStore.isGoalDirty}
-					<span class="text-xs font-medium text-amber-600 dark:text-amber-400">Unsaved edits</span>
+					<span class="goals-dirty-indicator">Unsaved edits</span>
 				{/if}
 				<button
 					type="button"
 					onclick={() => goalsStore.clearGoalDraft()}
 					disabled={!goalsStore.isGoalDirty || goalsStore.goalSaving}
-					class="rounded-md border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-100 disabled:opacity-40 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
+					class="goals-btn-secondary"
 				>
 					Clear
 				</button>
@@ -81,7 +75,7 @@
 					type="button"
 					onclick={handleSave}
 					disabled={!goalsStore.isGoalDirty || goalsStore.goalSaving}
-					class="rounded-md bg-stone-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-40 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+					class="goals-btn-primary"
 				>
 					{goalsStore.goalSaving ? 'Saving...' : 'Save'}
 				</button>
@@ -89,31 +83,28 @@
 		</div>
 	</div>
 
-	<div class="mx-auto max-w-4xl px-4 pt-6">
+	<div class="goals-detail-container">
 		{#if errorMsg}
-			<div class="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-				{errorMsg}
-			</div>
+			<div class="goals-error" style="margin-bottom: 16px;">{errorMsg}</div>
 		{/if}
 
 		{#if goalsStore.goalLoading && !goalsStore.goalDraft}
-			<p class="text-sm text-stone-500 dark:text-stone-400">Loading goal...</p>
+			<p class="goals-muted">Loading goal...</p>
 		{:else if goalsStore.goalDraft}
 			{@const draft = goalsStore.goalDraft}
-			<div class="space-y-8">
-				<!-- Section 1: North Star Layer -->
-				<section class="space-y-4 rounded-lg border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
-					<div class="flex flex-wrap items-center gap-3">
+			<div class="goals-sections">
+				<section class="goals-section">
+					<div class="goals-title-row">
 						<input
 							type="text"
 							bind:value={draft.title}
 							placeholder="Goal Title"
-							class="min-w-0 flex-1 border-b border-transparent bg-transparent text-xl font-semibold text-stone-900 focus:border-stone-400 focus:outline-none dark:text-stone-100"
+							class="goals-title-input"
 						/>
 						<select
 							bind:value={draft.status}
 							aria-label="Goal status"
-							class="rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-sm font-medium text-stone-800 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-200"
+							class="goals-select-auto"
 						>
 							{#each GOAL_STATUSES as st}
 								<option value={st}>{st.charAt(0).toUpperCase() + st.slice(1)}</option>
@@ -122,62 +113,52 @@
 					</div>
 
 					<div>
-						<label for="north-star" class="block text-xs font-medium uppercase tracking-wide text-stone-500 dark:text-stone-400">
-							North Star (Objective / Why)
-						</label>
+						<label for="north-star" class="goals-field-label">North Star (Objective / Why)</label>
 						<textarea
 							id="north-star"
 							rows="2"
 							value={draft.north_star ?? ''}
 							oninput={(e) => (draft.north_star = e.currentTarget.value || null)}
 							placeholder="Qualitative direction and purpose..."
-							class="mt-1 w-full rounded-md border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-900 focus:border-stone-400 focus:bg-white focus:outline-none dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
+							class="goals-textarea"
 						></textarea>
 					</div>
 
 					<div>
-						<label for="final-outcome" class="block text-xs font-medium uppercase tracking-wide text-stone-500 dark:text-stone-400">
-							Final Outcome
-						</label>
+						<label for="final-outcome" class="goals-field-label">Final Outcome</label>
 						<textarea
 							id="final-outcome"
 							rows="2"
 							value={draft.final_outcome ?? ''}
 							oninput={(e) => (draft.final_outcome = e.currentTarget.value || null)}
 							placeholder="Concrete capstone deliverable or proof..."
-							class="mt-1 w-full rounded-md border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-900 focus:border-stone-400 focus:bg-white focus:outline-none dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
+							class="goals-textarea"
 						></textarea>
 					</div>
 
-					<div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+					<div class="goals-grid-3">
 						<div>
-							<label for="start-date" class="block text-xs font-medium text-stone-500 dark:text-stone-400">
-								Start Date
-							</label>
+							<label for="start-date" class="goals-field-label">Start Date</label>
 							<input
 								id="start-date"
 								type="date"
 								value={draft.start_date ?? ''}
 								oninput={(e) => (draft.start_date = e.currentTarget.value || null)}
-								class="mt-1 w-full rounded-md border border-stone-200 bg-white px-2.5 py-1.5 text-sm text-stone-900 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
+								class="goals-input"
 							/>
 						</div>
 						<div>
-							<label for="end-date" class="block text-xs font-medium text-stone-500 dark:text-stone-400">
-								Target End Date
-							</label>
+							<label for="end-date" class="goals-field-label">Target End Date</label>
 							<input
 								id="end-date"
 								type="date"
 								value={draft.target_end_date ?? ''}
 								oninput={(e) => (draft.target_end_date = e.currentTarget.value || null)}
-								class="mt-1 w-full rounded-md border border-stone-200 bg-white px-2.5 py-1.5 text-sm text-stone-900 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
+								class="goals-input"
 							/>
 						</div>
 						<div>
-							<label for="weekly-hours" class="block text-xs font-medium text-stone-500 dark:text-stone-400">
-								Weekly Hours Budget
-							</label>
+							<label for="weekly-hours" class="goals-field-label">Weekly Hours Budget</label>
 							<input
 								id="weekly-hours"
 								type="number"
@@ -189,17 +170,14 @@
 									draft.weekly_hours_budget = v === '' ? null : Number(v);
 								}}
 								placeholder="e.g. 7.0"
-								class="mt-1 w-full rounded-md border border-stone-200 bg-white px-2.5 py-1.5 text-sm text-stone-900 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
+								class="goals-input"
 							/>
 						</div>
 					</div>
 				</section>
 
-				<!-- Section 2: Final Outcome DoD -->
-				<section class="space-y-3 rounded-lg border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
-					<h2 class="text-sm font-semibold uppercase tracking-wide text-stone-700 dark:text-stone-300">
-						Final Outcome Definition of Done
-					</h2>
+				<section class="goals-section">
+					<h2 class="goals-section-title">Final Outcome Definition of Done</h2>
 					<DodCriteriaList
 						items={draft.dod_items}
 						goalId={draft.id}
@@ -208,31 +186,24 @@
 					/>
 				</section>
 
-				<!-- Section 3: Milestones List -->
-				<section class="space-y-3 rounded-lg border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
-					<div class="flex items-center justify-between">
-						<h2 class="text-sm font-semibold uppercase tracking-wide text-stone-700 dark:text-stone-300">
-							Milestones ({draft.milestones.length})
-						</h2>
-					</div>
+				<section class="goals-section">
+					<h2 class="goals-section-title">Milestones ({draft.milestones.length})</h2>
 
 					{#if draft.milestones.length === 0}
-						<p class="text-sm text-stone-500 dark:text-stone-400">No milestones yet.</p>
+						<p class="goals-muted">No milestones yet.</p>
 					{:else}
-						<div class="divide-y divide-stone-200 rounded-md border border-stone-200 dark:divide-stone-800 dark:border-stone-800">
+						<div class="goals-milestone-list">
 							{#each draft.milestones as milestone, idx (milestone.id)}
 								<a
 									href={`/goal/${draft.id}/milestone/${milestone.id}`}
-									class="flex items-center justify-between gap-3 px-3.5 py-2.5 hover:bg-stone-50 dark:hover:bg-stone-800/60"
+									class="goals-milestone-row"
 								>
-									<div class="flex min-w-0 items-center gap-3">
-										<span class="text-xs font-mono font-semibold text-stone-400">M{idx + 1}</span>
-										<span class="truncate text-sm font-medium text-stone-900 dark:text-stone-100">
-											{milestone.title}
-										</span>
+									<div class="goals-milestone-left">
+										<span class="goals-milestone-idx">M{idx + 1}</span>
+										<span class="goals-milestone-title">{milestone.title}</span>
 										<StatusBadge status={milestone.status} />
 									</div>
-									<div class="flex shrink-0 items-center gap-4 text-xs text-stone-500 dark:text-stone-400">
+									<div class="goals-milestone-right">
 										{#if milestone.start_date || milestone.due_date}
 											<span>{milestone.start_date ?? '?'} – {milestone.due_date ?? '?'}</span>
 										{/if}
@@ -243,17 +214,18 @@
 						</div>
 					{/if}
 
-					<form onsubmit={handleAddMilestone} class="flex items-center gap-2 pt-2">
+					<form onsubmit={handleAddMilestone} class="goals-inline-form">
 						<input
 							type="text"
 							bind:value={newMilestoneTitle}
 							placeholder="+ Add Milestone title..."
-							class="min-w-0 flex-1 rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-stone-500 focus:outline-none dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
+							class="goals-input"
+							style="flex: 1;"
 						/>
 						<button
 							type="submit"
 							disabled={!newMilestoneTitle.trim() || addingMilestone}
-							class="rounded-md bg-stone-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-40 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+							class="goals-btn-primary"
 						>
 							{addingMilestone ? 'Adding...' : '+ Add Milestone'}
 						</button>

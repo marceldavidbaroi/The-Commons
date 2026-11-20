@@ -26,44 +26,32 @@
 
 {#if open}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4"
+		class="goals-modal-backdrop"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="create-goal-title"
 	>
-		<form
-			onsubmit={handleSubmit}
-			class="w-full max-w-md rounded-lg border border-stone-200 bg-white p-5 shadow-xl dark:border-stone-700 dark:bg-stone-900"
-		>
-			<h2 id="create-goal-title" class="text-base font-semibold text-stone-900 dark:text-stone-100">
-				Create Goal
-			</h2>
-			<div class="mt-3">
-				<label for="goal-title-input" class="block text-xs font-medium text-stone-600 dark:text-stone-400">
-					Goal Title
-				</label>
+		<form onsubmit={handleSubmit} class="goals-modal">
+			<h2 id="create-goal-title" class="goals-modal-title">Create Goal</h2>
+			<div style="margin-top: 12px;">
+				<label for="goal-title-input" class="goals-field-label">Goal Title</label>
 				<input
 					id="goal-title-input"
 					type="text"
 					bind:value={title}
 					required
 					placeholder="e.g., Ship The Commons v1"
-					class="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-stone-500 focus:outline-none dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
+					class="goals-input"
 				/>
 			</div>
-			<div class="mt-5 flex items-center justify-end gap-2">
-				<button
-					type="button"
-					onclick={handleClose}
-					disabled={creating}
-					class="rounded-md border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-100 disabled:opacity-50 dark:border-stone-600 dark:text-stone-300 dark:hover:bg-stone-800"
-				>
+			<div class="goals-modal-actions">
+				<button type="button" onclick={handleClose} disabled={creating} class="goals-btn-secondary">
 					Cancel
 				</button>
 				<button
 					type="submit"
 					disabled={!title.trim() || creating}
-					class="rounded-md bg-stone-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+					class="goals-btn-primary"
 				>
 					{creating ? 'Creating...' : 'Create'}
 				</button>

@@ -1,5 +1,6 @@
 @import 'katex/dist/katex.min.css';
 @import './tasks.css';
+@import './goals.css';
 
 :root,
 :root[data-theme="paper"] {
