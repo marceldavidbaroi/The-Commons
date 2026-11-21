@@ -54,6 +54,11 @@
 			icon: "flashcards",
 		},
 		{
+			path: "/music",
+			label: "Music",
+			icon: "music",
+		},
+		{
 			path: "/settings",
 			label: "Settings",
 			icon: "settings",
@@ -200,6 +205,20 @@
 		>
 			<rect x="2" y="7" width="16" height="13" rx="2" />
 			<path d="M6 3h14a2 2 0 0 1 2 2v12" />
+		</svg>
+	{:else if iconName === "music"}
+		<svg
+			class="sidebar-icon"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+		>
+			<path d="M9 18V5l12-2v13" />
+			<circle cx="6" cy="18" r="3" />
+			<circle cx="18" cy="16" r="3" />
 		</svg>
 	{:else if iconName === "settings"}
 		<svg

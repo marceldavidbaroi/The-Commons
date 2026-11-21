@@ -48,6 +48,7 @@
 		"@tiptap/suggestion": "^3.33.0",
 		"katex": "^0.19.1",
 		"mermaid": "^12.1.0",
-		"turndown": "^7.2.4"
+		"turndown": "^7.2.4",
+		"xlsx": "^0.18.5"
 	}
 }
