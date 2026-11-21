@@ -59,6 +59,11 @@
 			icon: "music",
 		},
 		{
+			path: "/movies",
+			label: "Movies",
+			icon: "movies",
+		},
+		{
 			path: "/settings",
 			label: "Settings",
 			icon: "settings",
@@ -219,6 +224,19 @@
 			<path d="M9 18V5l12-2v13" />
 			<circle cx="6" cy="18" r="3" />
 			<circle cx="18" cy="16" r="3" />
+		</svg>
+	{:else if iconName === "movies"}
+		<svg
+			class="sidebar-icon"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+		>
+			<rect x="2" y="4" width="20" height="16" rx="2" />
+			<path d="M7 4v16M17 4v16M2 8h5M2 12h20M2 16h5M17 8h5M17 16h5" />
 		</svg>
 	{:else if iconName === "settings"}
 		<svg
@@ -458,7 +476,7 @@
 
 	<!-- Main Content Area -->
 	<main class="main-content">
-		<div class="content-wrapper" class:full-bleed={page.url.pathname.startsWith("/notes")}>
+		<div class="content-wrapper" class:full-bleed={page.url.pathname.startsWith("/notes") || page.url.pathname.startsWith("/movies")}>
 			{@render children()}
 		</div>
 	</main>

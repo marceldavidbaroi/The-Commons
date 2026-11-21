@@ -63,7 +63,13 @@
 	}
 
 	function togglePlayPause() {
-		musicStore.isPlaying = !musicStore.isPlaying;
+		if (musicStore.isPlaying) {
+			player?.pauseVideo?.();
+			musicStore.isPlaying = false;
+		} else {
+			player?.playVideo?.();
+			musicStore.isPlaying = true;
+		}
 	}
 
 	function toggleMute() {
