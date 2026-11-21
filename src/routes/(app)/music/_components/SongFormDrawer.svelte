@@ -4,10 +4,10 @@
 	import { findSongByYoutubeId } from '$lib/services/music-service';
 	import { extractYoutubeId, getYoutubeThumbnail } from '$lib/utils/music';
 
-	const LANGUAGES = MUSIC_FILTERS.language;
-	const GENRES = MUSIC_FILTERS.genre;
-	const VERSIONS = MUSIC_FILTERS.version;
-	const PRESET_VIBES = MUSIC_FILTERS.vibe;
+	const LANGUAGES = $derived(musicStore.filterOptions.language);
+	const GENRES = $derived(musicStore.filterOptions.genre);
+	const VERSIONS = $derived(musicStore.filterOptions.version);
+	const PRESET_VIBES = $derived(musicStore.filterOptions.vibe);
 
 	let urlInput = $state('');
 	let youtubeId = $state<string | null>(null);

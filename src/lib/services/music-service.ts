@@ -8,9 +8,9 @@ const SONG_COLS =
 
 function applySongFilters<T>(query: T, filters: Partial<SongFilters>): T {
 	let q = query as any;
-	if (filters.language) q = q.overlaps('language', [filters.language]);
-	if (filters.genre) q = q.overlaps('genre', [filters.genre]);
-	if (filters.version) q = q.overlaps('version', [filters.version]);
+	if (filters.language && filters.language.length > 0) q = q.overlaps('language', filters.language);
+	if (filters.genre && filters.genre.length > 0) q = q.overlaps('genre', filters.genre);
+	if (filters.version && filters.version.length > 0) q = q.overlaps('version', filters.version);
 	if (filters.energy) q = q.eq('energy', filters.energy);
 	if (filters.minRating) q = q.gte('rating', filters.minRating);
 	if (filters.needsAttention) q = q.eq('needs_attention', true);
@@ -159,10 +159,10 @@ export async function bulkInsertSongs(rows: SongInsert[]): Promise<Song[]> {
 export async function getShuffledQueue(filters: Partial<SongFilters>): Promise<Song[]> {
 	const supabase = getSupabaseClient() as any;
 	const rpcParams = {
-		p_language: filters.language ?? null,
-		p_genre: filters.genre ?? null,
-		p_version: filters.version ?? null,
-		p_vibe: filters.vibe && filters.vibe.length > 0 ? filters.vibe[0] : null,
+		p_language: filters.language && filters.language.length > 0 ? filters.language : null,
+		p_genre: filters.genre && filters.genre.length > 0 ? filters.genre : null,
+		p_version: filters.version && filters.version.length > 0 ? filters.version : null,
+		p_vibe: filters.vibe && filters.vibe.length > 0 ? filters.vibe : null,
 		p_min_energy: filters.energy ?? null,
 		p_max_energy: filters.energy ?? null,
 		p_min_rating: filters.minRating ?? null,
@@ -195,4 +195,21 @@ export async function recordSongPlay(songId: number): Promise<void> {
 
 export async function markSongInactive(songId: number): Promise<Song> {
 	return updateSong(songId, { is_active: false });
+}
+
+export async function fetchMusicFilterOptions(): Promise<{
+	language: string[];
+	genre: string[];
+	version: string[];
+	vibe: string[];
+}> {
+	const supabase = getSupabaseClient() as any;
+	const { data, error } = await supabase.rpc('get_music_filter_options');
+	if (error) throw error;
+	return {
+		language: data?.language ?? [],
+		genre: data?.genre ?? [],
+		version: data?.version ?? [],
+		vibe: data?.vibe ?? []
+	};
 }

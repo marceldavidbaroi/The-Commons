@@ -78,9 +78,9 @@ export interface SongUpdate {
 
 export interface SongFilters {
 	search: string;
-	language: string | null;
-	genre: string | null;
-	version: string | null;
+	language: string[];
+	genre: string[];
+	version: string[];
 	vibe: string[];
 	energy: number | null;
 	minRating: number | null;

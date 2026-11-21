@@ -1,11 +1,11 @@
 import * as musicService from '$lib/services/music-service';
-import type { PlayMode, Song, SongCursor, SongFilters, SongInsert, SongUpdate } from '$lib/types/music';
+import { MUSIC_FILTERS, type PlayMode, type Song, type SongCursor, type SongFilters, type SongInsert, type SongUpdate } from '$lib/types/music';
 
 const DEFAULT_FILTERS: SongFilters = {
 	search: '',
-	language: null,
-	genre: null,
-	version: null,
+	language: [],
+	genre: [],
+	version: [],
 	vibe: [],
 	energy: null,
 	minRating: null,
@@ -21,6 +21,18 @@ class MusicStore {
 	error = $state<string | null>(null);
 
 	filters = $state<SongFilters>({ ...DEFAULT_FILTERS });
+
+	filterOptions = $state<{
+		language: string[];
+		genre: string[];
+		version: string[];
+		vibe: string[];
+	}>({
+		language: [...MUSIC_FILTERS.language],
+		genre: [...MUSIC_FILTERS.genre],
+		version: [...MUSIC_FILTERS.version],
+		vibe: [...MUSIC_FILTERS.vibe]
+	});
 
 	// Playback & Queue
 	queue = $state<Song[]>([]);
@@ -45,9 +57,9 @@ class MusicStore {
 	hasActiveFilters = $derived(
 		Boolean(
 			this.filters.search.trim() ||
-				this.filters.language ||
-				this.filters.genre ||
-				this.filters.version ||
+				this.filters.language.length > 0 ||
+				this.filters.genre.length > 0 ||
+				this.filters.version.length > 0 ||
 				this.filters.vibe.length > 0 ||
 				this.filters.energy ||
 				this.filters.minRating ||
@@ -55,9 +67,24 @@ class MusicStore {
 		)
 	);
 
+	async loadFilterOptions(): Promise<void> {
+		try {
+			const opts = await musicService.fetchMusicFilterOptions();
+			this.filterOptions = {
+				language: opts.language.length > 0 ? opts.language : [...MUSIC_FILTERS.language],
+				genre: opts.genre.length > 0 ? opts.genre : [...MUSIC_FILTERS.genre],
+				version: opts.version.length > 0 ? opts.version : [...MUSIC_FILTERS.version],
+				vibe: opts.vibe.length > 0 ? opts.vibe : [...MUSIC_FILTERS.vibe]
+			};
+		} catch {
+			// Keep default MUSIC_FILTERS fallback
+		}
+	}
+
 	async loadInitial(): Promise<void> {
 		this.loading = true;
 		this.error = null;
+		void this.loadFilterOptions();
 		try {
 			const res = await musicService.fetchSongs(this.filters, null);
 			this.songs = res.songs;
@@ -88,7 +115,7 @@ class MusicStore {
 	}
 
 	resetFilters(): void {
-		this.filters = { ...DEFAULT_FILTERS, vibe: [] };
+		this.filters = { ...DEFAULT_FILTERS, language: [], genre: [], version: [], vibe: [] };
 		void this.loadInitial();
 	}
 

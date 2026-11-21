@@ -705,7 +705,13 @@
 		gap: 0.5rem;
 		padding: 0 0.25rem;
 		min-height: 28px;
-		overflow: hidden;
+	}
+
+	.sidebar-footer :global(.theme-dropdown) {
+		top: auto;
+		bottom: calc(100% + 8px);
+		right: auto;
+		left: 0;
 	}
 
 	.theme-label {

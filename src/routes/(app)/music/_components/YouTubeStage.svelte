@@ -10,7 +10,21 @@
 
 	let containerEl: HTMLDivElement | null = null;
 	let player: any = null;
+	let playerReady = $state(false);
 	let loadedVideoId: string | null = null;
+	let isLoadingTrack = false;
+	let loadingTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function loadTrack(videoId: string) {
+		if (!player || !playerReady) return;
+		isLoadingTrack = true;
+		if (loadingTimer) clearTimeout(loadingTimer);
+		loadingTimer = setTimeout(() => {
+			isLoadingTrack = false;
+		}, 1500);
+		loadedVideoId = videoId;
+		player.loadVideoById(videoId);
+	}
 
 	function initPlayer() {
 		const YT = (window as any).YT;
@@ -27,19 +41,22 @@
 			},
 			events: {
 				onReady: () => {
+					playerReady = true;
 					onPlayerReady?.(player);
 					if (musicStore.currentTrack && musicStore.isPlaying) {
-						loadedVideoId = musicStore.currentTrack.youtube_id;
-						player.loadVideoById(loadedVideoId);
+						loadTrack(musicStore.currentTrack.youtube_id);
 					}
 				},
 				onStateChange: (e: { data: number }) => {
 					// 0 = ENDED, 1 = PLAYING, 2 = PAUSED
 					if (e.data === 0) {
+						isLoadingTrack = false;
 						void musicStore.handleTrackEnded();
 					} else if (e.data === 1) {
+						isLoadingTrack = false;
+						if (loadingTimer) clearTimeout(loadingTimer);
 						musicStore.isPlaying = true;
-					} else if (e.data === 2) {
+					} else if (e.data === 2 && !isLoadingTrack) {
 						musicStore.isPlaying = false;
 					}
 				},
@@ -74,19 +91,19 @@
 			// Ignore cleanup errors
 		}
 		player = null;
+		playerReady = false;
 	});
 
 	$effect(() => {
 		const track = musicStore.currentTrack;
-		if (!player || !track) return;
+		if (!player || !playerReady || !track) return;
 		if (track.youtube_id !== loadedVideoId) {
-			loadedVideoId = track.youtube_id;
-			player.loadVideoById(track.youtube_id);
+			loadTrack(track.youtube_id);
 		}
 	});
 
 	$effect(() => {
-		if (!player || !musicStore.currentTrack) return;
+		if (!player || !playerReady || !musicStore.currentTrack) return;
 		try {
 			if (musicStore.isPlaying) {
 				player.playVideo?.();

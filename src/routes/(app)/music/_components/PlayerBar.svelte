@@ -106,7 +106,7 @@
 	{@const track = musicStore.currentTrack}
 	{@const progress = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0}
 	<footer
-		style="position: fixed; bottom: 0; left: 0; right: 0; height: 72px; border-top: 1px solid var(--border-subtle); background-color: var(--bg-secondary); z-index: 50; padding: 0 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem;"
+		style="position: sticky; bottom: 0; height: 72px; border-top: 1px solid var(--border-subtle); background-color: var(--bg-secondary); z-index: 20; padding: 0 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-radius: var(--radius-sm, 6px); border: 1px solid var(--border-subtle);"
 	>
 		<!-- Left Zone: Now Playing -->
 		<div style="display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1 1 0%;">
