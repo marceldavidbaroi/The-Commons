@@ -4,6 +4,7 @@
 	import type { MovieSort } from '$lib/types/movies';
 
 	const langNames = new Intl.DisplayNames(['en'], { type: 'language' });
+	let confirmDeleteAll = $state(false);
 
 	function formatLang(code: string | null): string {
 		if (!code) return '';
@@ -44,6 +45,22 @@
 		</div>
 
 		<div class="subheader-right">
+			{#if moviesStore.activeTab === 'dropped' && moviesStore.items.length > 0}
+				<button
+					type="button"
+					class="delete-all-btn"
+					onclick={async () => {
+						if (!confirmDeleteAll) {
+							confirmDeleteAll = true;
+							return;
+						}
+						await moviesStore.deleteAllDropped();
+						confirmDeleteAll = false;
+					}}
+				>
+					{confirmDeleteAll ? 'Confirm Delete All' : 'Delete All'}
+				</button>
+			{/if}
 			<label class="sort-label" for="movie-sort-select">Sort</label>
 			<select
 				id="movie-sort-select"
@@ -229,6 +246,17 @@
 									>
 										Wish List
 									</button>
+									<button
+										type="button"
+										class="quick-btn quick-btn-drop"
+										onclick={async (e) => {
+											e.stopPropagation();
+											await moviesStore.deleteMovie(movie.id);
+											moviesStore.refreshFacets();
+										}}
+									>
+										Delete
+									</button>
 								</div>
 							{/if}
 
@@ -336,7 +364,23 @@
 	.subheader-right {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: 8px;
+	}
+
+	.delete-all-btn {
+		height: 26px;
+		padding: 0 10px;
+		border: 1px solid var(--danger);
+		border-radius: 5px;
+		background: var(--danger);
+		color: #ffffff;
+		font-size: 11.5px;
+		font-weight: 500;
+		cursor: pointer;
+	}
+
+	.delete-all-btn:hover {
+		opacity: 0.9;
 	}
 
 	.sort-label {
@@ -509,21 +553,21 @@
 	}
 
 	.quick-btn-watched {
-		background: var(--success);
-		border-color: var(--success);
-		color: #ffffff;
-	}
-
-	.quick-btn-drop {
-		background: var(--danger);
-		border-color: var(--danger);
-		color: #ffffff;
-	}
-
-	.quick-btn-watchlist {
 		background: var(--primary);
 		border-color: var(--primary);
 		color: var(--primary-foreground);
+	}
+
+	.quick-btn-drop {
+		background: color-mix(in srgb, var(--danger) 12%, var(--bg-secondary));
+		border-color: color-mix(in srgb, var(--danger) 28%, var(--border-subtle));
+		color: var(--danger);
+	}
+
+	.quick-btn-watchlist {
+		background: var(--bg-tertiary);
+		border-color: var(--border-subtle);
+		color: var(--text-primary);
 	}
 
 	.card-links {

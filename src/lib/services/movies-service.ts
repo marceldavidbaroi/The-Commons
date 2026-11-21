@@ -227,6 +227,12 @@ export async function deleteMovie(id: string): Promise<void> {
 	if (error) throw error;
 }
 
+export async function deleteAllDroppedMovies(): Promise<void> {
+	const supabase = getSupabaseClient() as any;
+	const { error } = await supabase.from('movies').delete().eq('status', 'dropped');
+	if (error) throw error;
+}
+
 async function getAuthHeaders(): Promise<Record<string, string>> {
 	const supabase = getSupabaseClient();
 	const {

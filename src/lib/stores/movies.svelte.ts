@@ -188,6 +188,15 @@ class MoviesStore {
 		}
 	}
 
+	async deleteAllDropped(): Promise<void> {
+		await moviesService.deleteAllDroppedMovies();
+		if (this.activeTab === 'dropped') {
+			this.items = [];
+			this.hasMore = false;
+		}
+		await this.refreshFacets();
+	}
+
 	openDetails(movieId: string): void {
 		this.selectedMovieId = movieId;
 		this.rightPaneMode = 'details';
