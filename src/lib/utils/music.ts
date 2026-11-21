@@ -3,6 +3,35 @@ import type { ParsedSongRow, Song, SongInsert } from '$lib/types/music';
 
 const YT_ID_REGEX = /^[a-zA-Z0-9_-]{11}$/;
 
+export const MUSIC_IMPORT_PROMPT = `Format the songs as a CSV or Excel (.xlsx) table with these exact column headers:
+title, artist, youtube_url, language, genre, version, vibe, energy, rating
+
+Rules:
+- title (required): Song title
+- artist (required): Artist or band name
+- youtube_url (required): Full YouTube URL or 11-char video ID
+- language (optional, comma-separated): e.g. "bangla, hindi" (default: "bangla")
+- genre (optional, comma-separated): e.g. "pop, electronic" (default: "pop")
+- version (optional, comma-separated): e.g. "original, lofi" (default: "original")
+- vibe (optional, comma-separated): e.g. "coding, late_night" (default: empty)
+- energy (optional, integer 1-5): default 3
+- rating (optional, integer 1-5): default 3
+
+Note: language, genre, version, and vibe each support multiple values in a single cell separated by commas.`;
+
+function parseCommaList(raw: unknown, fallback: string[] = []): string[] {
+	const str = String(raw ?? '').trim();
+	if (!str) return fallback;
+	return Array.from(
+		new Set(
+			str
+				.split(',')
+				.map((v) => v.trim().toLowerCase())
+				.filter(Boolean)
+		)
+	);
+}
+
 /**
  * Extracts an 11-character YouTube video ID from a URL or raw ID.
  * Supports watch?v=, youtu.be/, music.youtube.com/watch?v=, and raw IDs.
@@ -131,16 +160,10 @@ export async function parseSpreadsheetFile(
 
 		seenInFile.add(youtubeId);
 
-		const language = String(raw.language ?? '').trim().toLowerCase() || 'bangla';
-		const genre = String(raw.genre ?? '').trim().toLowerCase() || 'pop';
-		const version = String(raw.version ?? '').trim().toLowerCase() || 'original';
-		const vibeStr = String(raw.vibe ?? '').trim();
-		const vibe = vibeStr
-			? vibeStr
-					.split(',')
-					.map((v) => v.trim().toLowerCase())
-					.filter(Boolean)
-			: [];
+		const language = parseCommaList(raw.language, ['bangla']);
+		const genre = parseCommaList(raw.genre, ['pop']);
+		const version = parseCommaList(raw.version, ['original']);
+		const vibe = parseCommaList(raw.vibe, []);
 
 		const parsedEnergy = Number(raw.energy);
 		const energy = Number.isFinite(parsedEnergy) && parsedEnergy >= 1 && parsedEnergy <= 5 ? Math.round(parsedEnergy) : 3;
@@ -171,9 +194,9 @@ export function exportSongsToExcel(songs: Song[], format: 'xlsx' | 'csv' = 'xlsx
 		artist: s.artist ?? '',
 		youtube_id: s.youtube_id,
 		youtube_url: getYoutubeWatchUrl(s.youtube_id),
-		language: s.language,
-		genre: s.genre,
-		version: s.version,
+		language: s.language.join(', '),
+		genre: s.genre.join(', '),
+		version: s.version.join(', '),
 		vibe: s.vibe.join(', '),
 		energy: s.energy,
 		rating: s.rating,

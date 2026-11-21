@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { musicStore } from '$lib/stores/music.svelte';
+	import { MUSIC_FILTERS } from '$lib/types/music';
 	import { getYoutubeQueueUrl } from '$lib/utils/music';
 	import YouTubeStage from './YouTubeStage.svelte';
 
@@ -9,10 +10,10 @@
 
 	let { onPlayerReady }: Props = $props();
 
-	const LANGUAGES = ['bangla', 'hindi', 'punjabi', 'english', 'instrumental'] as const;
-	const GENRES = ['pop', 'electronic', 'folk', 'rock', 'bollywood', 'lofi', 'classic'] as const;
-	const VERSIONS = ['original', 'lofi', 'remix', 'mashup', 'cover', 'live'] as const;
-	const VIBES = ['coding', 'drive', 'late_night', 'nostalgic', 'workout', 'chill', 'romantic'] as const;
+	const LANGUAGES = MUSIC_FILTERS.language;
+	const GENRES = MUSIC_FILTERS.genre;
+	const VERSIONS = MUSIC_FILTERS.version;
+	const VIBES = MUSIC_FILTERS.vibe;
 
 	function setSingleFilter(key: 'language' | 'genre' | 'version', val: string | null) {
 		musicStore.filters[key] = musicStore.filters[key] === val ? null : val;
@@ -169,7 +170,7 @@
 		</div>
 
 		<!-- Energy & Min Rating -->
-		<div class="grid grid-cols-2 gap-2">
+		<div class="flex flex-col gap-3">
 			<div class="flex flex-col gap-1">
 				<span class="text-[11px] font-medium text-muted-foreground">Energy</span>
 				<div class="flex gap-1">

@@ -63,9 +63,9 @@
 					<div class="flex-1 min-w-0">
 						<div class="flex items-center gap-1.5 min-w-0">
 							<span class="text-sm font-medium truncate">{song.title}</span>
-							{#if song.version !== 'original'}
+							{#if song.version.some((v) => v !== 'original')}
 								<span class="px-1.5 py-0 text-[10px] rounded border border-border text-muted-foreground capitalize shrink-0">
-									{song.version}
+									{song.version.join(', ')}
 								</span>
 							{/if}
 							{#if song.needs_attention}
@@ -92,10 +92,10 @@
 					<!-- Classification & Telemetry -->
 					<div class="hidden sm:flex items-center gap-2 text-xs text-muted-foreground shrink-0">
 						<span class="px-1.5 py-0.5 text-[11px] rounded border border-border capitalize">
-							{song.language}
+							{song.language.join(', ')}
 						</span>
 						<span class="px-1.5 py-0.5 text-[11px] rounded border border-border capitalize">
-							{song.genre}
+							{song.genre.join(', ')}
 						</span>
 						<span class="w-8 text-right tabular-nums">⚡{song.energy}</span>
 						<span class="w-8 text-right tabular-nums">★{song.rating}</span>
@@ -128,6 +128,14 @@
 							class="px-1.5 py-1 text-[11px] rounded border border-border hover:bg-accent cursor-pointer"
 						>
 							Edit
+						</button>
+						<button
+							type="button"
+							onclick={() => musicStore.removeSong(song.id)}
+							title="Delete Song"
+							class="px-1.5 py-1 text-[11px] rounded border border-destructive/40 text-destructive hover:bg-destructive/10 cursor-pointer"
+						>
+							Delete
 						</button>
 					</div>
 				</div>

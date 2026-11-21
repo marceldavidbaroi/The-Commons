@@ -114,8 +114,8 @@
 				</div>
 				<div class="flex items-center gap-1.5 text-[11px] text-muted-foreground truncate">
 					<span class="truncate">{track.artist ?? 'Unknown'}</span>
-					<span class="capitalize">· {track.language}</span>
-					<span class="capitalize">· {track.genre}</span>
+					<span class="capitalize">· {track.language.join(', ')}</span>
+					<span class="capitalize">· {track.genre.join(', ')}</span>
 					<span>· ⚡{track.energy}</span>
 				</div>
 			</div>

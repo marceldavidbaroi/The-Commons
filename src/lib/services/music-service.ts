@@ -8,9 +8,9 @@ const SONG_COLS =
 
 function applySongFilters<T>(query: T, filters: Partial<SongFilters>): T {
 	let q = query as any;
-	if (filters.language) q = q.eq('language', filters.language);
-	if (filters.genre) q = q.eq('genre', filters.genre);
-	if (filters.version) q = q.eq('version', filters.version);
+	if (filters.language) q = q.overlaps('language', [filters.language]);
+	if (filters.genre) q = q.overlaps('genre', [filters.genre]);
+	if (filters.version) q = q.overlaps('version', [filters.version]);
 	if (filters.energy) q = q.eq('energy', filters.energy);
 	if (filters.minRating) q = q.gte('rating', filters.minRating);
 	if (filters.needsAttention) q = q.eq('needs_attention', true);

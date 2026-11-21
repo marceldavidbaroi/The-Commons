@@ -1,20 +1,21 @@
 <script lang="ts">
 	import { musicStore } from '$lib/stores/music.svelte';
+	import { MUSIC_FILTERS } from '$lib/types/music';
 	import { findSongByYoutubeId } from '$lib/services/music-service';
 	import { extractYoutubeId, getYoutubeThumbnail } from '$lib/utils/music';
 
-	const LANGUAGES = ['bangla', 'hindi', 'punjabi', 'english', 'instrumental'] as const;
-	const GENRES = ['pop', 'electronic', 'folk', 'rock', 'bollywood', 'lofi', 'classic'] as const;
-	const VERSIONS = ['original', 'lofi', 'remix', 'mashup', 'cover', 'live'] as const;
-	const PRESET_VIBES = ['coding', 'drive', 'late_night', 'nostalgic', 'workout', 'chill', 'romantic'] as const;
+	const LANGUAGES = MUSIC_FILTERS.language;
+	const GENRES = MUSIC_FILTERS.genre;
+	const VERSIONS = MUSIC_FILTERS.version;
+	const PRESET_VIBES = MUSIC_FILTERS.vibe;
 
 	let urlInput = $state('');
 	let youtubeId = $state<string | null>(null);
 	let title = $state('');
 	let artist = $state('');
-	let language = $state('bangla');
-	let genre = $state('pop');
-	let version = $state('original');
+	let language = $state<string[]>(['bangla']);
+	let genre = $state<string[]>(['pop']);
+	let version = $state<string[]>(['original']);
 	let vibe = $state<string[]>([]);
 	let customVibe = $state('');
 	let energy = $state(3);
@@ -33,9 +34,9 @@
 			youtubeId = song.youtube_id;
 			title = song.title;
 			artist = song.artist ?? '';
-			language = song.language;
-			genre = song.genre;
-			version = song.version;
+			language = [...song.language];
+			genre = [...song.genre];
+			version = [...song.version];
 			vibe = [...song.vibe];
 			energy = song.energy;
 			rating = song.rating;
@@ -52,9 +53,9 @@
 		youtubeId = null;
 		title = '';
 		artist = '';
-		language = 'bangla';
-		genre = 'pop';
-		version = 'original';
+		language = ['bangla'];
+		genre = ['pop'];
+		version = ['original'];
 		vibe = [];
 		customVibe = '';
 		energy = 3;
@@ -82,8 +83,12 @@
 		}
 	}
 
+	function toggleArrayItem(arr: string[], val: string): string[] {
+		return arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val];
+	}
+
 	function toggleVibe(tag: string) {
-		vibe = vibe.includes(tag) ? vibe.filter((v) => v !== tag) : [...vibe, tag];
+		vibe = toggleArrayItem(vibe, tag);
 	}
 
 	function handleCustomVibeKeydown(e: KeyboardEvent) {
@@ -267,45 +272,60 @@
 	</div>
 
 	<!-- Row 2: Classification & Taste -->
-	<div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+	<div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
 		<div class="flex flex-col gap-1">
-			<label for="song-lang" class="text-[11px] font-medium text-muted-foreground">Language</label>
-			<select
-				id="song-lang"
-				bind:value={language}
-				class="h-8 px-2 text-xs rounded border border-border bg-background capitalize"
-			>
+			<span class="text-[11px] font-medium text-muted-foreground">Language</span>
+			<div class="flex flex-wrap gap-1">
 				{#each LANGUAGES as l}
-					<option value={l}>{l}</option>
+					<button
+						type="button"
+						onclick={() => (language = toggleArrayItem(language, l))}
+						class="px-2 py-0.5 text-xs rounded border capitalize cursor-pointer {language.includes(l)
+							? 'bg-primary text-primary-foreground border-primary'
+							: 'border-border text-muted-foreground hover:text-foreground'}"
+					>
+						{l}
+					</button>
 				{/each}
-			</select>
+			</div>
 		</div>
 
 		<div class="flex flex-col gap-1">
-			<label for="song-genre" class="text-[11px] font-medium text-muted-foreground">Genre</label>
-			<select
-				id="song-genre"
-				bind:value={genre}
-				class="h-8 px-2 text-xs rounded border border-border bg-background capitalize"
-			>
+			<span class="text-[11px] font-medium text-muted-foreground">Genre</span>
+			<div class="flex flex-wrap gap-1">
 				{#each GENRES as g}
-					<option value={g}>{g}</option>
+					<button
+						type="button"
+						onclick={() => (genre = toggleArrayItem(genre, g))}
+						class="px-2 py-0.5 text-xs rounded border capitalize cursor-pointer {genre.includes(g)
+							? 'bg-primary text-primary-foreground border-primary'
+							: 'border-border text-muted-foreground hover:text-foreground'}"
+					>
+						{g}
+					</button>
 				{/each}
-			</select>
+			</div>
 		</div>
 
 		<div class="flex flex-col gap-1">
-			<label for="song-ver" class="text-[11px] font-medium text-muted-foreground">Version</label>
-			<select
-				id="song-ver"
-				bind:value={version}
-				class="h-8 px-2 text-xs rounded border border-border bg-background capitalize"
-			>
+			<span class="text-[11px] font-medium text-muted-foreground">Version</span>
+			<div class="flex flex-wrap gap-1">
 				{#each VERSIONS as v}
-					<option value={v}>{v}</option>
+					<button
+						type="button"
+						onclick={() => (version = toggleArrayItem(version, v))}
+						class="px-2 py-0.5 text-xs rounded border capitalize cursor-pointer {version.includes(v)
+							? 'bg-primary text-primary-foreground border-primary'
+							: 'border-border text-muted-foreground hover:text-foreground'}"
+					>
+						{v}
+					</button>
 				{/each}
-			</select>
+			</div>
 		</div>
+	</div>
+
+	<div class="grid grid-cols-2 gap-2">
 
 		<div class="flex flex-col gap-1">
 			<span class="text-[11px] font-medium text-muted-foreground">Energy (1–5)</span>

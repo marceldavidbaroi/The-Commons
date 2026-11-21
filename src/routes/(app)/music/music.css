@@ -159,6 +159,17 @@
 .music-page .text-primary { color: var(--primary); }
 .music-page .text-destructive { color: #ef4444; }
 
+.music-page .border-dashed {
+	border: 1px dashed var(--border-subtle);
+	border-radius: var(--radius-sm, 6px);
+	padding: 1.25rem;
+	background-color: var(--bg-primary);
+}
+
+.music-page .border-dashed:hover {
+	border-color: var(--primary);
+}
+
 /* 2-Column Split Workspace */
 .music-workspace {
 	display: flex;

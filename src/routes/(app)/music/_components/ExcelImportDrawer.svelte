@@ -1,13 +1,20 @@
 <script lang="ts">
 	import { musicStore } from '$lib/stores/music.svelte';
 	import type { ParsedSongRow, SongInsert } from '$lib/types/music';
-	import { downloadSampleTemplate, parseSpreadsheetFile } from '$lib/utils/music';
+	import { downloadSampleTemplate, MUSIC_IMPORT_PROMPT, parseSpreadsheetFile } from '$lib/utils/music';
 
 	let parsedRows = $state<ParsedSongRow[]>([]);
 	let parsing = $state(false);
 	let importing = $state(false);
 	let importResult = $state<string | null>(null);
 	let error = $state<string | null>(null);
+	let copiedPrompt = $state(false);
+
+	async function copyPrompt() {
+		await navigator.clipboard.writeText(MUSIC_IMPORT_PROMPT);
+		copiedPrompt = true;
+		setTimeout(() => (copiedPrompt = false), 2000);
+	}
 
 	const validRows = $derived(parsedRows.filter((r) => r.status === 'valid'));
 	const duplicateRows = $derived(parsedRows.filter((r) => r.status === 'duplicate'));
@@ -74,6 +81,13 @@
 		<div class="flex items-center gap-3">
 			<button
 				type="button"
+				onclick={copyPrompt}
+				class="text-xs text-primary hover:underline cursor-pointer"
+			>
+				{copiedPrompt ? '✓ Copied Prompt' : '📋 Copy Format Prompt'}
+			</button>
+			<button
+				type="button"
 				onclick={() => downloadSampleTemplate()}
 				class="text-xs text-primary hover:underline cursor-pointer"
 			>
@@ -95,17 +109,23 @@
 		aria-label="Spreadsheet dropzone"
 		ondragover={(e) => e.preventDefault()}
 		ondrop={handleDrop}
-		class="border border-dashed border-border rounded p-4 text-center flex flex-col items-center gap-2 bg-background/50"
+		class="border-dashed text-center flex flex-col items-center gap-2"
 	>
-		<p class="text-xs text-muted-foreground">
-			Drag & drop a <code>.xlsx</code>, <code>.xls</code>, or <code>.csv</code> file here, or select a file:
+		<p class="text-xs text-muted-foreground" style="margin: 0;">
+			Drag & drop a <code>.xlsx</code>, <code>.xls</code>, or <code>.csv</code> file here, or
 		</p>
-		<input
-			type="file"
-			accept=".xlsx,.xls,.csv"
-			onchange={handleInputChange}
-			class="text-xs file:mr-2 file:py-1 file:px-2.5 file:rounded file:border file:border-border file:text-xs file:bg-card file:cursor-pointer"
-		/>
+		<label
+			class="px-3 py-1.5 text-xs font-medium rounded border border-border bg-secondary hover:bg-accent cursor-pointer"
+			style="border: 1px solid var(--border-subtle); border-radius: var(--radius-sm, 6px); padding: 0.375rem 0.75rem; background-color: var(--bg-secondary);"
+		>
+			Choose File
+			<input
+				type="file"
+				accept=".xlsx,.xls,.csv"
+				onchange={handleInputChange}
+				style="display: none;"
+			/>
+		</label>
 	</div>
 
 	{#if parsing}
