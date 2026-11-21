@@ -108,34 +108,46 @@
 							type="button"
 							onclick={() => musicStore.queueNext(song)}
 							title="Queue Next"
-							class="px-1.5 py-1 text-[11px] rounded border border-border hover:bg-accent cursor-pointer"
+							aria-label="Queue Next"
+							class="p-1 rounded border border-border hover:bg-accent cursor-pointer flex items-center justify-center"
 						>
-							+Next
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<path d="M5 12h14" /><path d="M12 5v14" />
+							</svg>
 						</button>
 						<a
 							href={getYoutubeWatchUrl(song.youtube_id)}
 							target="_blank"
 							rel="noopener noreferrer"
 							title="Open on YouTube"
-							class="px-1.5 py-1 text-[11px] rounded border border-border hover:bg-accent"
+							aria-label="Open on YouTube"
+							class="p-1 rounded border border-border hover:bg-accent flex items-center justify-center"
 						>
-							↗
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<path d="M7 17 17 7" /><path d="M7 7h10v10" />
+							</svg>
 						</a>
 						<button
 							type="button"
 							onclick={() => musicStore.openEditDrawer(song)}
 							title="Edit Song"
-							class="px-1.5 py-1 text-[11px] rounded border border-border hover:bg-accent cursor-pointer"
+							aria-label="Edit Song"
+							class="p-1 rounded border border-border hover:bg-accent cursor-pointer flex items-center justify-center"
 						>
-							Edit
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+							</svg>
 						</button>
 						<button
 							type="button"
 							onclick={() => musicStore.removeSong(song.id)}
 							title="Delete Song"
-							class="px-1.5 py-1 text-[11px] rounded border border-destructive/40 text-destructive hover:bg-destructive/10 cursor-pointer"
+							aria-label="Delete Song"
+							class="p-1 rounded border border-destructive/40 text-destructive hover:bg-destructive/10 cursor-pointer flex items-center justify-center"
 						>
-							Delete
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+							</svg>
 						</button>
 					</div>
 				</div>

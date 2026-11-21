@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import './music.css';
 	import { musicStore } from '$lib/stores/music.svelte';
-	import { fetchAllFilteredSongs } from '$lib/services/music-service';
+	import { fetchAllFilteredSongs, findSongById } from '$lib/services/music-service';
 	import { exportSongsToExcel } from '$lib/utils/music';
 	import FilterRail from './_components/FilterRail.svelte';
 	import SongCatalog from './_components/SongCatalog.svelte';
@@ -14,8 +15,29 @@
 	let exporting = $state(false);
 	let ytPlayer = $state<any>(null);
 
-	onMount(() => {
-		void musicStore.loadInitial();
+	onMount(async () => {
+		await musicStore.loadInitial();
+		const songParam = new URLSearchParams(window.location.search).get('song');
+		if (songParam) {
+			const songId = Number(songParam);
+			if (Number.isFinite(songId) && songId > 0) {
+				const existing = musicStore.songs.find((s) => s.id === songId) ?? (await findSongById(songId));
+				if (existing) {
+					musicStore.playTrackNow(existing);
+				}
+			}
+		}
+	});
+
+	$effect(() => {
+		const trackId = musicStore.currentTrack?.id;
+		if (typeof window === 'undefined') return;
+		const url = new URL(window.location.href);
+		const currentParam = url.searchParams.get('song');
+		if (trackId && currentParam !== String(trackId)) {
+			url.searchParams.set('song', String(trackId));
+			void goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
+		}
 	});
 
 	function handleSearchInput(e: Event) {

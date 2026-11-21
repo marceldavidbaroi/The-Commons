@@ -99,6 +99,18 @@ export async function findSongByYoutubeId(youtubeId: string): Promise<Song | nul
 	return (data as Song | null) ?? null;
 }
 
+export async function findSongById(id: number): Promise<Song | null> {
+	const supabase = getSupabaseClient() as any;
+	const { data, error } = await supabase
+		.from('songs')
+		.select(SONG_COLS)
+		.eq('id', id)
+		.maybeSingle();
+
+	if (error) throw error;
+	return (data as Song | null) ?? null;
+}
+
 export async function createSong(payload: SongInsert): Promise<Song> {
 	const supabase = getSupabaseClient() as any;
 	const { data, error } = await supabase.from('songs').insert(payload).select(SONG_COLS).single();
