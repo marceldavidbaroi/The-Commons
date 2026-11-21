@@ -83,16 +83,19 @@
 
 <aside class="filter-sidebar">
 	<div class="filter-section">
-		<label class="filter-label" for="movie-search-input">Search Title</label>
-		<input
-			id="movie-search-input"
-			bind:this={searchInputRef}
-			type="text"
-			class="search-input"
-			placeholder="Search title... (/)"
-			value={searchText}
-			oninput={onSearchInput}
-		/>
+		<label class="filter-label" for="movie-search-input">Search</label>
+		<div class="search-wrap">
+			<input
+				id="movie-search-input"
+				bind:this={searchInputRef}
+				type="text"
+				class="search-input"
+				placeholder="Title..."
+				value={searchText}
+				oninput={onSearchInput}
+			/>
+			<kbd class="kbd-hint">/</kbd>
+		</div>
 	</div>
 
 	<div class="filter-section">
@@ -271,44 +274,70 @@
 
 <style>
 	.filter-sidebar {
-		background: var(--bg-primary);
+		background: var(--bg-secondary);
 		border-right: 1px solid var(--border-subtle);
 		padding: 14px;
 		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: 14px;
 		height: 100%;
 	}
 
 	.filter-section {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: 7px;
+		padding-bottom: 12px;
+		border-bottom: 1px solid var(--border-subtle);
+	}
+
+	.filter-section:last-of-type {
+		border-bottom: none;
+		padding-bottom: 0;
 	}
 
 	.filter-label {
-		font-size: 11px;
-		font-weight: 600;
+		font-size: 10.5px;
+		font-weight: 700;
 		text-transform: uppercase;
-		letter-spacing: 0.04em;
+		letter-spacing: 0.05em;
 		color: var(--text-secondary);
+	}
+
+	.search-wrap {
+		position: relative;
+		display: flex;
+		align-items: center;
 	}
 
 	.search-input {
 		width: 100%;
 		height: 32px;
-		padding: 0 10px;
-		background: var(--bg-secondary);
+		padding: 0 28px 0 10px;
+		background: var(--bg-primary);
 		border: 1px solid var(--border-subtle);
 		border-radius: 6px;
-		font-size: 13px;
+		font-size: 12.5px;
 		color: var(--text-primary);
 	}
 
 	.search-input:focus {
 		outline: none;
 		border-color: var(--primary);
+	}
+
+	.kbd-hint {
+		position: absolute;
+		right: 8px;
+		font-size: 10px;
+		font-family: inherit;
+		color: var(--text-secondary);
+		background: var(--bg-secondary);
+		border: 1px solid var(--border-subtle);
+		border-radius: 4px;
+		padding: 1px 5px;
+		pointer-events: none;
 	}
 
 	.pill-group {
@@ -319,12 +348,13 @@
 
 	.pill {
 		border: 1px solid var(--border-subtle);
-		background: var(--bg-secondary);
+		background: var(--bg-primary);
 		color: var(--text-primary);
 		font-size: 11px;
-		padding: 3px 8px;
+		padding: 3px 9px;
 		border-radius: 999px;
 		cursor: pointer;
+		transition: background-color 0.12s ease, border-color 0.12s ease;
 	}
 
 	.pill:hover {
@@ -339,14 +369,17 @@
 
 	.reset-btn {
 		margin-top: auto;
-		height: 32px;
-		background: var(--bg-secondary);
+		position: sticky;
+		bottom: 0;
+		height: 34px;
+		background: var(--bg-primary);
 		border: 1px solid var(--border-subtle);
 		border-radius: 6px;
 		font-size: 12px;
-		font-weight: 500;
+		font-weight: 600;
 		color: var(--text-primary);
 		cursor: pointer;
+		flex-shrink: 0;
 	}
 
 	.reset-btn:hover {

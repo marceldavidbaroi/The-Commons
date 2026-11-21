@@ -13,7 +13,8 @@ import type {
 	RatingFilter,
 	RecommendAudience,
 	ReleaseEra,
-	RightPaneMode
+	RightPaneMode,
+	TmdbSearchResult
 } from '$lib/types/movies';
 
 const DEFAULT_FILTERS: MovieFilters = {
@@ -39,6 +40,7 @@ const DEFAULT_FACETS: MovieFacets = {
 
 class MoviesStore {
 	items = $state<Movie[]>([]);
+	recommendations = $state<TmdbSearchResult[]>([]);
 	facets = $state<MovieFacets>({ ...DEFAULT_FACETS });
 	filters = $state<MovieFilters>({ ...DEFAULT_FILTERS });
 	sort = $state<MovieSort>('watched_at');
@@ -104,14 +106,23 @@ class MoviesStore {
 		this.loading = true;
 		this.error = null;
 		try {
-			const page = await moviesService.fetchMoviesPage(
-				this.activeTab,
-				this.filters,
-				this.sort,
-				null
-			);
-			this.items = page.movies;
-			this.hasMore = page.hasMore;
+			if (this.activeTab === 'recommendations') {
+				const seed = this.items.find((m) => m.tmdb_id && (m.rating ?? 0) >= 7) ?? this.items.find((m) => m.tmdb_id);
+				this.recommendations = await moviesService.fetchTmdbRecommendations(
+					seed?.tmdb_id ?? null,
+					seed?.media_type ?? 'movie'
+				);
+				this.hasMore = false;
+			} else {
+				const page = await moviesService.fetchMoviesPage(
+					this.activeTab,
+					this.filters,
+					this.sort,
+					null
+				);
+				this.items = page.movies;
+				this.hasMore = page.hasMore;
+			}
 		} catch (err) {
 			this.error = err instanceof Error ? err.message : 'Failed to load movies';
 		} finally {
@@ -203,7 +214,12 @@ class MoviesStore {
 
 	hydrateFromUrl(url: URL): void {
 		const tab = url.searchParams.get('tab');
-		if (tab === 'watched' || tab === 'watchlist' || tab === 'recommendations') {
+		if (
+			tab === 'watched' ||
+			tab === 'watchlist' ||
+			tab === 'recommendations' ||
+			tab === 'dropped'
+		) {
 			this.activeTab = tab;
 		}
 

@@ -251,6 +251,38 @@ Deno.serve(async (req) => {
 				return jsonResponse({ results });
 			}
 
+			if (action === 'recommendations') {
+				const rawId = url.searchParams.get('tmdb_id');
+				const rawType = url.searchParams.get('media_type');
+				const tmdbId = rawId ? Number.parseInt(rawId, 10) : NaN;
+				const mediaType: MediaType = rawType === 'series' ? 'series' : 'movie';
+
+				const path =
+					Number.isFinite(tmdbId) && tmdbId > 0
+						? `/${mediaType === 'series' ? 'tv' : 'movie'}/${tmdbId}/recommendations?language=en-US&page=1`
+						: `/trending/all/week?language=en-US`;
+
+				const data = await tmdbFetch<{
+					results?: Array<TmdbSearchResult & { vote_average?: number }>;
+				}>(path, tmdbToken);
+
+				const results = (data.results ?? [])
+					.filter((m) => m.media_type !== 'person')
+					.slice(0, 20)
+					.map((m) => ({
+						tmdb_id: m.id,
+						media_type: (m.media_type === 'tv' || (!m.media_type && mediaType === 'series')
+							? 'series'
+							: 'movie') as MediaType,
+						title: m.title ?? m.name ?? 'Untitled',
+						release_year: parseReleaseYear(m.release_date ?? m.first_air_date),
+						poster_path: m.poster_path ?? null,
+						vote_average: m.vote_average ?? null
+					}));
+
+				return jsonResponse({ results });
+			}
+
 			if (action === 'hydrate') {
 				const rawId = url.searchParams.get('tmdb_id');
 				const tmdbId = rawId ? Number.parseInt(rawId, 10) : NaN;

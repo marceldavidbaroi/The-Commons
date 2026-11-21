@@ -13,7 +13,7 @@ import type {
 	TmdbSearchResult
 } from '$lib/types/movies';
 
-export const MOVIES_PAGE_SIZE = 20;
+export const MOVIES_PAGE_SIZE = 50;
 
 export const MOVIE_COLS =
 	'id, tmdb_id, media_type, imdb_id, imdb_url, letterboxd_url, title, release_year, original_language, origin_countries, genres, poster_path, trailer_youtube_key, series_progress, status, rating, tags, recommend_to, notes, watched_at, rewatch_count';
@@ -29,6 +29,8 @@ function applyMovieFilters<T>(
 		q = q.eq('status', 'watched');
 	} else if (tab === 'watchlist') {
 		q = q.eq('status', 'watchlist');
+	} else if (tab === 'dropped') {
+		q = q.eq('status', 'dropped');
 	} else if (tab === 'recommendations') {
 		q = q.eq('status', 'watched').or('recommend_to.neq.{},rating.gte.8.0');
 	}
@@ -157,6 +159,18 @@ export async function fetchMoviesPage(
 	};
 }
 
+export async function fetchMovieById(id: string): Promise<Movie | null> {
+	const supabase = getSupabaseClient() as any;
+	const { data, error } = await supabase
+		.from('movies')
+		.select(MOVIE_COLS)
+		.eq('id', id)
+		.maybeSingle();
+
+	if (error) throw error;
+	return (data as Movie | null) ?? null;
+}
+
 export async function fetchMovieFacets(): Promise<MovieFacets> {
 	const supabase = getSupabaseClient() as any;
 	const { data, error } = await supabase.rpc('get_movie_facets');
@@ -227,6 +241,25 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 		Authorization: `Bearer ${session.access_token}`,
 		'Content-Type': 'application/json'
 	};
+}
+
+export async function fetchTmdbRecommendations(
+	tmdbId?: number | null,
+	mediaType: 'movie' | 'series' = 'movie'
+): Promise<TmdbSearchResult[]> {
+	const headers = await getAuthHeaders();
+	const params = new URLSearchParams({ action: 'recommendations', media_type: mediaType });
+	if (tmdbId) params.set('tmdb_id', String(tmdbId));
+
+	const res = await fetch(`${PUBLIC_SUPABASE_URL}/functions/v1/tmdb-proxy?${params.toString()}`, {
+		headers
+	});
+	if (!res.ok) {
+		const err = await res.json().catch(() => ({}));
+		throw new Error(err.error ?? `TMDB recommendations failed (${res.status})`);
+	}
+	const data = (await res.json()) as { results: TmdbSearchResult[] };
+	return data.results ?? [];
 }
 
 export async function searchTmdb(

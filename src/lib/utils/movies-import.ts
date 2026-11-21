@@ -18,6 +18,10 @@ export interface ParsedImportRow {
 	tags: string[];
 	recommend_to: RecommendAudience[];
 	notes: string | null;
+	original_language: string | null;
+	origin_countries: string[];
+	genres: string[];
+	trailer_youtube_key: string | null;
 	series_progress: SeriesProgress | null;
 	tmdb_id?: number;
 }
@@ -154,6 +158,18 @@ export async function parseImportFile(file: File): Promise<ParsedImportRow[]> {
 			VALID_AUDIENCES.has(a as RecommendAudience)
 		) as RecommendAudience[];
 		const notes = String(row['Notes'] ?? row['notes'] ?? '').trim() || null;
+		const original_language =
+			String(row['Language'] ?? row['original_language'] ?? '').trim().toLowerCase() || null;
+		const origin_countries = String(row['Countries'] ?? row['origin_countries'] ?? '')
+			.split(',')
+			.map((s) => s.trim().toUpperCase())
+			.filter(Boolean);
+		const genres = String(row['Genres'] ?? row['genres'] ?? '')
+			.split(',')
+			.map((s) => s.trim())
+			.filter(Boolean);
+		const trailer_youtube_key =
+			String(row['Trailer Key'] ?? row['trailer_youtube_key'] ?? '').trim() || null;
 		const series_progress =
 			media_type === 'series'
 				? parseSeriesProgress(row['Seasons'] ?? row['seasons'], row['Watched Episodes'] ?? row['watched_episodes'])
@@ -170,6 +186,10 @@ export async function parseImportFile(file: File): Promise<ParsedImportRow[]> {
 			tags,
 			recommend_to,
 			notes,
+			original_language,
+			origin_countries,
+			genres,
+			trailer_youtube_key,
 			series_progress,
 			...(Number.isFinite(tmdbRaw) && tmdbRaw > 0 ? { tmdb_id: tmdbRaw } : {})
 		});
@@ -207,11 +227,11 @@ export async function runMovieImport(
 					imdb_id: null,
 					title: src.title,
 					release_year: src.release_year,
-					original_language: null,
-					origin_countries: [],
-					genres: [],
+					original_language: src.original_language,
+					origin_countries: src.origin_countries,
+					genres: src.genres,
 					poster_path: null,
-					trailer_youtube_key: null,
+					trailer_youtube_key: src.trailer_youtube_key,
 					series_progress: null,
 					status: src.status,
 					rating: src.rating,
@@ -225,6 +245,11 @@ export async function runMovieImport(
 
 			toUpsert.push({
 				...res.movie,
+				original_language: res.movie.original_language ?? src.original_language,
+				origin_countries:
+					res.movie.origin_countries.length > 0 ? res.movie.origin_countries : src.origin_countries,
+				genres: res.movie.genres.length > 0 ? res.movie.genres : src.genres,
+				trailer_youtube_key: res.movie.trailer_youtube_key ?? src.trailer_youtube_key,
 				series_progress: src.series_progress ?? res.movie.series_progress,
 				status: src.status,
 				rating: src.rating,

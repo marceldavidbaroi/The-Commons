@@ -10,7 +10,7 @@ export type RecommendAudience =
 	| 'cinephiles'
 	| 'solo_rewatch';
 
-export type MovieTab = 'watched' | 'watchlist' | 'recommendations';
+export type MovieTab = 'watched' | 'watchlist' | 'recommendations' | 'dropped';
 
 export type MovieSort = 'watched_at' | 'rating' | 'release_year' | 'title';
 
@@ -89,6 +89,7 @@ export interface TmdbSearchResult {
 	title: string;
 	release_year: number | null;
 	poster_path: string | null;
+	vote_average?: number | null;
 }
 
 export interface TmdbHydratedMovie {

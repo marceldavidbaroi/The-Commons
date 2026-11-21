@@ -402,51 +402,75 @@
 				<p class="error-text">{detailsError}</p>
 			{/if}
 
-			<div class="form-grid">
-				<label class="field">
+			<div class="tracking-card">
+				<div class="field" style="margin-bottom: 10px;">
 					<span>Status</span>
-					<select class="input" bind:value={status}>
-						<option value="watched">Watched</option>
-						<option value="watchlist">Wish List</option>
-						<option value="dropped">Dropped</option>
-					</select>
-				</label>
-
-				<label class="field">
-					<span>Rating (0.5 – 10.0)</span>
-					<input
-						type="number"
-						class="input"
-						min="0.5"
-						max="10"
-						step="0.5"
-						bind:value={rating}
-					/>
-				</label>
-
-				<label class="field">
-					<span>Watched Date</span>
-					<input type="date" class="input" bind:value={watchedAt} />
-				</label>
-
-				<div class="field">
-					<span>Rewatches</span>
-					<div class="stepper">
+					<div class="status-actions">
 						<button
 							type="button"
-							class="btn-secondary"
-							onclick={() => (rewatchCount = Math.max(0, rewatchCount - 1))}
+							class="status-btn"
+							class:active={status === 'watched'}
+							onclick={() => (status = 'watched')}
 						>
-							-
+							Watch
 						</button>
-						<span>{rewatchCount}</span>
 						<button
 							type="button"
-							class="btn-secondary"
-							onclick={() => (rewatchCount += 1)}
+							class="status-btn"
+							class:active={status === 'watchlist'}
+							onclick={() => (status = 'watchlist')}
 						>
-							+
+							Unwatch
 						</button>
+						<button
+							type="button"
+							class="status-btn"
+							class:active={status === 'dropped'}
+							onclick={() => (status = 'dropped')}
+						>
+							Drop
+						</button>
+					</div>
+				</div>
+
+				<div class="form-grid">
+
+					<label class="field">
+						<span>Rating (0.5 – 10.0)</span>
+						<input
+							type="number"
+							class="input"
+							min="0.5"
+							max="10"
+							step="0.5"
+							bind:value={rating}
+						/>
+					</label>
+
+					<label class="field">
+						<span>Watched Date</span>
+						<input type="date" class="input" bind:value={watchedAt} />
+					</label>
+
+					<div class="field">
+						<span>Rewatches</span>
+						<div class="stepper">
+							<button
+								type="button"
+								class="btn-secondary"
+								onclick={() => (rewatchCount = Math.max(0, rewatchCount - 1))}
+							>
+								-
+							</button>
+							<span>{rewatchCount}</span>
+							<button
+								type="button"
+								class="btn-secondary"
+								onclick={() => (rewatchCount += 1)}
+							>
+								+
+							</button>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -542,24 +566,26 @@
 				>
 					{confirmDelete ? 'Confirm Delete' : 'Delete'}
 				</button>
-				<div class="actions-right">
-					<button
-						type="button"
-						class="btn-secondary"
-						disabled={refreshing}
-						onclick={handleRefreshTmdb}
-					>
-						{refreshing ? 'Refreshing...' : 'Refresh TMDB'}
-					</button>
-					<button
-						type="button"
-						class="btn-primary"
-						disabled={saving}
-						onclick={handleSave}
-					>
-						{saving ? 'Saving...' : 'Save'}
-					</button>
-				</div>
+				{#if m.status !== 'dropped'}
+					<div class="actions-right">
+						<button
+							type="button"
+							class="btn-secondary"
+							disabled={refreshing}
+							onclick={handleRefreshTmdb}
+						>
+							{refreshing ? 'Refreshing...' : 'Refresh TMDB'}
+						</button>
+						<button
+							type="button"
+							class="btn-primary"
+							disabled={saving}
+							onclick={handleSave}
+						>
+							{saving ? 'Saving...' : 'Save'}
+						</button>
+					</div>
+				{/if}
 			</div>
 		{/if}
 	</div>
@@ -731,12 +757,42 @@
 	}
 
 	.detail-poster {
-		width: 72px;
-		height: 108px;
+		width: 80px;
+		height: 120px;
 		object-fit: cover;
-		border-radius: 6px;
+		border-radius: 8px;
 		border: 1px solid var(--border-subtle);
 		flex-shrink: 0;
+	}
+
+	.tracking-card {
+		background: var(--bg-primary);
+		border: 1px solid var(--border-subtle);
+		border-radius: 8px;
+		padding: 12px;
+	}
+
+	.status-actions {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 6px;
+	}
+
+	.status-btn {
+		height: 30px;
+		border: 1px solid var(--border-subtle);
+		border-radius: 6px;
+		background: var(--bg-secondary);
+		color: var(--text-primary);
+		font-size: 12px;
+		font-weight: 500;
+		cursor: pointer;
+	}
+
+	.status-btn.active {
+		background: var(--primary);
+		border-color: var(--primary);
+		color: var(--primary-foreground);
 	}
 
 	.detail-meta h2 {
@@ -843,7 +899,10 @@
 
 	.pane-actions {
 		margin-top: auto;
-		padding-top: 10px;
+		position: sticky;
+		bottom: 0;
+		background: var(--bg-secondary);
+		padding: 12px 0 4px;
 		border-top: 1px solid var(--border-subtle);
 		display: flex;
 		align-items: center;

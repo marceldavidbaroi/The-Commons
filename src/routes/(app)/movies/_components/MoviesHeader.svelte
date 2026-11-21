@@ -13,6 +13,7 @@
 
 	const watchedCount = $derived(moviesStore.facets.counts_by_status.watched ?? 0);
 	const watchlistCount = $derived(moviesStore.facets.counts_by_status.watchlist ?? 0);
+	const droppedCount = $derived(moviesStore.facets.counts_by_status.dropped ?? 0);
 	const recCount = $derived(moviesStore.facets.recommendation_count ?? 0);
 
 	function selectTab(tab: MovieTab) {
@@ -45,7 +46,6 @@
 				Filters{moviesStore.activeFilterCount > 0 ? ` (${moviesStore.activeFilterCount})` : ''}
 			</button>
 		{/if}
-		<h1 class="page-title">/movies</h1>
 		<nav class="tabs" aria-label="Movie lists">
 			<button
 				type="button"
@@ -70,6 +70,14 @@
 				onclick={() => selectTab('recommendations')}
 			>
 				Recommendations ({recCount})
+			</button>
+			<button
+				type="button"
+				class="tab-btn"
+				class:active={moviesStore.activeTab === 'dropped'}
+				onclick={() => selectTab('dropped')}
+			>
+				Dropped ({droppedCount})
 			</button>
 		</nav>
 	</div>
