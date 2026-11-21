@@ -96,6 +96,29 @@
 	</div>
 
 	<div class="filter-section">
+		<span class="filter-label">Media Type</span>
+		<div class="pill-group">
+			{#each [
+				{ value: 'all', label: 'All' },
+				{ value: 'movie', label: 'Movies' },
+				{ value: 'series', label: 'Series' }
+			] as mt}
+				<button
+					type="button"
+					class="pill"
+					class:active={moviesStore.filters.mediaType === mt.value}
+					onclick={() => {
+						moviesStore.filters.mediaType = mt.value as 'all' | 'movie' | 'series';
+						applyAndReload();
+					}}
+				>
+					{mt.label}
+				</button>
+			{/each}
+		</div>
+	</div>
+
+	<div class="filter-section">
 		<span class="filter-label">Personal Rating</span>
 		<div class="pill-group">
 			{#each RATINGS as r}

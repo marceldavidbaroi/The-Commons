@@ -16,7 +16,7 @@ import type {
 export const MOVIES_PAGE_SIZE = 20;
 
 export const MOVIE_COLS =
-	'id, tmdb_id, imdb_id, imdb_url, letterboxd_url, title, release_year, original_language, origin_countries, genres, poster_path, trailer_youtube_key, status, rating, tags, recommend_to, notes, watched_at, rewatch_count';
+	'id, tmdb_id, media_type, imdb_id, imdb_url, letterboxd_url, title, release_year, original_language, origin_countries, genres, poster_path, trailer_youtube_key, series_progress, status, rating, tags, recommend_to, notes, watched_at, rewatch_count';
 
 function applyMovieFilters<T>(
 	query: T,
@@ -35,6 +35,10 @@ function applyMovieFilters<T>(
 
 	if (filters.search && filters.search.trim()) {
 		q = q.ilike('title', `%${filters.search.trim()}%`);
+	}
+
+	if (filters.mediaType && filters.mediaType !== 'all') {
+		q = q.eq('media_type', filters.mediaType);
 	}
 
 	if (filters.languages && filters.languages.length > 0) {
@@ -172,7 +176,7 @@ export async function upsertMovie(payload: MovieUpsertPayload): Promise<Movie> {
 	if (payload.tmdb_id) {
 		const { data, error } = await supabase
 			.from('movies')
-			.upsert(payload, { onConflict: 'user_id,tmdb_id' })
+			.upsert(payload, { onConflict: 'user_id,media_type,tmdb_id' })
 			.select(MOVIE_COLS)
 			.single();
 
@@ -225,9 +229,13 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 	};
 }
 
-export async function searchTmdb(q: string, year?: number | null): Promise<TmdbSearchResult[]> {
+export async function searchTmdb(
+	q: string,
+	year?: number | null,
+	mediaType: 'all' | 'movie' | 'series' = 'all'
+): Promise<TmdbSearchResult[]> {
 	const headers = await getAuthHeaders();
-	const params = new URLSearchParams({ action: 'search', q });
+	const params = new URLSearchParams({ action: 'search', q, media_type: mediaType });
 	if (year) params.set('year', String(year));
 
 	const res = await fetch(`${PUBLIC_SUPABASE_URL}/functions/v1/tmdb-proxy?${params.toString()}`, {
@@ -241,9 +249,16 @@ export async function searchTmdb(q: string, year?: number | null): Promise<TmdbS
 	return data.results ?? [];
 }
 
-export async function hydrateTmdb(tmdbId: number): Promise<TmdbHydratedMovie> {
+export async function hydrateTmdb(
+	tmdbId: number,
+	mediaType: 'movie' | 'series' = 'movie'
+): Promise<TmdbHydratedMovie> {
 	const headers = await getAuthHeaders();
-	const params = new URLSearchParams({ action: 'hydrate', tmdb_id: String(tmdbId) });
+	const params = new URLSearchParams({
+		action: 'hydrate',
+		tmdb_id: String(tmdbId),
+		media_type: mediaType
+	});
 
 	const res = await fetch(`${PUBLIC_SUPABASE_URL}/functions/v1/tmdb-proxy?${params.toString()}`, {
 		headers

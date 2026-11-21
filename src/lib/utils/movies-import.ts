@@ -1,10 +1,16 @@
 import * as XLSX from 'xlsx';
 import { getSupabaseClient } from '$lib/supabase';
 import { batchHydrateTmdb } from '$lib/services/movies-service';
-import type { MovieStatus, MovieUpsertPayload, RecommendAudience } from '$lib/types/movies';
+import type {
+	MovieStatus,
+	MovieUpsertPayload,
+	RecommendAudience,
+	SeriesProgress
+} from '$lib/types/movies';
 
 export interface ParsedImportRow {
 	title: string;
+	media_type: 'movie' | 'series';
 	release_year: number | null;
 	status: MovieStatus;
 	rating: number | null;
@@ -12,6 +18,7 @@ export interface ParsedImportRow {
 	tags: string[];
 	recommend_to: RecommendAudience[];
 	notes: string | null;
+	series_progress: SeriesProgress | null;
 	tmdb_id?: number;
 }
 
@@ -59,6 +66,49 @@ function parseList(raw: unknown): string[] {
 		.filter(Boolean);
 }
 
+function parseSeriesProgress(
+	seasonsRaw: unknown,
+	watchedRaw: unknown
+): SeriesProgress | null {
+	const seasonMap = new Map<number, { season: number; episode_count: number; watched: number[] }>();
+
+	if (seasonsRaw) {
+		for (const part of String(seasonsRaw).split(',')) {
+			const [sStr, cStr] = part.trim().split(':');
+			const season = Number.parseInt(sStr, 10);
+			const episode_count = Number.parseInt(cStr, 10);
+			if (Number.isFinite(season) && season > 0 && Number.isFinite(episode_count) && episode_count > 0) {
+				seasonMap.set(season, { season, episode_count, watched: [] });
+			}
+		}
+	}
+
+	if (watchedRaw) {
+		for (const part of String(watchedRaw).split(';')) {
+			const [sPart, epsPart] = part.trim().split(':');
+			if (!sPart || !epsPart) continue;
+			const season = Number.parseInt(sPart.replace(/^s/i, '').trim(), 10);
+			if (!Number.isFinite(season) || season <= 0) continue;
+			const watched = epsPart
+				.split(',')
+				.map((e) => Number.parseInt(e.trim(), 10))
+				.filter((e) => Number.isFinite(e) && e > 0);
+			const existing = seasonMap.get(season);
+			if (existing) {
+				existing.watched = Array.from(new Set([...existing.watched, ...watched])).sort((a, b) => a - b);
+			} else {
+				const maxEp = Math.max(...watched, 1);
+				seasonMap.set(season, { season, episode_count: maxEp, watched });
+			}
+		}
+	}
+
+	if (seasonMap.size === 0) return null;
+	return {
+		seasons: Array.from(seasonMap.values()).sort((a, b) => a.season - b.season)
+	};
+}
+
 export async function parseImportFile(file: File): Promise<ParsedImportRow[]> {
 	const buf = await file.arrayBuffer();
 	const wb = XLSX.read(buf, { type: 'array' });
@@ -79,8 +129,11 @@ export async function parseImportFile(file: File): Promise<ParsedImportRow[]> {
 		).trim();
 		if (!title) continue;
 
+		const rawType = String(row['Type'] ?? row['type'] ?? row['Media Type'] ?? '').toLowerCase().trim();
+		const media_type: 'movie' | 'series' = rawType === 'series' || rawType === 'tv' ? 'series' : 'movie';
+
 		const year = parseYear(isLetterboxd ? row['Year'] : row['Year'] ?? row['year']);
-		const key = `${title.toLowerCase()}::${year ?? ''}`;
+		const key = `${media_type}::${title.toLowerCase()}::${year ?? ''}`;
 
 		const rawStatus = String(row['Status'] ?? row['status'] ?? '').toLowerCase();
 		const status: MovieStatus =
@@ -101,10 +154,15 @@ export async function parseImportFile(file: File): Promise<ParsedImportRow[]> {
 			VALID_AUDIENCES.has(a as RecommendAudience)
 		) as RecommendAudience[];
 		const notes = String(row['Notes'] ?? row['notes'] ?? '').trim() || null;
+		const series_progress =
+			media_type === 'series'
+				? parseSeriesProgress(row['Seasons'] ?? row['seasons'], row['Watched Episodes'] ?? row['watched_episodes'])
+				: null;
 		const tmdbRaw = Number.parseInt(String(row['TMDB ID'] ?? row['tmdb_id'] ?? ''), 10);
 
 		deduped.set(key, {
 			title,
+			media_type,
 			release_year: year,
 			status,
 			rating,
@@ -112,6 +170,7 @@ export async function parseImportFile(file: File): Promise<ParsedImportRow[]> {
 			tags,
 			recommend_to,
 			notes,
+			series_progress,
 			...(Number.isFinite(tmdbRaw) && tmdbRaw > 0 ? { tmdb_id: tmdbRaw } : {})
 		});
 	}
@@ -133,6 +192,7 @@ export async function runMovieImport(
 		const hydrated = await batchHydrateTmdb(
 			batch.map((r) => ({
 				tmdb_id: r.tmdb_id,
+				media_type: r.media_type,
 				title: r.title,
 				release_year: r.release_year
 			}))
@@ -143,6 +203,7 @@ export async function runMovieImport(
 			if (!res.matched || !res.movie) {
 				toUpsert.push({
 					tmdb_id: null,
+					media_type: 'movie',
 					imdb_id: null,
 					title: src.title,
 					release_year: src.release_year,
@@ -151,6 +212,7 @@ export async function runMovieImport(
 					genres: [],
 					poster_path: null,
 					trailer_youtube_key: null,
+					series_progress: null,
 					status: src.status,
 					rating: src.rating,
 					watched_at: src.watched_at,
@@ -163,6 +225,7 @@ export async function runMovieImport(
 
 			toUpsert.push({
 				...res.movie,
+				series_progress: src.series_progress ?? res.movie.series_progress,
 				status: src.status,
 				rating: src.rating,
 				watched_at: src.watched_at,
@@ -175,15 +238,63 @@ export async function runMovieImport(
 		onProgress?.(Math.min(i + 25, rows.length), rows.length);
 	}
 
-	// Chunked upsert (50/chunk)
+	// 1. Upsert TMDB-matched rows idempotently
+	const tmdbRows = toUpsert.filter((r) => r.tmdb_id !== null && r.tmdb_id !== undefined);
+	const manualRows = toUpsert.filter((r) => !r.tmdb_id);
+
 	let imported = 0;
-	for (let i = 0; i < toUpsert.length; i += 50) {
-		const chunk = toUpsert.slice(i, i + 50);
+	for (let i = 0; i < tmdbRows.length; i += 50) {
+		const chunk = tmdbRows.slice(i, i + 50);
 		const { error } = await supabase
 			.from('movies')
-			.upsert(chunk, { onConflict: 'user_id,tmdb_id' });
+			.upsert(chunk, { onConflict: 'user_id,media_type,tmdb_id' });
 		if (error) throw error;
 		imported += chunk.length;
+	}
+
+	// 2. Idempotently update or insert manual rows (tmdb_id is null)
+	if (manualRows.length > 0) {
+		const { data: existingManual, error: fetchErr } = await supabase
+			.from('movies')
+			.select('id, media_type, title, release_year')
+			.is('tmdb_id', null);
+		if (fetchErr) throw fetchErr;
+
+		const existingMap = new Map<string, string>();
+		for (const row of existingManual ?? []) {
+			const k = `${row.media_type}::${String(row.title).toLowerCase()}::${row.release_year ?? ''}`;
+			existingMap.set(k, row.id);
+		}
+
+		const toInsert: MovieUpsertPayload[] = [];
+		for (const row of manualRows) {
+			const k = `${row.media_type ?? 'movie'}::${row.title.toLowerCase()}::${row.release_year ?? ''}`;
+			const existingId = existingMap.get(k);
+			if (existingId) {
+				const { error: updErr } = await supabase
+					.from('movies')
+					.update({
+						status: row.status,
+						rating: row.rating,
+						watched_at: row.watched_at,
+						tags: row.tags,
+						recommend_to: row.recommend_to,
+						notes: row.notes
+					})
+					.eq('id', existingId);
+				if (updErr) throw updErr;
+				imported += 1;
+			} else {
+				toInsert.push(row);
+			}
+		}
+
+		for (let i = 0; i < toInsert.length; i += 50) {
+			const chunk = toInsert.slice(i, i + 50);
+			const { error: insErr } = await supabase.from('movies').insert(chunk);
+			if (insErr) throw insErr;
+			imported += chunk.length;
+		}
 	}
 
 	return {

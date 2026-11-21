@@ -9,6 +9,7 @@ import type {
 	MovieTab,
 	MovieUpdatePayload,
 	MovieUpsertPayload,
+	MediaType,
 	RatingFilter,
 	RecommendAudience,
 	ReleaseEra,
@@ -17,6 +18,7 @@ import type {
 
 const DEFAULT_FILTERS: MovieFilters = {
 	search: '',
+	mediaType: 'all',
 	languages: [],
 	originCountries: [],
 	genres: [],
@@ -57,6 +59,7 @@ class MoviesStore {
 	activeFilterCount = $derived.by(() => {
 		let count = 0;
 		if (this.filters.search.trim()) count++;
+		if (this.filters.mediaType !== 'all') count++;
 		count += this.filters.languages.length;
 		count += this.filters.originCountries.length;
 		count += this.filters.genres.length;
@@ -210,6 +213,9 @@ class MoviesStore {
 		}
 
 		const q = url.searchParams.get('q') ?? '';
+		const rawType = url.searchParams.get('type');
+		const mediaType: 'all' | MediaType =
+			rawType === 'movie' || rawType === 'series' ? rawType : 'all';
 		const lang = url.searchParams.get('lang')?.split(',').filter(Boolean) ?? [];
 		const country = url.searchParams.get('country')?.split(',').filter(Boolean) ?? [];
 		const genre = url.searchParams.get('genre')?.split(',').filter(Boolean) ?? [];
@@ -221,6 +227,7 @@ class MoviesStore {
 
 		this.filters = {
 			search: q,
+			mediaType,
 			languages: lang,
 			originCountries: country,
 			genres: genre,
@@ -242,6 +249,7 @@ class MoviesStore {
 		if (this.activeTab !== 'watched') params.set('tab', this.activeTab);
 		if (this.sort !== 'watched_at') params.set('sort', this.sort);
 		if (this.filters.search.trim()) params.set('q', this.filters.search.trim());
+		if (this.filters.mediaType !== 'all') params.set('type', this.filters.mediaType);
 		if (this.filters.languages.length) params.set('lang', this.filters.languages.join(','));
 		if (this.filters.originCountries.length)
 			params.set('country', this.filters.originCountries.join(','));

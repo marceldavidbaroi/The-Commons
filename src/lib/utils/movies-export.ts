@@ -4,14 +4,30 @@ import type { Movie, MovieCursor, MovieFilters, MovieSort, MovieTab } from '$lib
 
 const EXPORT_BATCH_SIZE = 500;
 
+function formatSeriesSeasons(m: Movie): string {
+	if (m.media_type !== 'series' || !m.series_progress?.seasons?.length) return '';
+	return m.series_progress.seasons.map((s) => `${s.season}:${s.episode_count}`).join(', ');
+}
+
+function formatWatchedEpisodes(m: Movie): string {
+	if (m.media_type !== 'series' || !m.series_progress?.seasons?.length) return '';
+	return m.series_progress.seasons
+		.filter((s) => s.watched.length > 0)
+		.map((s) => `S${s.season}:${s.watched.join(',')}`)
+		.join('; ');
+}
+
 function toExportRow(m: Movie) {
 	return {
 		Title: m.title,
+		Type: m.media_type,
 		Year: m.release_year ?? '',
 		Status: m.status,
 		Rating: m.rating ?? '',
 		'Watched Date': m.watched_at ?? '',
 		Rewatches: m.rewatch_count,
+		Seasons: formatSeriesSeasons(m),
+		'Watched Episodes': formatWatchedEpisodes(m),
 		Language: m.original_language ?? '',
 		Countries: m.origin_countries.join(', '),
 		Genres: m.genres.join(', '),
@@ -68,21 +84,27 @@ export function downloadSampleTemplate(): void {
 	const sampleRows = [
 		{
 			Title: 'Past Lives',
+			Type: 'movie',
 			Year: 2023,
 			Status: 'watched',
 			Rating: 9.0,
 			'Watched Date': '2024-02-14',
+			Seasons: '',
+			'Watched Episodes': '',
 			Tags: 'romance, indie',
 			'Recommend To': 'partner, cinephiles',
 			Notes: 'Quiet and devastating.'
 		},
 		{
-			Title: 'Parasite',
-			Year: 2019,
-			Status: 'watchlist',
-			Rating: '',
+			Title: 'The Falcon and the Winter Soldier',
+			Type: 'series',
+			Year: 2021,
+			Status: 'watched',
+			Rating: 8.0,
 			'Watched Date': '',
-			Tags: 'thriller',
+			Seasons: '1:6',
+			'Watched Episodes': 'S1:1,2,3',
+			Tags: 'marvel',
 			'Recommend To': '',
 			Notes: ''
 		}

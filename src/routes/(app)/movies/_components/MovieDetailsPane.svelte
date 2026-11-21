@@ -1,7 +1,13 @@
 <script lang="ts">
 	import * as moviesService from '$lib/services/movies-service';
 	import { moviesStore } from '$lib/stores/movies.svelte';
-	import type { MovieStatus, RecommendAudience, TmdbSearchResult } from '$lib/types/movies';
+	import type {
+		MediaType,
+		MovieStatus,
+		RecommendAudience,
+		SeriesProgress,
+		TmdbSearchResult
+	} from '$lib/types/movies';
 	import MovieImportPane from './MovieImportPane.svelte';
 
 	const AUDIENCES: Array<{ value: RecommendAudience; label: string }> = [
@@ -22,6 +28,7 @@
 	let addError = $state<string | null>(null);
 
 	// Manual add state
+	let manualMediaType = $state<MediaType>('movie');
 	let manualTitle = $state('');
 	let manualYear = $state('');
 	let manualImdbUrl = $state('');
@@ -38,6 +45,7 @@
 	let tags = $state<string[]>([]);
 	let tagInput = $state('');
 	let notes = $state('');
+	let seriesProgress = $state<SeriesProgress | null>(null);
 	let showTrailer = $state(false);
 	let saving = $state(false);
 	let refreshing = $state(false);
@@ -54,6 +62,14 @@
 			recommendTo = [...m.recommend_to];
 			tags = [...m.tags];
 			notes = m.notes ?? '';
+			seriesProgress = m.series_progress
+				? {
+						seasons: m.series_progress.seasons.map((s) => ({
+							...s,
+							watched: [...s.watched]
+						}))
+					}
+				: null;
 			showTrailer = false;
 			confirmDelete = false;
 			detailsError = null;
@@ -75,11 +91,11 @@
 		}
 	}
 
-	async function handleSelectTmdbMatch(tmdbId: number) {
+	async function handleSelectTmdbMatch(tmdbId: number, mediaType: MediaType) {
 		hydratingId = tmdbId;
 		addError = null;
 		try {
-			const hydrated = await moviesService.hydrateTmdb(tmdbId);
+			const hydrated = await moviesService.hydrateTmdb(tmdbId, mediaType);
 			const defaultStatus: MovieStatus =
 				moviesStore.activeTab === 'watchlist' ? 'watchlist' : 'watched';
 			await moviesStore.upsertMovie({
@@ -127,7 +143,8 @@
 				rewatch_count: rewatchCount,
 				recommend_to: recommendTo,
 				tags,
-				notes: notes.trim() || null
+				notes: notes.trim() || null,
+				series_progress: seriesProgress
 			});
 			moviesStore.refreshFacets();
 		} catch (err) {
@@ -149,6 +166,7 @@
 			const yearNum = manualYear.trim() ? Number.parseInt(manualYear.trim(), 10) : null;
 			await moviesStore.upsertMovie({
 				tmdb_id: null,
+				media_type: manualMediaType,
 				imdb_id: null,
 				imdb_url: manualImdbUrl.trim() || null,
 				letterboxd_url: manualLetterboxdUrl.trim() || null,
@@ -159,6 +177,10 @@
 				genres: [],
 				poster_path: null,
 				trailer_youtube_key: null,
+				series_progress:
+					manualMediaType === 'series'
+						? { seasons: [{ season: 1, episode_count: 10, watched: [] }] }
+						: null,
 				status: defaultStatus
 			});
 			manualTitle = '';
@@ -181,7 +203,7 @@
 		refreshing = true;
 		detailsError = null;
 		try {
-			const hydrated = await moviesService.hydrateTmdb(m.tmdb_id);
+			const hydrated = await moviesService.hydrateTmdb(m.tmdb_id, m.media_type);
 			await moviesStore.updateMovie(m.id, {
 				...hydrated
 			});
@@ -259,7 +281,7 @@
 							type="button"
 							class="tmdb-btn"
 							disabled={hydratingId === res.tmdb_id}
-							onclick={() => handleSelectTmdbMatch(res.tmdb_id)}
+							onclick={() => handleSelectTmdbMatch(res.tmdb_id, res.media_type)}
 						>
 							{#if res.poster_path}
 								<img
@@ -272,7 +294,9 @@
 							{/if}
 							<div class="tmdb-info">
 								<span class="tmdb-title">{res.title}</span>
-								<span class="tmdb-year">{res.release_year ?? 'Unknown year'}</span>
+								<span class="tmdb-year">
+									{res.media_type === 'series' ? 'Series' : 'Movie'} · {res.release_year ?? 'Unknown year'}
+								</span>
 							</div>
 							<span class="tmdb-add-label">
 								{hydratingId === res.tmdb_id ? 'Adding...' : '+ Add'}
@@ -287,6 +311,10 @@
 			</div>
 
 			<form class="manual-form" onsubmit={handleManualAdd}>
+				<select class="input" bind:value={manualMediaType}>
+					<option value="movie">Movie</option>
+					<option value="series">Series</option>
+				</select>
 				<input
 					type="text"
 					class="input"
@@ -471,6 +499,40 @@
 				<span>Notes</span>
 				<textarea class="textarea" rows="3" bind:value={notes}></textarea>
 			</label>
+
+			{#if m.media_type === 'series' && seriesProgress}
+				<div class="field">
+					<span>Seasons &amp; Episodes</span>
+					<div class="seasons-list">
+						{#each seriesProgress.seasons as s, sIdx}
+							<div class="season-block">
+								<div class="season-head">
+									<span>Season {s.season} ({s.watched.length}/{s.episode_count})</span>
+								</div>
+								<div class="ep-grid">
+									{#each Array.from({ length: s.episode_count }, (_, i) => i + 1) as ep}
+										{@const isWatched = s.watched.includes(ep)}
+										<button
+											type="button"
+											class="ep-pill"
+											class:active={isWatched}
+											onclick={() => {
+												if (!seriesProgress) return;
+												const nextWatched = isWatched
+													? s.watched.filter((x) => x !== ep)
+													: [...s.watched, ep].sort((a, b) => a - b);
+												seriesProgress.seasons[sIdx] = { ...s, watched: nextWatched };
+											}}
+										>
+											{ep}
+										</button>
+									{/each}
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
 
 			<div class="pane-actions">
 				<button
@@ -834,5 +896,51 @@
 		color: var(--danger);
 		font-size: 12px;
 		margin: 0;
+	}
+
+	.seasons-list {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.season-block {
+		border: 1px solid var(--border-subtle);
+		border-radius: 6px;
+		padding: 8px;
+		background: var(--bg-primary);
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.season-head {
+		font-size: 11.5px;
+		font-weight: 600;
+		color: var(--text-primary);
+	}
+
+	.ep-grid {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+	}
+
+	.ep-pill {
+		min-width: 26px;
+		height: 24px;
+		padding: 0 6px;
+		border: 1px solid var(--border-subtle);
+		border-radius: 4px;
+		background: var(--bg-secondary);
+		color: var(--text-primary);
+		font-size: 11px;
+		cursor: pointer;
+	}
+
+	.ep-pill.active {
+		background: var(--primary);
+		border-color: var(--primary);
+		color: var(--primary-foreground);
 	}
 </style>

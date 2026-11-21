@@ -21,31 +21,46 @@ function parseReleaseYear(releaseDate?: string | null): number | null {
 	return Number.isFinite(year) ? year : null;
 }
 
+type MediaType = 'movie' | 'series';
+
 interface TmdbSearchResult {
 	id: number;
-	title: string;
+	media_type?: 'movie' | 'tv' | 'person';
+	title?: string;
+	name?: string;
 	release_date?: string;
+	first_air_date?: string;
 	poster_path?: string | null;
 }
 
-interface TmdbMovieDetail {
+interface TmdbDetail {
 	id: number;
 	imdb_id?: string | null;
 	external_ids?: { imdb_id?: string | null };
-	title: string;
+	title?: string;
+	name?: string;
 	release_date?: string;
+	first_air_date?: string;
 	original_language?: string | null;
 	origin_country?: string[];
 	production_countries?: Array<{ iso_3166_1: string }>;
 	genres?: Array<{ name: string }>;
 	poster_path?: string | null;
+	seasons?: Array<{ season_number: number; episode_count: number }>;
 	videos?: {
 		results?: Array<{ site?: string; type?: string; key?: string }>;
 	};
 }
 
-interface HydratedMovie {
+interface SeasonProgress {
+	season: number;
+	episode_count: number;
+	watched: number[];
+}
+
+interface HydratedMedia {
 	tmdb_id: number;
+	media_type: MediaType;
 	imdb_id: string | null;
 	title: string;
 	release_year: number | null;
@@ -54,6 +69,7 @@ interface HydratedMovie {
 	genres: string[];
 	poster_path: string | null;
 	trailer_youtube_key: string | null;
+	series_progress: { seasons: SeasonProgress[] } | null;
 }
 
 async function tmdbFetch<T>(path: string, tmdbToken: string): Promise<T> {
@@ -70,9 +86,10 @@ async function tmdbFetch<T>(path: string, tmdbToken: string): Promise<T> {
 	return (await res.json()) as T;
 }
 
-async function searchMovies(
+async function searchMedia(
 	query: string,
 	year: string | null,
+	mediaType: string | null,
 	tmdbToken: string
 ) {
 	const params = new URLSearchParams({
@@ -84,21 +101,48 @@ async function searchMovies(
 	if (year && /^\d{4}$/.test(year)) {
 		params.set('year', year);
 	}
+
+	const endpoint =
+		mediaType === 'movie'
+			? '/search/movie'
+			: mediaType === 'series'
+				? '/search/tv'
+				: '/search/multi';
+
 	const data = await tmdbFetch<{ results?: TmdbSearchResult[] }>(
-		`/search/movie?${params.toString()}`,
+		`${endpoint}?${params.toString()}`,
 		tmdbToken
 	);
-	return (data.results ?? []).slice(0, 8).map((m) => ({
-		tmdb_id: m.id,
-		title: m.title,
-		release_year: parseReleaseYear(m.release_date),
-		poster_path: m.poster_path ?? null
-	}));
+
+	return (data.results ?? [])
+		.filter((m) => {
+			if (endpoint === '/search/multi') {
+				return m.media_type === 'movie' || m.media_type === 'tv';
+			}
+			return true;
+		})
+		.slice(0, 8)
+		.map((m) => {
+			const resolvedType: MediaType =
+				endpoint === '/search/tv' || m.media_type === 'tv' ? 'series' : 'movie';
+			return {
+				tmdb_id: m.id,
+				media_type: resolvedType,
+				title: m.title ?? m.name ?? 'Untitled',
+				release_year: parseReleaseYear(m.release_date ?? m.first_air_date),
+				poster_path: m.poster_path ?? null
+			};
+		});
 }
 
-async function hydrateMovie(tmdbId: number, tmdbToken: string): Promise<HydratedMovie> {
-	const data = await tmdbFetch<TmdbMovieDetail>(
-		`/movie/${tmdbId}?append_to_response=videos,external_ids&language=en-US`,
+async function hydrateMedia(
+	tmdbId: number,
+	mediaType: MediaType,
+	tmdbToken: string
+): Promise<HydratedMedia> {
+	const path = mediaType === 'series' ? `/tv/${tmdbId}` : `/movie/${tmdbId}`;
+	const data = await tmdbFetch<TmdbDetail>(
+		`${path}?append_to_response=videos,external_ids&language=en-US`,
 		tmdbToken
 	);
 
@@ -111,16 +155,31 @@ async function hydrateMovie(tmdbId: number, tmdbToken: string): Promise<Hydrated
 		(v) => v.site === 'YouTube' && v.type === 'Trailer' && v.key
 	);
 
+	const seriesProgress =
+		mediaType === 'series'
+			? {
+					seasons: (data.seasons ?? [])
+						.filter((s) => s.season_number > 0 && s.episode_count > 0)
+						.map((s) => ({
+							season: s.season_number,
+							episode_count: s.episode_count,
+							watched: []
+						}))
+				}
+			: null;
+
 	return {
 		tmdb_id: data.id,
+		media_type: mediaType,
 		imdb_id: data.imdb_id ?? data.external_ids?.imdb_id ?? null,
-		title: data.title,
-		release_year: parseReleaseYear(data.release_date),
+		title: data.title ?? data.name ?? 'Untitled',
+		release_year: parseReleaseYear(data.release_date ?? data.first_air_date),
 		original_language: data.original_language ? data.original_language.toLowerCase() : null,
 		origin_countries: originCountries,
 		genres: (data.genres ?? []).map((g) => g.name).filter(Boolean),
 		poster_path: data.poster_path ?? null,
-		trailer_youtube_key: trailer?.key ?? null
+		trailer_youtube_key: trailer?.key ?? null,
+		series_progress: seriesProgress
 	};
 }
 
@@ -187,7 +246,8 @@ Deno.serve(async (req) => {
 				const q = url.searchParams.get('q')?.trim() ?? '';
 				if (!q) return jsonResponse({ error: 'Missing q parameter' }, 400);
 				const year = url.searchParams.get('year');
-				const results = await searchMovies(q, year, tmdbToken);
+				const mediaType = url.searchParams.get('media_type');
+				const results = await searchMedia(q, year, mediaType, tmdbToken);
 				return jsonResponse({ results });
 			}
 
@@ -197,7 +257,9 @@ Deno.serve(async (req) => {
 				if (!Number.isFinite(tmdbId) || tmdbId <= 0) {
 					return jsonResponse({ error: 'Invalid tmdb_id parameter' }, 400);
 				}
-				const movie = await hydrateMovie(tmdbId, tmdbToken);
+				const rawType = url.searchParams.get('media_type');
+				const mediaType: MediaType = rawType === 'series' ? 'series' : 'movie';
+				const movie = await hydrateMedia(tmdbId, mediaType, tmdbToken);
 				return jsonResponse({ movie });
 			}
 
@@ -207,7 +269,12 @@ Deno.serve(async (req) => {
 		if (req.method === 'POST') {
 			const body = (await req.json()) as {
 				action?: string;
-				items?: Array<{ tmdb_id?: number; title?: string; release_year?: number | null }>;
+				items?: Array<{
+					tmdb_id?: number;
+					media_type?: MediaType;
+					title?: string;
+					release_year?: number | null;
+				}>;
 			};
 
 			if (body.action !== 'batch_hydrate') {
@@ -225,20 +292,23 @@ Deno.serve(async (req) => {
 			const results = await mapWithConcurrency(items, 10, async (item, index) => {
 				try {
 					let targetTmdbId = item.tmdb_id;
+					let targetType: MediaType = item.media_type === 'series' ? 'series' : 'movie';
 					if (!targetTmdbId && item.title) {
-						const matches = await searchMovies(
+						const matches = await searchMedia(
 							item.title,
 							item.release_year ? String(item.release_year) : null,
+							item.media_type ?? null,
 							tmdbToken
 						);
 						targetTmdbId = matches[0]?.tmdb_id;
+						if (matches[0]?.media_type) targetType = matches[0].media_type;
 					}
 
 					if (!targetTmdbId) {
 						return { index, matched: false, movie: null, error: 'No TMDB match found' };
 					}
 
-					const movie = await hydrateMovie(targetTmdbId, tmdbToken);
+					const movie = await hydrateMedia(targetTmdbId, targetType, tmdbToken);
 					return { index, matched: true, movie, error: null };
 				} catch (err) {
 					return {

@@ -88,6 +88,14 @@
 								{#if movie.release_year}
 									<span class="row-year">({movie.release_year})</span>
 								{/if}
+								{#if movie.media_type === 'series'}
+									{@const seasons = movie.series_progress?.seasons ?? []}
+									{@const totalEp = seasons.reduce((acc, s) => acc + s.episode_count, 0)}
+									{@const watchedEp = seasons.reduce((acc, s) => acc + s.watched.length, 0)}
+									<span class="series-badge">
+										Series{totalEp > 0 ? ` · ${watchedEp}/${totalEp}` : ''}
+									</span>
+								{/if}
 							</div>
 							<div class="row-meta-line">
 								{#if movie.original_language}
@@ -296,6 +304,16 @@
 	.row-year {
 		font-size: 12px;
 		color: var(--text-secondary);
+		flex-shrink: 0;
+	}
+
+	.series-badge {
+		font-size: 10.5px;
+		padding: 1px 6px;
+		border-radius: 999px;
+		background: var(--bg-tertiary);
+		color: var(--text-primary);
+		border: 1px solid var(--border-subtle);
 		flex-shrink: 0;
 	}
 

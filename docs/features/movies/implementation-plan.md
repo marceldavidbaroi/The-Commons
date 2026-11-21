@@ -62,3 +62,20 @@ Based on [spec.md](file:///Users/daviditc/Documents/personal_projects/The-Common
 ## Phase 5: Verification
 - Run `npm run check` (SvelteKit/TypeScript) and `npm run build`.
 - Verify RLS isolation, keyset pagination, URL query sync, keyboard shortcuts (`/`, `Esc`), and responsive 3-pane / 2-pane / mobile drawer behavior.
+
+---
+
+## Phase 6: Series Tracking (`media_type` + `series_progress`) & Idempotent Import
+1. **Migration (`supabase/migrations/20271122030000_movies_series_support.sql`)**:
+   - Add `media_type text not null default 'movie' check (media_type in ('movie', 'series'))` and `series_progress jsonb` to `public.movies`.
+   - Replace `uq_user_tmdb` with `uq_user_media_tmdb` on `(user_id, media_type, tmdb_id) where tmdb_id is not null`.
+2. **TMDB Proxy (`supabase/functions/tmdb-proxy/index.ts`)**:
+   - Update `GET ?action=search` to use `/3/search/multi` (filtering `movie` & `tv`, returning `media_type: 'movie' | 'series'`).
+   - Update `GET ?action=hydrate` & `POST batch_hydrate` to accept `media_type` and call `/3/tv/{id}` for series, populating `series_progress: { seasons: [{ season, episode_count, watched: [] }] }`.
+3. **Service, Store & UI**:
+   - Add `media_type` & `series_progress` to `Movie` type and `MOVIE_COLS` in `src/lib/services/movies-service.ts`.
+   - Add `Media Type` filter (`All`, `Movies`, `Series`) to `MoviesFilterSidebar.svelte` and `S1 · 3/6` progress badge to `MoviesList.svelte`.
+   - Add Season/Episode checklist (and manual season/episode count editor for non-TMDB series) to `MovieDetailsPane.svelte`.
+4. **Idempotent Excel/CSV Import (`src/lib/utils/movies-import.ts`)**:
+   - **TMDB-matched rows**: upsert with `onConflict: 'user_id,media_type,tmdb_id'` so re-importing updates existing records instead of inserting duplicates.
+   - **Manual rows (`tmdb_id: null`)**: check existing vault rows by `(media_type, lower(title), release_year)` before writing—update matching rows by `id` and only insert genuinely new rows.

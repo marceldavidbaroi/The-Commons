@@ -1,3 +1,5 @@
+export type MediaType = 'movie' | 'series';
+
 export type MovieStatus = 'watchlist' | 'watched' | 'dropped';
 
 export type RecommendAudience =
@@ -18,9 +20,20 @@ export type RatingFilter = 'all' | '9+' | '8+' | '7+' | 'unrated';
 
 export type RightPaneMode = 'closed' | 'details' | 'add' | 'import';
 
+export interface SeasonProgress {
+	season: number;
+	episode_count: number;
+	watched: number[];
+}
+
+export interface SeriesProgress {
+	seasons: SeasonProgress[];
+}
+
 export interface Movie {
 	id: string;
 	tmdb_id: number | null;
+	media_type: MediaType;
 	imdb_id: string | null;
 	imdb_url: string | null;
 	letterboxd_url: string | null;
@@ -31,6 +44,7 @@ export interface Movie {
 	genres: string[];
 	poster_path: string | null;
 	trailer_youtube_key: string | null;
+	series_progress: SeriesProgress | null;
 	status: MovieStatus;
 	rating: number | null;
 	tags: string[];
@@ -42,6 +56,7 @@ export interface Movie {
 
 export interface MovieFilters {
 	search: string;
+	mediaType: 'all' | MediaType;
 	languages: string[];
 	originCountries: string[];
 	genres: string[];
@@ -70,6 +85,7 @@ export interface MovieFacets {
 
 export interface TmdbSearchResult {
 	tmdb_id: number;
+	media_type: MediaType;
 	title: string;
 	release_year: number | null;
 	poster_path: string | null;
@@ -77,6 +93,7 @@ export interface TmdbSearchResult {
 
 export interface TmdbHydratedMovie {
 	tmdb_id: number;
+	media_type: MediaType;
 	imdb_id: string | null;
 	title: string;
 	release_year: number | null;
@@ -85,6 +102,7 @@ export interface TmdbHydratedMovie {
 	genres: string[];
 	poster_path: string | null;
 	trailer_youtube_key: string | null;
+	series_progress: SeriesProgress | null;
 }
 
 export interface MovieUpsertPayload extends Omit<TmdbHydratedMovie, 'tmdb_id'> {

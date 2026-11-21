@@ -32,7 +32,7 @@ create type public.recommend_audience as enum (
 create table public.movies (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
-  tmdb_id integer not null,
+  tmdb_id integer,
   imdb_id text,
 
   -- External Links
@@ -40,6 +40,7 @@ create table public.movies (
   letterboxd_url text,
 
   -- Lean Cached TMDB Metadata
+  media_type text not null default 'movie' check (media_type in ('movie', 'series')),
   title text not null,
   release_year smallint,
   original_language text,                        -- ISO 639-1, e.g. 'en', 'bn', 'hi', 'ko'
@@ -47,6 +48,7 @@ create table public.movies (
   genres text[] not null default '{}',
   poster_path text,                              -- relative path only, e.g. '/x9yj...jpg'
   trailer_youtube_key text,
+  series_progress jsonb,                         -- { "seasons": [{ "season": 1, "episode_count": 6, "watched": [1, 2] }] }
 
   -- Personal Layer
   status public.movie_status not null default 'watchlist',
@@ -59,10 +61,12 @@ create table public.movies (
   metadata_synced_at timestamptz default now(),
 
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-
-  constraint uq_user_tmdb unique (user_id, tmdb_id)
+  updated_at timestamptz not null default now()
 );
+
+create unique index uq_user_media_tmdb
+  on public.movies (user_id, media_type, tmdb_id)
+  where tmdb_id is not null;
 
 -- 3. Indexes (GIN for array filters + trigram search, B-Tree for sorting/keyset pagination)
 create index idx_movies_title_trgm on public.movies using gin (title gin_trgm_ops);
@@ -200,11 +204,12 @@ All filters map directly to indexed PostgREST query parameters with 20-item keys
 - **Auth**: Verify `Authorization: Bearer <supabase_user_jwt>` so unauthenticated callers cannot consume TMDB quota.
 - **TMDB Auth**: `Authorization: Bearer <TMDB_READ_ACCESS_TOKEN>` against `https://api.themoviedb.org/3`.
 - **Routes / Actions**:
-  1. `GET /tmdb-proxy?action=search&q={title}&year={yyyy}`
-     - Calls `GET /3/search/movie` (`include_adult=false`, `language=en-US`, `page=1`, optional `year`).
-     - Returns top 8 matches: `{ tmdb_id, title, release_year, poster_path }`.
-  2. `GET /tmdb-proxy?action=hydrate&tmdb_id={id}`
-     - Calls `GET /3/movie/{id}?append_to_response=videos,external_ids&language=en-US`.
+  1. `GET /tmdb-proxy?action=search&q={title}&year={yyyy}&media_type={movie|series|all}`
+     - Calls `GET /3/search/multi` (or `/3/search/movie` / `/3/search/tv`) (`include_adult=false`, `language=en-US`, `page=1`, optional `year`).
+     - Returns top 8 matches: `{ tmdb_id, media_type, title, release_year, poster_path }`.
+  2. `GET /tmdb-proxy?action=hydrate&tmdb_id={id}&media_type={movie|series}`
+     - Calls `GET /3/movie/{id}` or `GET /3/tv/{id}` with `?append_to_response=videos,external_ids&language=en-US`.
+     - For `series`, maps `seasons` (excluding season `0` specials unless present) into `series_progress: { seasons: [{ season, episode_count, watched: [] }] }`.
      - Normalizes payload into `public.movies` columns for direct `upsert(...)` on Add Movie and Refresh Metadata:
 
 | Postgres Column | TMDB Field | Fallback / Rule |

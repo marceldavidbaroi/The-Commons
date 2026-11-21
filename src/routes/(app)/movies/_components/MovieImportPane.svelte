@@ -68,10 +68,12 @@
 		</div>
 		<ul class="guide-list">
 			<li><code>Title</code> (required) &amp; <code>Year</code> (recommended for accurate TMDB match)</li>
+			<li><code>Type</code>: <code>movie</code> (default) or <code>series</code></li>
 			<li><code>Status</code>: <code>watched</code>, <code>watchlist</code>, or <code>dropped</code></li>
 			<li><code>Rating</code>: <code>0.5</code>–<code>10.0</code> (Letterboxd 0.5–5 auto-scaled)</li>
 			<li><code>Watched Date</code>: <code>YYYY-MM-DD</code></li>
 			<li><code>Tags</code> &amp; <code>Recommend To</code>: comma-separated</li>
+			<li><code>Seasons</code> (e.g. <code>1:6, 2:8</code>) &amp; <code>Watched Episodes</code> (e.g. <code>S1:1,2,3</code>)</li>
 			<li><code>Notes</code>, <code>TMDB ID</code> (optional)</li>
 		</ul>
 	</div>
