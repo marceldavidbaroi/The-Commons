@@ -176,6 +176,62 @@
 								</div>
 							{/if}
 
+							{#if moviesStore.activeTab === 'watchlist'}
+								<div class="card-quick-actions">
+									<button
+										type="button"
+										class="quick-btn quick-btn-watched"
+										onclick={async (e) => {
+											e.stopPropagation();
+											await moviesStore.updateMovie(movie.id, { status: 'watched' });
+											moviesStore.items = moviesStore.items.filter((m) => m.id !== movie.id);
+											moviesStore.refreshFacets();
+										}}
+									>
+										Watched
+									</button>
+									<button
+										type="button"
+										class="quick-btn quick-btn-drop"
+										onclick={async (e) => {
+											e.stopPropagation();
+											await moviesStore.updateMovie(movie.id, { status: 'dropped' });
+											moviesStore.items = moviesStore.items.filter((m) => m.id !== movie.id);
+											moviesStore.refreshFacets();
+										}}
+									>
+										Drop
+									</button>
+								</div>
+							{:else if moviesStore.activeTab === 'dropped'}
+								<div class="card-quick-actions">
+									<button
+										type="button"
+										class="quick-btn quick-btn-watched"
+										onclick={async (e) => {
+											e.stopPropagation();
+											await moviesStore.updateMovie(movie.id, { status: 'watched' });
+											moviesStore.items = moviesStore.items.filter((m) => m.id !== movie.id);
+											moviesStore.refreshFacets();
+										}}
+									>
+										Watched
+									</button>
+									<button
+										type="button"
+										class="quick-btn quick-btn-watchlist"
+										onclick={async (e) => {
+											e.stopPropagation();
+											await moviesStore.updateMovie(movie.id, { status: 'watchlist' });
+											moviesStore.items = moviesStore.items.filter((m) => m.id !== movie.id);
+											moviesStore.refreshFacets();
+										}}
+									>
+										Wish List
+									</button>
+								</div>
+							{/if}
+
 							{#if movie.rating !== null || movie.imdb_url || movie.letterboxd_url}
 								<div class="card-footer">
 									<div class="card-links">
@@ -428,6 +484,46 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 6px;
+	}
+
+	.card-quick-actions {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 5px;
+		margin-top: 6px;
+	}
+
+	.quick-btn {
+		height: 24px;
+		border: 1px solid var(--border-subtle);
+		border-radius: 4px;
+		background: var(--bg-primary);
+		color: var(--text-primary);
+		font-size: 10.5px;
+		font-weight: 500;
+		cursor: pointer;
+	}
+
+	.quick-btn:hover {
+		opacity: 0.9;
+	}
+
+	.quick-btn-watched {
+		background: var(--success);
+		border-color: var(--success);
+		color: #ffffff;
+	}
+
+	.quick-btn-drop {
+		background: var(--danger);
+		border-color: var(--danger);
+		color: #ffffff;
+	}
+
+	.quick-btn-watchlist {
+		background: var(--primary);
+		border-color: var(--primary);
+		color: var(--primary-foreground);
 	}
 
 	.card-links {

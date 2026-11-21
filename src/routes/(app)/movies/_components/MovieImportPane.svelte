@@ -17,6 +17,7 @@
 	let summary = $state<ImportSummary | null>(null);
 	let error = $state<string | null>(null);
 	let copiedPrompt = $state(false);
+	let preserveWatched = $state(true);
 
 	const AI_IMPORT_PROMPT = `Format my movie/series list as a CSV/Excel table with these exact columns:
 Title, Type (movie or series), Year, Status (watched, watchlist, or dropped), Rating (0.5 to 10.0), Watched Date (YYYY-MM-DD), Seasons (e.g. "1:6, 2:8" for series), Watched Episodes (e.g. "S1:1,2,3"), Language (ISO 639-1 e.g. en, bn, ko), Countries (ISO 3166-1 comma-separated e.g. "US, KR"), Genres (comma-separated), Trailer Key (YouTube video ID), Tags (comma-separated), Recommend To (anyone, partner, friends, family, cinephiles, solo_rewatch), Notes.`;
@@ -55,10 +56,14 @@ Title, Type (movie or series), Year, Status (watched, watchlist, or dropped), Ra
 		progressTotal = parsedRows.length;
 
 		try {
-			summary = await runMovieImport(parsedRows, (done, total) => {
-				progressDone = done;
-				progressTotal = total;
-			});
+			summary = await runMovieImport(
+				parsedRows,
+				(done, total) => {
+					progressDone = done;
+					progressTotal = total;
+				},
+				{ preserveWatched }
+			);
 			await Promise.all([moviesStore.reloadList(), moviesStore.refreshFacets()]);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Import failed';
@@ -97,6 +102,11 @@ Title, Type (movie or series), Year, Status (watched, watchlist, or dropped), Ra
 			<li><code>Notes</code>, <code>TMDB ID</code> (optional)</li>
 		</ul>
 	</div>
+
+	<label class="toggle-row">
+		<input type="checkbox" bind:checked={preserveWatched} />
+		<span>Keep existing "Watched" status (don't overwrite to Wish List)</span>
+	</label>
 
 	<label class="dropzone">
 		<input type="file" accept=".xlsx,.xls,.csv" onchange={handleFileSelect} />
@@ -215,6 +225,15 @@ Title, Type (movie or series), Year, Status (watched, watchlist, or dropped), Ra
 		flex-direction: column;
 		gap: 8px;
 		font-size: 12.5px;
+	}
+
+	.toggle-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 12px;
+		color: var(--text-primary);
+		cursor: pointer;
 	}
 
 	.summary-box p {

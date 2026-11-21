@@ -200,8 +200,10 @@ export async function parseImportFile(file: File): Promise<ParsedImportRow[]> {
 
 export async function runMovieImport(
 	rows: ParsedImportRow[],
-	onProgress?: (done: number, total: number) => void
+	onProgress?: (done: number, total: number) => void,
+	options?: { preserveWatched?: boolean }
 ): Promise<ImportSummary> {
+	const preserveWatched = options?.preserveWatched ?? true;
 	const supabase = getSupabaseClient() as any;
 	const unmatched: UnmatchedImportRow[] = [];
 	const toUpsert: MovieUpsertPayload[] = [];
@@ -267,6 +269,24 @@ export async function runMovieImport(
 	const tmdbRows = toUpsert.filter((r) => r.tmdb_id !== null && r.tmdb_id !== undefined);
 	const manualRows = toUpsert.filter((r) => !r.tmdb_id);
 
+	if (preserveWatched && tmdbRows.length > 0) {
+		const tmdbIds = tmdbRows.map((r) => r.tmdb_id as number);
+		const { data: watchedExisting } = await supabase
+			.from('movies')
+			.select('media_type, tmdb_id')
+			.eq('status', 'watched')
+			.in('tmdb_id', tmdbIds);
+
+		const watchedKeys = new Set(
+			(watchedExisting ?? []).map((w: any) => `${w.media_type}::${w.tmdb_id}`)
+		);
+		for (const row of tmdbRows) {
+			if (watchedKeys.has(`${row.media_type ?? 'movie'}::${row.tmdb_id}`)) {
+				row.status = 'watched';
+			}
+		}
+	}
+
 	let imported = 0;
 	for (let i = 0; i < tmdbRows.length; i += 50) {
 		const chunk = tmdbRows.slice(i, i + 50);
@@ -281,32 +301,34 @@ export async function runMovieImport(
 	if (manualRows.length > 0) {
 		const { data: existingManual, error: fetchErr } = await supabase
 			.from('movies')
-			.select('id, media_type, title, release_year')
+			.select('id, media_type, title, release_year, status')
 			.is('tmdb_id', null);
 		if (fetchErr) throw fetchErr;
 
-		const existingMap = new Map<string, string>();
+		const existingMap = new Map<string, { id: string; status: string }>();
 		for (const row of existingManual ?? []) {
 			const k = `${row.media_type}::${String(row.title).toLowerCase()}::${row.release_year ?? ''}`;
-			existingMap.set(k, row.id);
+			existingMap.set(k, { id: row.id, status: row.status });
 		}
 
 		const toInsert: MovieUpsertPayload[] = [];
 		for (const row of manualRows) {
 			const k = `${row.media_type ?? 'movie'}::${row.title.toLowerCase()}::${row.release_year ?? ''}`;
-			const existingId = existingMap.get(k);
-			if (existingId) {
+			const existing = existingMap.get(k);
+			if (existing) {
+				const nextStatus =
+					preserveWatched && existing.status === 'watched' ? 'watched' : row.status;
 				const { error: updErr } = await supabase
 					.from('movies')
 					.update({
-						status: row.status,
+						status: nextStatus,
 						rating: row.rating,
 						watched_at: row.watched_at,
 						tags: row.tags,
 						recommend_to: row.recommend_to,
 						notes: row.notes
 					})
-					.eq('id', existingId);
+					.eq('id', existing.id);
 				if (updErr) throw updErr;
 				imported += 1;
 			} else {
