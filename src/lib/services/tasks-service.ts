@@ -896,3 +896,44 @@ export async function fetchTasksByDueTab(
 
   return { items, nextCursor };
 }
+
+export interface CalendarTaskItem {
+  id: number;
+  list_id: number;
+  title: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  due_date: string;
+}
+
+/**
+ * Fetches non-deleted tasks with a due_date within [startDate, endDate] (YYYY-MM-DD).
+ */
+export async function fetchTasksByDateRange(
+  startDate: string,
+  endDate: string,
+  includeCompleted = false,
+  customClient?: SupabaseClient<Database>
+): Promise<CalendarTaskItem[]> {
+  const supabase = getClient(customClient);
+  let query = supabase
+    .from('tasks')
+    .select('id, list_id, title, status, priority, due_date')
+    .is('deleted_at', null)
+    .not('due_date', 'is', null)
+    .gte('due_date', startDate)
+    .lte('due_date', endDate)
+    .order('due_date', { ascending: true })
+    .order('id', { ascending: true });
+
+  if (!includeCompleted) {
+    query = query.not('status', 'in', '("done","cancelled")');
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error('Error fetching calendar tasks:', error);
+    throw error;
+  }
+  return (data || []) as CalendarTaskItem[];
+}
