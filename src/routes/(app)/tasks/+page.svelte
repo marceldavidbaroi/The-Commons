@@ -8,9 +8,13 @@
   import CreateListModal from "$lib/components/tasks/lists/CreateListModal.svelte";
   import PriorityFlag from "$lib/components/tasks/shared/PriorityFlag.svelte";
   import StatusPill from "$lib/components/tasks/shared/StatusPill.svelte";
+  import StatusFilter from "$lib/components/tasks/table/StatusFilter.svelte";
+  import PriorityFilter from "$lib/components/tasks/table/PriorityFilter.svelte";
 
   let showCreateModal = $state(false);
   let activeTab = $state<DueTab>("all");
+  let statusFilters = $state<TaskStatus[]>([]);
+  let priorityFilters = $state<TaskPriority[]>([]);
   let tabTasks = $state<DueTabTask[]>([]);
   let tabCursor = $state<DueTabCursor | null>(null);
   let isLoadingTab = $state(false);
@@ -20,7 +24,13 @@
     activeTab = tab;
     isLoadingTab = true;
     try {
-      const res = await tasksService.fetchTasksByDueTab(tab, null);
+      const res = await tasksService.fetchTasksByDueTab(
+        tab,
+        null,
+        20,
+        statusFilters,
+        priorityFilters,
+      );
       if (activeTab === tab) {
         tabTasks = res.items;
         tabCursor = res.nextCursor;
@@ -37,7 +47,13 @@
     isLoadingMoreTab = true;
     const tab = activeTab;
     try {
-      const res = await tasksService.fetchTasksByDueTab(tab, tabCursor);
+      const res = await tasksService.fetchTasksByDueTab(
+        tab,
+        tabCursor,
+        20,
+        statusFilters,
+        priorityFilters,
+      );
       if (activeTab === tab) {
         tabTasks = [...tabTasks, ...res.items];
         tabCursor = res.nextCursor;
@@ -45,6 +61,16 @@
     } finally {
       isLoadingMoreTab = false;
     }
+  }
+
+  function handleStatusFilterChange(selected: TaskStatus[]) {
+    statusFilters = selected;
+    loadDueTab(activeTab);
+  }
+
+  function handlePriorityFilterChange(selected: TaskPriority[]) {
+    priorityFilters = selected;
+    loadDueTab(activeTab);
   }
 
   async function handleTabStatusChange(taskId: number, status: TaskStatus) {
@@ -129,8 +155,13 @@
   <!-- Body -->
   <div>
     {#if tasksStore.isLoading && tasksStore.lists.length === 0}
-      <div class="tasks-empty">
-        <p>Loading lists...</p>
+      <div class="tasks-grid" aria-busy="true" aria-label="Loading lists">
+        {#each Array(3) as _, i (i)}
+          <div class="tasks-skeleton-card">
+            <div class="tasks-skeleton-line" style="width: 55%; height: 1rem;"></div>
+            <div class="tasks-skeleton-line" style="width: 35%; height: 0.75rem; margin-top: 0.625rem;"></div>
+          </div>
+        {/each}
       </div>
     {:else if tasksStore.lists.length === 0}
       <div class="tasks-empty">
@@ -170,29 +201,49 @@
 
   <!-- Section 2: Today / Tomorrow / Due -->
   <section style="margin-top: 2rem;">
-    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem;">
-      {#each [
-        { id: "all", label: "All" },
-        { id: "today", label: "Today" },
-        { id: "yesterday", label: "Yesterday" },
-        { id: "later", label: "Later" },
-        { id: "due", label: "Due" },
-        { id: "no_due", label: "No due" },
-      ] as tab (tab.id)}
-        <button
-          type="button"
-          onclick={() => loadDueTab(tab.id as DueTab)}
-          class="tasks-btn {activeTab === tab.id ? 'tasks-btn-primary' : 'tasks-btn-ghost'}"
-          style="padding: 0.375rem 0.75rem; font-size: 0.875rem;"
-        >
-          {tab.label}
-        </button>
-      {/each}
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+        {#each [
+          { id: "all", label: "All" },
+          { id: "today", label: "Today" },
+          { id: "yesterday", label: "Yesterday" },
+          { id: "later", label: "Later" },
+          { id: "due", label: "Due" },
+          { id: "no_due", label: "No due" },
+        ] as tab (tab.id)}
+          <button
+            type="button"
+            onclick={() => loadDueTab(tab.id as DueTab)}
+            class="tasks-btn {activeTab === tab.id ? 'tasks-btn-primary' : 'tasks-btn-ghost'}"
+            style="padding: 0.375rem 0.75rem; font-size: 0.875rem;"
+          >
+            {tab.label}
+          </button>
+        {/each}
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <StatusFilter selected={statusFilters} onChange={handleStatusFilterChange} />
+        <PriorityFilter selected={priorityFilters} onChange={handlePriorityFilterChange} />
+      </div>
     </div>
 
     {#if isLoadingTab}
-      <div class="tasks-empty">
-        <p>Loading tasks...</p>
+      <div class="tasks-table-wrapper" aria-busy="true" aria-label="Loading tasks">
+        <div class="tasks-table-body">
+          {#each Array(5) as _, i (i)}
+            <div class="tasks-table-row">
+              <div style="display: flex; align-items: center; gap: 0.625rem; flex: 1;">
+                <div class="tasks-skeleton-line" style="width: 1rem; height: 1rem; border-radius: 0.25rem;"></div>
+                <div class="tasks-skeleton-line" style="width: {45 + (i % 3) * 15}%; height: 0.875rem;"></div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.75rem; margin-left: 1rem;">
+                <div class="tasks-skeleton-line" style="width: 4.5rem; height: 1.25rem; border-radius: 9999px;"></div>
+                <div class="tasks-skeleton-line" style="width: 5rem; height: 1.375rem; border-radius: 9999px;"></div>
+              </div>
+            </div>
+          {/each}
+        </div>
       </div>
     {:else if tabTasks.length === 0}
       <div class="tasks-empty">
@@ -258,3 +309,27 @@
     onCreate={handleCreate}
   />
 {/if}
+
+<style>
+  .tasks-skeleton-card {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface, transparent);
+  }
+
+  .tasks-skeleton-line {
+    border-radius: 0.25rem;
+    background-color: var(--border-subtle);
+    animation: tasks-skeleton-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes tasks-skeleton-pulse {
+    0%, 100% {
+      opacity: 0.45;
+    }
+    50% {
+      opacity: 0.85;
+    }
+  }
+</style>

@@ -3,7 +3,7 @@
 </script>
 
 <svelte:head>
-	<title>Notes — The Commons</title>
+	<title>The Commons</title>
 </svelte:head>
 
 <WorkspaceGrid />

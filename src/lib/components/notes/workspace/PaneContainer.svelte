@@ -72,9 +72,13 @@
 			{@const currentNote = notesStore.activeNotesCache.get(activeTab.noteId)}
 			<div class="note-view-wrapper">
 				{#if !currentNote}
-					<div class="loading-note">
-						<span class="loading-spinner"></span>
-						<span>Loading note...</span>
+					<div class="note-skeleton" aria-busy="true" aria-label="Loading note">
+						<div class="note-skeleton-line note-skeleton-title"></div>
+						<div class="note-skeleton-line" style="width: 30%; height: 0.75rem; margin-bottom: 1.5rem;"></div>
+						<div class="note-skeleton-line" style="width: 92%;"></div>
+						<div class="note-skeleton-line" style="width: 85%;"></div>
+						<div class="note-skeleton-line" style="width: 78%;"></div>
+						<div class="note-skeleton-line" style="width: 60%; margin-top: 0.75rem;"></div>
 					</div>
 				{:else}
 					<TipTapNoteEditor
@@ -194,27 +198,35 @@
 		overflow: hidden;
 	}
 
-	.loading-note {
+	.note-skeleton {
 		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 8px;
-		height: 100%;
-		color: var(--text-muted);
-		font-size: 13px;
+		flex-direction: column;
+		gap: 0.625rem;
+		padding: 24px 32px;
+		max-width: 860px;
+		width: 100%;
 	}
 
-	.loading-spinner {
-		width: 16px;
-		height: 16px;
-		border: 2px solid var(--border-subtle);
-		border-top-color: var(--primary);
-		border-radius: 50%;
-		animation: spin 0.7s linear infinite;
+	.note-skeleton-title {
+		width: 48%;
+		height: 1.75rem;
+		margin-bottom: 0.25rem;
 	}
 
-	@keyframes spin {
-		to { transform: rotate(360deg); }
+	.note-skeleton-line {
+		height: 0.875rem;
+		border-radius: 0.25rem;
+		background-color: var(--border-subtle);
+		animation: note-skeleton-pulse 1.5s ease-in-out infinite;
+	}
+
+	@keyframes note-skeleton-pulse {
+		0%, 100% {
+			opacity: 0.45;
+		}
+		50% {
+			opacity: 0.85;
+		}
 	}
 
 	.note-simple-editor {

@@ -802,6 +802,8 @@ export async function fetchTasksByDueTab(
   tab: DueTab,
   cursor: DueTabCursor | null = null,
   limit = 20,
+  statusFilters: TaskStatus[] = [],
+  priorityFilters: TaskPriority[] = [],
   customClient?: SupabaseClient<Database>
 ): Promise<{ items: DueTabTask[]; nextCursor: DueTabCursor | null }> {
   const supabase = getClient(customClient);
@@ -818,6 +820,13 @@ export async function fetchTasksByDueTab(
     )
     .is('deleted_at', null)
     .is('lists.deleted_at', null);
+
+  if (statusFilters.length > 0) {
+    query = query.in('status', statusFilters);
+  }
+  if (priorityFilters.length > 0) {
+    query = query.in('priority', priorityFilters);
+  }
 
   if (tab === 'all') {
     query = query.order('id', { ascending: false });
