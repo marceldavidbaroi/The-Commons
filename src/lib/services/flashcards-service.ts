@@ -96,6 +96,92 @@ export async function fetchDecksWithStats(customClient?: SupabaseClient<Database
 }
 
 /**
+ * Fetch aggregated deck report metrics via parallel PostgreSQL COUNT(*) head queries (zero row payload).
+ */
+export async function fetchDeckReport(
+  deckId: number | string,
+  leechThreshold = 8,
+  customClient?: SupabaseClient<Database>
+): Promise<import('$lib/types/flashcards').DeckReport> {
+  const supabase = getClient(customClient);
+  const numericDeckId = Number(deckId);
+
+  const now = new Date();
+  const nowIso = now.toISOString();
+
+  const tomorrowEnd = new Date(now);
+  tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
+  tomorrowEnd.setHours(23, 59, 59, 999);
+  const tomorrowEndIso = tomorrowEnd.toISOString();
+
+  const sevenDaysEnd = new Date(now);
+  sevenDaysEnd.setDate(sevenDaysEnd.getDate() + 7);
+  sevenDaysEnd.setHours(23, 59, 59, 999);
+  const sevenDaysEndIso = sevenDaysEnd.toISOString();
+
+  const countQuery = () =>
+    supabase
+      .from('cards')
+      .select('id', { count: 'exact', head: true })
+      .eq('deck_id', numericDeckId);
+
+  const [
+    totalRes,
+    dueNowRes,
+    newRes,
+    learningRes,
+    youngRes,
+    matureRes,
+    suspendedRes,
+    leechesRes,
+    dueTomorrowRes,
+    dueNext7Res
+  ] = await Promise.all([
+    countQuery(),
+    countQuery().neq('queue_state', -1).lte('due_date', nowIso),
+    countQuery().eq('queue_state', 0),
+    countQuery().in('queue_state', [1, 3]),
+    countQuery().eq('queue_state', 2).lt('interval_days', 21),
+    countQuery().eq('queue_state', 2).gte('interval_days', 21),
+    countQuery().eq('queue_state', -1),
+    countQuery().gte('lapses', leechThreshold),
+    countQuery().neq('queue_state', -1).gt('due_date', nowIso).lte('due_date', tomorrowEndIso),
+    countQuery().neq('queue_state', -1).gt('due_date', nowIso).lte('due_date', sevenDaysEndIso)
+  ]);
+
+  const firstError = [
+    totalRes.error,
+    dueNowRes.error,
+    newRes.error,
+    learningRes.error,
+    youngRes.error,
+    matureRes.error,
+    suspendedRes.error,
+    leechesRes.error,
+    dueTomorrowRes.error,
+    dueNext7Res.error
+  ].find(Boolean);
+
+  if (firstError) {
+    console.error('Error fetching deck report:', firstError);
+    throw firstError;
+  }
+
+  return {
+    totalCards: totalRes.count ?? 0,
+    dueNow: dueNowRes.count ?? 0,
+    newCards: newRes.count ?? 0,
+    learningCards: learningRes.count ?? 0,
+    youngCards: youngRes.count ?? 0,
+    matureCards: matureRes.count ?? 0,
+    suspendedCards: suspendedRes.count ?? 0,
+    leeches: leechesRes.count ?? 0,
+    dueTomorrow: dueTomorrowRes.count ?? 0,
+    dueNext7Days: dueNext7Res.count ?? 0
+  };
+}
+
+/**
  * Fetch cards that are due for review across all decks, joined with note fields and card type.
  */
 export async function fetchDueCards(customClient?: SupabaseClient<Database>): Promise<import('$lib/types/flashcards').DueTodayItem[]> {

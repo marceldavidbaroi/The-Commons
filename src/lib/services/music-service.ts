@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '$lib/supabase';
-import type { Song, SongCursor, SongFilters, SongInsert, SongUpdate } from '$lib/types/music';
+import type { PlayMode, Song, SongCursor, SongFilters, SongInsert, SongUpdate } from '$lib/types/music';
 
 export const MUSIC_PAGE_SIZE = 20;
 
@@ -29,25 +29,57 @@ export async function fetchSongs(
 	cursor?: SongCursor | null
 ): Promise<{ songs: Song[]; hasMore: boolean }> {
 	const supabase = getSupabaseClient() as any;
-	let query = supabase
-		.from('songs')
-		.select(SONG_COLS)
-		.order('created_at', { ascending: false })
-		.order('id', { ascending: false })
-		.limit(MUSIC_PAGE_SIZE + 1);
 
-	query = applySongFilters(query, filters);
+	let effectiveCursor = cursor ?? null;
 
-	if (cursor) {
-		query = query.or(
-			`created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`
-		);
+	// On initial load (no cursor), pick a random starting point in the filtered range
+	if (!effectiveCursor) {
+		const [oldestRes, newestRes] = await Promise.all([
+			applySongFilters(
+				supabase.from('songs').select('created_at').order('created_at', { ascending: true }).limit(1),
+				filters
+			).maybeSingle(),
+			applySongFilters(
+				supabase.from('songs').select('created_at').order('created_at', { ascending: false }).limit(1),
+				filters
+			).maybeSingle()
+		]);
+		const minMs = oldestRes.data?.created_at ? new Date(oldestRes.data.created_at).getTime() : NaN;
+		const maxMs = newestRes.data?.created_at ? new Date(newestRes.data.created_at).getTime() : NaN;
+		if (Number.isFinite(minMs) && Number.isFinite(maxMs) && maxMs > minMs) {
+			const randomMs = minMs + Math.random() * (maxMs - minMs);
+			effectiveCursor = { created_at: new Date(randomMs).toISOString(), id: 2147483647 };
+		}
 	}
 
-	const { data, error } = await query;
-	if (error) throw error;
+	const runQuery = async (c: SongCursor | null) => {
+		let query = supabase
+			.from('songs')
+			.select(SONG_COLS)
+			.order('created_at', { ascending: false })
+			.order('id', { ascending: false })
+			.limit(MUSIC_PAGE_SIZE + 1);
 
-	const rows = (data ?? []) as Song[];
+		query = applySongFilters(query, filters);
+
+		if (c) {
+			query = query.or(
+				`created_at.lt.${c.created_at},and(created_at.eq.${c.created_at},id.lt.${c.id})`
+			);
+		}
+
+		const { data, error } = await query;
+		if (error) throw error;
+		return (data ?? []) as Song[];
+	};
+
+	let rows = await runQuery(effectiveCursor);
+
+	// If random starting point landed near the tail with fewer than 20 rows, fall back to top
+	if (!cursor && effectiveCursor && rows.length < MUSIC_PAGE_SIZE) {
+		rows = await runQuery(null);
+	}
+
 	const hasMore = rows.length > MUSIC_PAGE_SIZE;
 	return {
 		songs: hasMore ? rows.slice(0, MUSIC_PAGE_SIZE) : rows,
@@ -137,6 +169,38 @@ export async function deleteSong(id: number): Promise<void> {
 	if (error) throw error;
 }
 
+export async function fetchMusicPlayMode(): Promise<PlayMode> {
+	const supabase = getSupabaseClient();
+	const { data, error } = await supabase.auth.getUser();
+	if (error || !data?.user) return 'shuffle';
+	return data.user.user_metadata?.music_play_mode === 'serial' ? 'serial' : 'shuffle';
+}
+
+export async function saveMusicPlayMode(mode: PlayMode): Promise<void> {
+	const supabase = getSupabaseClient();
+	await supabase.auth.updateUser({ data: { music_play_mode: mode } });
+}
+
+export async function fetchSongStats(): Promise<{ total: number; favourites: number }> {
+	const supabase = getSupabaseClient() as any;
+	const [totalRes, favRes] = await Promise.all([
+		supabase.from('songs').select('id', { count: 'exact', head: true }),
+		supabase.from('songs').select('id', { count: 'exact', head: true }).eq('rating', 5)
+	]);
+	if (totalRes.error) throw totalRes.error;
+	if (favRes.error) throw favRes.error;
+	return {
+		total: totalRes.count ?? 0,
+		favourites: favRes.count ?? 0
+	};
+}
+
+export async function resetAllFavourites(): Promise<void> {
+	const supabase = getSupabaseClient() as any;
+	const { error } = await supabase.from('songs').update({ rating: 3 }).eq('rating', 5);
+	if (error) throw error;
+}
+
 export async function bulkInsertSongs(rows: SongInsert[]): Promise<Song[]> {
 	if (rows.length === 0) return [];
 	const supabase = getSupabaseClient() as any;
@@ -157,6 +221,15 @@ export async function bulkInsertSongs(rows: SongInsert[]): Promise<Song[]> {
 }
 
 export async function getShuffledQueue(filters: Partial<SongFilters>): Promise<Song[]> {
+	if (filters.search?.trim() || filters.needsAttention) {
+		const list = await fetchActiveSerialQueue(filters);
+		for (let i = list.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[list[i], list[j]] = [list[j], list[i]];
+		}
+		return list;
+	}
+
 	const supabase = getSupabaseClient() as any;
 	const rpcParams = {
 		p_language: filters.language && filters.language.length > 0 ? filters.language : null,

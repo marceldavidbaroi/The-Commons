@@ -1,13 +1,7 @@
 <script lang="ts">
 	import { musicStore } from '$lib/stores/music.svelte';
 	import { getYoutubeQueueUrl } from '$lib/utils/music';
-	import YouTubeStage from './YouTubeStage.svelte';
-
-	interface Props {
-		onPlayerReady?: (player: any) => void;
-	}
-
-	let { onPlayerReady }: Props = $props();
+	import HeartIcon from './HeartIcon.svelte';
 
 	const LANGUAGES = $derived(musicStore.filterOptions.language);
 	const GENRES = $derived(musicStore.filterOptions.genre);
@@ -31,9 +25,30 @@
 		void musicStore.loadInitial();
 	}
 
-	function setMinRating(rating: number | null) {
-		musicStore.filters.minRating = musicStore.filters.minRating === rating ? null : rating;
+	function toggleFavouriteFilter() {
+		musicStore.filters.minRating = musicStore.filters.minRating === 5 ? null : 5;
 		void musicStore.loadInitial();
+	}
+
+	let confirmingResetFavs = $state(false);
+	let resetConfirmText = $state('');
+	let resettingFavs = $state(false);
+
+	function openResetModal() {
+		resetConfirmText = '';
+		confirmingResetFavs = true;
+	}
+
+	async function handleResetFavourites() {
+		if (resetConfirmText.trim().toLowerCase() !== 'reset') return;
+		resettingFavs = true;
+		try {
+			await musicStore.resetAllFavourites();
+			confirmingResetFavs = false;
+			resetConfirmText = '';
+		} finally {
+			resettingFavs = false;
+		}
 	}
 
 	function toggleNeedsAttention() {
@@ -101,7 +116,34 @@
 	</div>
 
 	<!-- 2. Embedded YouTube Stage -->
-	<YouTubeStage {onPlayerReady} />
+	{#if musicStore.upNext.length > 0}
+		<div class="border border-border rounded-md bg-card p-3 flex flex-col gap-1">
+			<span class="text-[11px] font-medium text-muted-foreground">Up Next ({musicStore.upNext.length})</span>
+			{#each musicStore.upNext as nextSong, offset (nextSong.id)}
+				{@const queueIdx = musicStore.currentIndex + 1 + offset}
+				<div class="flex items-center justify-between gap-2 text-xs py-0.5">
+					<button
+						type="button"
+						onclick={() => musicStore.jumpToQueueIndex(queueIdx)}
+						class="truncate text-left hover:text-primary cursor-pointer flex-1"
+					>
+						{offset + 1}. {nextSong.title}
+						{#if nextSong.artist}
+							<span class="text-muted-foreground">— {nextSong.artist}</span>
+						{/if}
+					</button>
+					<button
+						type="button"
+						onclick={() => musicStore.removeFromQueue(nextSong.id)}
+						title="Remove from queue"
+						class="text-muted-foreground hover:text-destructive cursor-pointer px-1"
+					>
+						✕
+					</button>
+				</div>
+			{/each}
+		</div>
+	{/if}
 
 	<!-- 3. Compact Filters -->
 	<div class="border border-border rounded-md bg-card p-3 flex flex-col gap-2.5">
@@ -167,20 +209,27 @@
 			</div>
 
 			<div class="flex flex-col gap-1">
-				<span class="text-[11px] font-medium text-muted-foreground">Min Rating</span>
-				<div class="flex gap-1">
-					{#each [null, 3, 4, 5] as r}
-						<button
-							type="button"
-							onclick={() => setMinRating(r)}
-							class="flex-1 py-0.5 text-xs rounded border cursor-pointer transition-colors {musicStore.filters.minRating === r
-								? 'bg-primary text-primary-foreground border-primary'
-								: 'border-border text-muted-foreground hover:text-foreground'}"
-						>
-							{r === null ? 'Any' : `${r}★`}
-						</button>
-					{/each}
+				<div class="flex items-center justify-between">
+					<span class="text-[11px] font-medium text-muted-foreground">Favourite</span>
+					<button
+						type="button"
+						onclick={openResetModal}
+						class="text-[10px] text-muted-foreground hover:text-destructive cursor-pointer"
+					>
+						Reset All
+					</button>
 				</div>
+				<button
+					type="button"
+					onclick={toggleFavouriteFilter}
+					aria-pressed={musicStore.filters.minRating === 5}
+					class="w-full py-1 px-2 text-xs rounded border cursor-pointer transition-colors flex items-center justify-center gap-1.5 {musicStore.filters.minRating === 5
+						? 'bg-primary text-primary-foreground border-primary'
+						: 'border-border text-muted-foreground hover:text-foreground'}"
+				>
+					<HeartIcon filled={musicStore.filters.minRating === 5} size={12} />
+					<span>Favourites Only</span>
+				</button>
 			</div>
 		</div>
 
@@ -190,7 +239,7 @@
 				<span>Genre {musicStore.filters.genre.length > 0 ? `(${musicStore.filters.genre.length})` : ''}</span>
 				<span>▾</span>
 			</summary>
-			<div class="flex flex-wrap gap-1" style="margin-top: 0.5rem; max-height: 120px; overflow-y: auto;">
+			<div class="flex flex-wrap gap-1" style="margin-top: 0.5rem; max-height: 260px; overflow-y: auto;">
 				<button
 					type="button"
 					onclick={() => toggleArrayFilter('genre', null)}
@@ -216,7 +265,7 @@
 				<span>Version {musicStore.filters.version.length > 0 ? `(${musicStore.filters.version.length})` : ''}</span>
 				<span>▾</span>
 			</summary>
-			<div class="flex flex-wrap gap-1" style="margin-top: 0.5rem; max-height: 120px; overflow-y: auto;">
+			<div class="flex flex-wrap gap-1" style="margin-top: 0.5rem; max-height: 260px; overflow-y: auto;">
 				<button
 					type="button"
 					onclick={() => toggleArrayFilter('version', null)}
@@ -242,7 +291,7 @@
 				<span>Vibe {musicStore.filters.vibe.length > 0 ? `(${musicStore.filters.vibe.length})` : ''}</span>
 				<span>▾</span>
 			</summary>
-			<div class="flex flex-wrap gap-1" style="margin-top: 0.5rem; max-height: 120px; overflow-y: auto;">
+			<div class="flex flex-wrap gap-1" style="margin-top: 0.5rem; max-height: 260px; overflow-y: auto;">
 				{#each VIBES as vibe}
 					<button
 						type="button"
@@ -266,3 +315,42 @@
 		</button>
 	</div>
 </aside>
+
+{#if confirmingResetFavs}
+	<div
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="reset-favs-title"
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+	>
+		<div class="w-full max-w-sm rounded-md border border-border bg-card p-4 shadow-lg flex flex-col gap-3">
+			<h3 id="reset-favs-title" class="text-sm font-semibold">Reset All Favourites</h3>
+			<p class="text-xs text-muted-foreground">
+				This will remove the favourite status from all songs in your library. Type <strong>reset</strong> below to confirm.
+			</p>
+			<input
+				type="text"
+				bind:value={resetConfirmText}
+				placeholder="Type reset to confirm"
+				class="w-full px-2.5 py-1.5 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-destructive"
+			/>
+			<div class="flex items-center justify-end gap-2">
+				<button
+					type="button"
+					onclick={() => (confirmingResetFavs = false)}
+					class="px-3 py-1 text-xs rounded border border-border hover:bg-accent cursor-pointer"
+				>
+					Cancel
+				</button>
+				<button
+					type="button"
+					disabled={resettingFavs || resetConfirmText.trim().toLowerCase() !== 'reset'}
+					onclick={handleResetFavourites}
+					class="px-3 py-1 text-xs font-medium rounded bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-40 cursor-pointer"
+				>
+					{resettingFavs ? 'Resetting...' : 'Reset All Favourites'}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}

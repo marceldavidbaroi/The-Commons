@@ -460,9 +460,6 @@ Here are the words:
 					<div class="card-type-header-row">
 						<label for="csv-card-type" class="form-label no-margin">
 							<span>Card Type</span>
-							<span class="label-hint"
-								>Defines the template schema</span
-							>
 						</label>
 						<div class="header-actions-group">
 							<button
@@ -513,6 +510,7 @@ Here are the words:
 							</option>
 						{/each}
 					</select>
+					<span class="label-hint">Defines the template schema for imported columns</span>
 				</div>
 
 				<!-- AI Prompt Customizer Accordion / Panel -->
@@ -711,7 +709,7 @@ Here are the words:
 	.modal-backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.6);
+		background: rgba(0, 0, 0, 0.45);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -720,15 +718,15 @@ Here are the words:
 	}
 
 	.modal-dialog {
-		background: var(--bg-surface, #1e1e24);
-		border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
-		border-radius: var(--radius-lg, 12px);
+		background: var(--bg-primary);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-md);
 		width: 100%;
 		max-width: 520px;
 		max-height: 90vh;
 		display: flex;
 		flex-direction: column;
-		box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+		box-shadow: 0 16px 36px rgba(0, 0, 0, 0.16);
 		overflow: hidden;
 	}
 
@@ -736,57 +734,63 @@ Here are the words:
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
+		gap: 0.75rem;
 		padding: 1rem 1.25rem;
-		border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+		border-bottom: 1px solid var(--border-subtle);
+		background-color: var(--bg-secondary);
 	}
 
 	.modal-title {
 		margin: 0;
-		font-size: 1.05rem;
+		font-size: 0.9375rem;
 		font-weight: 600;
-		color: var(--text-primary, #fff);
+		color: var(--text-primary);
 	}
 
 	.modal-subtitle {
-		font-size: 0.8rem;
-		color: var(--text-muted, #888);
+		font-size: 0.75rem;
+		color: var(--text-muted);
 		display: block;
 		margin-top: 0.125rem;
 	}
 
 	.btn-close {
-		background: none;
+		background: transparent;
 		border: none;
-		color: var(--text-muted, #888);
+		color: var(--text-muted);
 		cursor: pointer;
-		padding: 0.25rem;
-		border-radius: 4px;
+		width: 28px;
+		height: 28px;
+		border-radius: var(--radius-sm);
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		flex-shrink: 0;
+		transition: background-color 0.15s ease, color 0.15s ease;
 	}
 
 	.btn-close:hover {
-		color: var(--text-primary, #fff);
+		background-color: var(--bg-tertiary);
+		color: var(--text-primary);
 	}
 
 	.btn-close svg {
-		width: 18px;
-		height: 18px;
+		width: 16px;
+		height: 16px;
 	}
 
 	.modal-body {
 		padding: 1.25rem;
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: 1.125rem;
 		overflow-y: auto;
 	}
 
 	.form-group {
 		display: flex;
 		flex-direction: column;
-		gap: 0.35rem;
+		gap: 0.375rem;
 	}
 
 	.card-type-header-row {
@@ -794,6 +798,7 @@ Here are the words:
 		justify-content: space-between;
 		align-items: center;
 		gap: 0.5rem;
+		flex-wrap: wrap;
 	}
 
 	.form-label.no-margin {
@@ -805,26 +810,29 @@ Here are the words:
 		display: flex;
 		align-items: center;
 		gap: 0.375rem;
+		flex-shrink: 0;
 	}
 
 	.btn-text-action {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
-		background: none;
-		border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.15));
-		border-radius: var(--radius-sm, 4px);
-		color: var(--text-secondary, #cbd5e1);
-		padding: 0.2rem 0.5rem;
+		background-color: var(--bg-secondary);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-sm);
+		color: var(--text-secondary);
+		padding: 0.25rem 0.5rem;
 		font-size: 0.725rem;
 		font-weight: 500;
+		white-space: nowrap;
 		cursor: pointer;
 		transition: all 0.15s ease;
 	}
 
 	.btn-text-action:hover {
-		background: var(--bg-hover, rgba(255, 255, 255, 0.06));
-		color: var(--text-primary, #fff);
+		background-color: var(--bg-tertiary);
+		border-color: var(--border-focus);
+		color: var(--text-primary);
 	}
 
 	.btn-text-action svg {
@@ -833,9 +841,9 @@ Here are the words:
 	}
 
 	.ai-prompt-box {
-		background: var(--bg-secondary, #25252d);
-		border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
-		border-radius: var(--radius-md, 8px);
+		background-color: var(--bg-secondary);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-md);
 		padding: 0.875rem;
 		display: flex;
 		flex-direction: column;
@@ -854,23 +862,23 @@ Here are the words:
 		gap: 0.375rem;
 		font-size: 0.8125rem;
 		font-weight: 600;
-		color: var(--text-primary, #fff);
+		color: var(--text-primary);
 	}
 
 	.ai-prompt-title svg {
 		width: 14px;
 		height: 14px;
-		color: var(--primary, #3b82f6);
+		color: var(--primary);
 	}
 
 	.btn-copy-prompt {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
-		background: var(--primary, #3b82f6);
-		color: #fff;
+		background-color: var(--primary);
+		color: var(--primary-foreground);
 		border: none;
-		border-radius: var(--radius-sm, 4px);
+		border-radius: var(--radius-sm);
 		padding: 0.25rem 0.625rem;
 		font-size: 0.75rem;
 		font-weight: 500;
@@ -879,7 +887,7 @@ Here are the words:
 	}
 
 	.btn-copy-prompt:hover {
-		background: var(--primary-hover, #2563eb);
+		background-color: var(--primary-hover);
 	}
 
 	.btn-copy-prompt svg {
@@ -889,65 +897,24 @@ Here are the words:
 
 	.ai-prompt-desc {
 		font-size: 0.75rem;
-		color: var(--text-muted, #94a3b8);
+		color: var(--text-muted);
 		margin: 0;
 		line-height: 1.4;
 	}
 
-	.ai-controls-row {
-		display: flex;
-		gap: 0.5rem;
-	}
-
-	.ai-control-field {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-
-	.flex-3 {
-		flex: 3;
-	}
-
-	.flex-1 {
-		flex: 1;
-	}
-
-	.ai-sublabel {
-		font-size: 0.6875rem;
-		font-weight: 500;
-		color: var(--text-secondary, #94a3b8);
-	}
-
-	.ai-input {
-		width: 100%;
-		padding: 0.375rem 0.5rem;
-		background: var(--bg-primary, #18181b);
-		border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
-		border-radius: var(--radius-sm, 4px);
-		color: var(--text-primary, #fff);
-		font-size: 0.75rem;
-		outline: none;
-		box-sizing: border-box;
-	}
-
-	.ai-input:focus {
-		border-color: var(--primary, #3b82f6);
-	}
-
 	.ai-prompt-preview-wrap {
-		background: var(--bg-primary, #18181b);
-		border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-		border-radius: var(--radius-sm, 4px);
+		background-color: var(--bg-primary);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-sm);
 		max-height: 140px;
 		overflow-y: auto;
 		padding: 0.5rem;
 	}
 
 	.ai-prompt-code {
-		font-family: var(--font-mono, monospace);
+		font-family: var(--font-mono);
 		font-size: 0.6875rem;
-		color: var(--text-secondary, #cbd5e1);
+		color: var(--text-secondary);
 		margin: 0;
 		white-space: pre-wrap;
 		word-break: break-word;
@@ -957,20 +924,21 @@ Here are the words:
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;
-		background: none;
-		border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.15));
-		border-radius: var(--radius-sm, 4px);
-		color: var(--accent-primary, #60a5fa);
-		padding: 0.2rem 0.5rem;
+		background-color: var(--bg-secondary);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-sm);
+		color: var(--primary);
+		padding: 0.25rem 0.5rem;
 		font-size: 0.725rem;
 		font-weight: 500;
+		white-space: nowrap;
 		cursor: pointer;
 		transition: all 0.15s ease;
 	}
 
 	.btn-download-template:hover:not(:disabled) {
-		background: rgba(96, 165, 250, 0.1);
-		border-color: var(--accent-primary, #60a5fa);
+		background-color: var(--bg-tertiary);
+		border-color: var(--primary);
 	}
 
 	.btn-download-template:disabled {
@@ -984,26 +952,35 @@ Here are the words:
 	}
 
 	.form-label {
-		font-size: 0.825rem;
-		font-weight: 500;
-		color: var(--text-secondary, #ccc);
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: var(--text-secondary);
 		display: flex;
+		align-items: baseline;
 		justify-content: space-between;
 	}
 
 	.label-hint {
-		font-size: 0.75rem;
-		color: var(--text-muted, #888);
+		font-size: 0.6875rem;
+		font-weight: 400;
+		color: var(--text-muted);
 	}
 
 	.form-select {
-		padding: 0.5rem 0.75rem;
-		background: var(--bg-secondary, #25252d);
-		border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
-		border-radius: var(--radius-md, 6px);
-		color: var(--text-primary, #fff);
+		width: 100%;
+		padding: 0.55rem 0.75rem;
+		background-color: var(--bg-secondary);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-sm);
+		color: var(--text-primary);
 		font-size: 0.875rem;
+		font-family: inherit;
 		outline: none;
+		transition: border-color 0.15s ease;
+	}
+
+	.form-select:focus {
+		border-color: var(--border-focus);
 	}
 
 	.form-select.compact {
@@ -1014,17 +991,18 @@ Here are the words:
 
 	.file-dropzone {
 		position: relative;
-		border: 2px dashed var(--border-subtle, rgba(255, 255, 255, 0.15));
-		border-radius: var(--radius-md, 8px);
-		padding: 1.25rem;
+		border: 1.5px dashed var(--border-subtle);
+		border-radius: var(--radius-md);
+		padding: 1.5rem 1.25rem;
 		text-align: center;
 		cursor: pointer;
-		background: var(--bg-secondary, #25252d);
-		transition: border-color 0.15s ease;
+		background-color: var(--bg-secondary);
+		transition: border-color 0.15s ease, background-color 0.15s ease;
 	}
 
 	.file-dropzone:hover {
-		border-color: var(--accent-primary, #3b82f6);
+		border-color: var(--primary);
+		background-color: var(--bg-tertiary);
 	}
 
 	.file-input {
@@ -1047,25 +1025,25 @@ Here are the words:
 	.upload-icon {
 		width: 24px;
 		height: 24px;
-		color: var(--text-muted, #888);
+		color: var(--text-muted);
 	}
 
 	.file-name {
 		font-size: 0.875rem;
-		color: var(--accent-primary, #60a5fa);
-		font-weight: 500;
+		color: var(--primary);
+		font-weight: 600;
 	}
 
 	.file-prompt {
-		font-size: 0.825rem;
-		color: var(--text-muted, #888);
+		font-size: 0.8125rem;
+		color: var(--text-muted);
 	}
 
 	.mapping-section {
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
-		border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+		border-top: 1px solid var(--border-subtle);
 		padding-top: 0.75rem;
 	}
 
@@ -1073,13 +1051,13 @@ Here are the words:
 		margin: 0;
 		font-size: 0.875rem;
 		font-weight: 600;
-		color: var(--text-primary, #fff);
+		color: var(--text-primary);
 	}
 
 	.mapping-desc {
 		margin: 0;
-		font-size: 0.775rem;
-		color: var(--text-muted, #888);
+		font-size: 0.75rem;
+		color: var(--text-muted);
 	}
 
 	.mapping-grid {
@@ -1094,8 +1072,9 @@ Here are the words:
 		align-items: center;
 		gap: 0.5rem;
 		padding: 0.4rem 0.6rem;
-		background: var(--bg-elevated, #2a2a34);
-		border-radius: var(--radius-sm, 6px);
+		background-color: var(--bg-secondary);
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-sm);
 	}
 
 	.field-label-cell {
@@ -1107,7 +1086,7 @@ Here are the words:
 	.field-name {
 		font-size: 0.8rem;
 		font-weight: 500;
-		color: var(--text-primary, #fff);
+		color: var(--text-primary);
 		white-space: nowrap;
 		text-overflow: ellipsis;
 		overflow: hidden;
@@ -1115,19 +1094,19 @@ Here are the words:
 
 	.field-tag {
 		font-size: 0.7rem;
-		color: var(--text-muted, #888);
+		color: var(--text-muted);
 	}
 
 	.field-arrow {
-		color: var(--text-muted, #888);
+		color: var(--text-muted);
 		font-size: 0.8rem;
 	}
 
 	.preview-box {
-		padding: 0.6rem;
-		background: var(--bg-secondary, #25252d);
-		border-radius: var(--radius-sm, 6px);
-		border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+		padding: 0.625rem 0.75rem;
+		background-color: var(--bg-secondary);
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--border-subtle);
 		font-size: 0.75rem;
 		display: flex;
 		flex-direction: column;
@@ -1136,7 +1115,7 @@ Here are the words:
 
 	.preview-title {
 		font-weight: 600;
-		color: var(--text-muted, #888);
+		color: var(--text-muted);
 	}
 
 	.preview-fields {
@@ -1146,12 +1125,12 @@ Here are the words:
 	}
 
 	.preview-item strong {
-		color: var(--text-secondary, #ccc);
+		color: var(--text-secondary);
 		margin-right: 0.25rem;
 	}
 
 	.preview-item span {
-		color: var(--text-primary, #fff);
+		color: var(--text-primary);
 	}
 
 	.error-banner {
@@ -1159,10 +1138,10 @@ Here are the words:
 		align-items: center;
 		gap: 0.5rem;
 		padding: 0.6rem 0.75rem;
-		background: rgba(239, 68, 68, 0.15);
-		border: 1px solid rgba(239, 68, 68, 0.3);
-		border-radius: var(--radius-sm, 6px);
-		color: #fca5a5;
+		background-color: color-mix(in srgb, var(--danger, #ef4444) 10%, transparent);
+		border: 1px solid color-mix(in srgb, var(--danger, #ef4444) 30%, transparent);
+		border-radius: var(--radius-sm);
+		color: var(--danger, #c94a4a);
 		font-size: 0.8rem;
 	}
 
@@ -1177,10 +1156,10 @@ Here are the words:
 		align-items: center;
 		gap: 0.5rem;
 		padding: 0.6rem 0.75rem;
-		background: rgba(34, 197, 94, 0.15);
-		border: 1px solid rgba(34, 197, 94, 0.3);
-		border-radius: var(--radius-sm, 6px);
-		color: #86efac;
+		background-color: color-mix(in srgb, var(--success, #22c55e) 12%, transparent);
+		border: 1px solid color-mix(in srgb, var(--success, #22c55e) 30%, transparent);
+		border-radius: var(--radius-sm);
+		color: var(--success, #16a34a);
 		font-size: 0.8rem;
 	}
 
@@ -1195,41 +1174,43 @@ Here are the words:
 		justify-content: flex-end;
 		gap: 0.5rem;
 		padding: 0.875rem 1.25rem;
-		border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-		background: var(--bg-surface, #1e1e24);
+		border-top: 1px solid var(--border-subtle);
+		background-color: var(--bg-secondary);
 	}
 
 	.btn {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		gap: 0.4rem;
-		padding: 0.45rem 0.875rem;
-		border-radius: var(--radius-md, 6px);
-		font-size: 0.825rem;
-		font-weight: 500;
+		gap: 0.375rem;
+		padding: 0.4375rem 0.875rem;
+		border-radius: var(--radius-sm);
+		font-size: 0.75rem;
+		font-weight: 600;
 		cursor: pointer;
 		border: 1px solid transparent;
 		transition: all 0.15s ease;
 	}
 
 	.btn-secondary {
-		background: var(--bg-secondary, #25252d);
-		border-color: var(--border-subtle, rgba(255, 255, 255, 0.12));
-		color: var(--text-primary, #fff);
+		background-color: var(--bg-primary);
+		border-color: var(--border-subtle);
+		color: var(--text-secondary);
 	}
 
 	.btn-secondary:hover:not(:disabled) {
-		background: var(--bg-hover, #2e2e38);
+		color: var(--text-primary);
+		border-color: var(--border-focus);
+		background-color: var(--bg-tertiary);
 	}
 
 	.btn-primary {
-		background: var(--accent-primary, #3b82f6);
-		color: #fff;
+		background-color: var(--primary);
+		color: var(--primary-foreground);
 	}
 
 	.btn-primary:hover:not(:disabled) {
-		background: var(--accent-hover, #2563eb);
+		background-color: var(--primary-hover);
 	}
 
 	.btn:disabled {
@@ -1241,7 +1222,7 @@ Here are the words:
 		width: 12px;
 		height: 12px;
 		border: 2px solid rgba(255, 255, 255, 0.3);
-		border-top-color: #fff;
+		border-top-color: currentColor;
 		border-radius: 50%;
 		animation: spin 0.6s linear infinite;
 	}

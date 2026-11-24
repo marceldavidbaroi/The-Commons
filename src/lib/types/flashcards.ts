@@ -26,6 +26,19 @@ export interface DeckWithStats extends DeckRecord {
   depth?: number;
 }
 
+export interface DeckReport {
+  totalCards: number;
+  dueNow: number;
+  newCards: number;
+  learningCards: number;
+  youngCards: number;
+  matureCards: number;
+  suspendedCards: number;
+  leeches: number;
+  dueTomorrow: number;
+  dueNext7Days: number;
+}
+
 export type FieldType = 'title' | 'description' | 'date';
 
 export interface FieldSchemaItem {

@@ -1,12 +1,17 @@
 <script lang="ts">
 	import { musicStore } from '$lib/stores/music.svelte';
 	import { getYoutubeWatchUrl } from '$lib/utils/music';
+	import HeartIcon from './HeartIcon.svelte';
 </script>
 
 <section class="flex-1 min-w-0 flex flex-col gap-2">
 	<!-- Status / Tally -->
 	<div class="flex items-center justify-between text-xs text-muted-foreground px-1">
-		<span>Showing {musicStore.songs.length} loaded tracks</span>
+		<span>
+			Total: <strong class="text-foreground font-medium">{musicStore.totalSongs}</strong>
+			· Favourites: <strong class="text-foreground font-medium">{musicStore.favouriteSongs}</strong>
+			· Showing {musicStore.songs.length}
+		</span>
 		{#if musicStore.error}
 			<span class="text-destructive">{musicStore.error}</span>
 		{/if}
@@ -91,14 +96,24 @@
 
 					<!-- Classification & Telemetry -->
 					<div class="hidden sm:flex items-center gap-2 text-xs text-muted-foreground shrink-0">
-						<span class="px-1.5 py-0.5 text-[11px] rounded border border-border capitalize">
+						<span class="px-1.5 py-0.5 text-[11px] rounded border border-border capitalize max-w-[90px] truncate">
 							{song.language.join(', ')}
 						</span>
-						<span class="px-1.5 py-0.5 text-[11px] rounded border border-border capitalize">
+						<span class="px-1.5 py-0.5 text-[11px] rounded border border-border capitalize max-w-[140px] truncate">
 							{song.genre.join(', ')}
 						</span>
 						<span class="w-8 text-right tabular-nums">⚡{song.energy}</span>
-						<span class="w-8 text-right tabular-nums">★{song.rating}</span>
+						<button
+							type="button"
+							onclick={() => musicStore.toggleFavourite(song)}
+							title={song.rating === 5 ? 'Remove from favourites' : 'Add to favourites'}
+							aria-label={song.rating === 5 ? 'Remove from favourites' : 'Add to favourites'}
+							aria-pressed={song.rating === 5}
+							style="border: none; background: transparent;"
+							class="p-1 rounded hover:bg-accent cursor-pointer flex items-center justify-center transition-colors {song.rating === 5 ? 'text-red-500' : 'text-muted-foreground/40 hover:text-muted-foreground'}"
+						>
+							<HeartIcon filled={song.rating === 5} size={14} />
+						</button>
 						<span class="w-10 text-right tabular-nums text-[11px]">{song.play_count}x</span>
 					</div>
 

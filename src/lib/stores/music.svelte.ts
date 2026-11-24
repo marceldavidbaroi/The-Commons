@@ -19,6 +19,8 @@ class MusicStore {
 	hasMore = $state(false);
 	cursor = $state<SongCursor | null>(null);
 	error = $state<string | null>(null);
+	totalSongs = $state(0);
+	favouriteSongs = $state(0);
 
 	filters = $state<SongFilters>({ ...DEFAULT_FILTERS });
 
@@ -39,6 +41,7 @@ class MusicStore {
 	currentIndex = $state<number>(-1);
 	playMode = $state<PlayMode>('shuffle');
 	isPlaying = $state(false);
+	ytPlayer = $state<any>(null);
 
 	// Inline Drawer State
 	activeDrawer = $state<'none' | 'song' | 'excel'>('none');
@@ -81,10 +84,30 @@ class MusicStore {
 		}
 	}
 
+	async loadStats(): Promise<void> {
+		try {
+			const stats = await musicService.fetchSongStats();
+			this.totalSongs = stats.total;
+			this.favouriteSongs = stats.favourites;
+		} catch {
+			// Non-fatal stats error
+		}
+	}
+
+	async loadPlayMode(): Promise<void> {
+		try {
+			this.playMode = await musicService.fetchMusicPlayMode();
+		} catch {
+			// Keep default
+		}
+	}
+
 	async loadInitial(): Promise<void> {
 		this.loading = true;
 		this.error = null;
 		void this.loadFilterOptions();
+		void this.loadStats();
+		void this.loadPlayMode();
 		try {
 			const res = await musicService.fetchSongs(this.filters, null);
 			this.songs = res.songs;
@@ -152,6 +175,21 @@ class MusicStore {
 		return updated;
 	}
 
+	async toggleFavourite(song: Song): Promise<void> {
+		const nextRating = song.rating === 5 ? 3 : 5;
+		await this.saveSongEdit(song.id, { rating: nextRating });
+	}
+
+	async resetAllFavourites(): Promise<void> {
+		await musicService.resetAllFavourites();
+		this.songs = this.songs.map((s) => (s.rating === 5 ? { ...s, rating: 3 } : s));
+		this.queue = this.queue.map((s) => (s.rating === 5 ? { ...s, rating: 3 } : s));
+		if (this.filters.minRating === 5) {
+			this.filters.minRating = null;
+			await this.loadInitial();
+		}
+	}
+
 	async removeSong(id: number): Promise<void> {
 		await musicService.deleteSong(id);
 		this.songs = this.songs.filter((s) => s.id !== id);
@@ -168,6 +206,7 @@ class MusicStore {
 
 	async playSerial(): Promise<void> {
 		this.playMode = 'serial';
+		void musicService.saveMusicPlayMode('serial');
 		const list = await musicService.fetchActiveSerialQueue(this.filters);
 		if (list.length > 0) {
 			this.queue = list;
@@ -178,6 +217,7 @@ class MusicStore {
 
 	async playShuffled(): Promise<void> {
 		this.playMode = 'shuffle';
+		void musicService.saveMusicPlayMode('shuffle');
 		const list = await musicService.getShuffledQueue(this.filters);
 		if (list.length > 0) {
 			this.queue = list;
@@ -233,7 +273,21 @@ class MusicStore {
 			this.currentIndex += 1;
 			this.isPlaying = true;
 		} else {
-			this.isPlaying = false;
+			const activeSongs = this.songs.filter((s) => s.is_active);
+			if (activeSongs.length > 0) {
+				const curId = this.currentTrack?.id;
+				const idx = curId ? activeSongs.findIndex((s) => s.id === curId) : -1;
+				const nextSong = activeSongs[(idx + 1) % activeSongs.length];
+				if (nextSong && nextSong.id !== curId) {
+					this.queue = [...this.queue, nextSong];
+					this.currentIndex = this.queue.length - 1;
+					this.isPlaying = true;
+				} else {
+					this.isPlaying = false;
+				}
+			} else {
+				this.isPlaying = false;
+			}
 		}
 
 		// Infinite queue refill when fewer than 3 tracks remain
@@ -255,6 +309,19 @@ class MusicStore {
 		if (this.currentIndex > 0) {
 			this.currentIndex -= 1;
 			this.isPlaying = true;
+			return;
+		}
+		const activeSongs = this.songs.filter((s) => s.is_active);
+		if (activeSongs.length > 1) {
+			const curId = this.currentTrack?.id;
+			const idx = curId ? activeSongs.findIndex((s) => s.id === curId) : 0;
+			const prevIdx = (idx - 1 + activeSongs.length) % activeSongs.length;
+			const prevSong = activeSongs[prevIdx];
+			if (prevSong && prevSong.id !== curId) {
+				this.queue = [prevSong, ...this.queue];
+				this.currentIndex = 0;
+				this.isPlaying = true;
+			}
 		}
 	}
 

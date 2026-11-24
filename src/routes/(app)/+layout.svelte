@@ -4,6 +4,7 @@
 	import { getSupabaseClient } from "$lib/supabase";
 	import CommonsLogo from "$lib/components/brand/CommonsLogo.svelte";
 	import ThemeSelector from "$lib/components/ThemeSelector.svelte";
+	import GlobalMusicPlayer from "$lib/components/music/GlobalMusicPlayer.svelte";
 
 	let { children } = $props();
 
@@ -480,6 +481,7 @@
 			{@render children()}
 		</div>
 	</main>
+	<GlobalMusicPlayer />
 </div>
 
 <style>

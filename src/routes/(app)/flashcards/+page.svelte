@@ -2,15 +2,13 @@
 	import { onMount } from "svelte";
 	import { goto } from "$app/navigation";
 	import { flashcardsStore } from "$lib/state/flashcards.svelte";
-	import type { DeckWithStats, DueTodayItem } from "$lib/types/flashcards";
+	import type { DeckReport, DeckWithStats } from "$lib/types/flashcards";
 	import DeckListView from "$lib/components/flashcards/DeckListView.svelte";
 	import DeckModal from "$lib/components/flashcards/DeckModal.svelte";
 	import DeckCsvUploadModal from "$lib/components/flashcards/DeckCsvUploadModal.svelte";
 	import QuickAddCardModal from "$lib/components/flashcards/QuickAddCardModal.svelte";
-	import CardPreviewDrawer from "$lib/components/flashcards/CardPreviewDrawer.svelte";
-
-	import DueTodayListView from "$lib/components/flashcards/DueTodayListView.svelte";
-	import { fetchCardsForDeck } from "$lib/services/flashcards-service";
+	import DeckReportView from "$lib/components/flashcards/DeckReportView.svelte";
+	import { fetchDeckReport } from "$lib/services/flashcards-service";
 
 	import { page } from "$app/stores";
 
@@ -28,112 +26,28 @@
 	let isQuickAddOpen = $state(false);
 	let quickAddTargetDeck = $state<DeckWithStats | null>(null);
 
-	// Cards inside the current deck folder
-	let folderCards = $state<DueTodayItem[]>([]);
-	let isLoadingFolderCards = $state(false);
-	let isLoadingMoreFolderCards = $state(false);
-	let hasMoreFolderCards = $state(false);
-	let selectedFolderCardIds = $state<(number | string)[]>([]);
-	let isDeletingBulkCards = $state(false);
-
-	// Card Preview Drawer State
-	let isPreviewDrawerOpen = $state(false);
-	let inspectedCard = $state<DueTodayItem | null>(null);
+	// Deck Report State for the current deck folder
+	let deckReport = $state<DeckReport | null>(null);
+	let isLoadingDeckReport = $state(false);
 
 	$effect(() => {
 		if (currentDeckFolderId) {
-			loadFolderCards(currentDeckFolderId);
+			loadDeckReport(currentDeckFolderId);
 		} else {
-			folderCards = [];
-			hasMoreFolderCards = false;
+			deckReport = null;
 		}
 	});
 
-	async function loadFolderCards(deckId: number | string) {
-		isLoadingFolderCards = true;
-		hasMoreFolderCards = false;
-		selectedFolderCardIds = [];
+	async function loadDeckReport(deckId: number | string) {
+		isLoadingDeckReport = true;
 		try {
-			const batch = await fetchCardsForDeck(deckId, { limit: 20 });
-			folderCards = batch;
-			hasMoreFolderCards = batch.length === 20;
+			const leechThreshold = currentFolderDeck?.config?.leech_threshold ?? 8;
+			deckReport = await fetchDeckReport(deckId, leechThreshold);
 		} catch (err) {
-			console.error("Failed to load cards for deck:", err);
+			console.error("Failed to load deck report:", err);
+			deckReport = null;
 		} finally {
-			isLoadingFolderCards = false;
-		}
-	}
-
-	async function loadMoreFolderCards() {
-		if (
-			!currentDeckFolderId ||
-			isLoadingMoreFolderCards ||
-			!hasMoreFolderCards ||
-			folderCards.length === 0
-		) {
-			return;
-		}
-		isLoadingMoreFolderCards = true;
-		try {
-			const lastCard = folderCards[folderCards.length - 1];
-			const nextBatch = await fetchCardsForDeck(currentDeckFolderId, {
-				limit: 20,
-				cursorCreatedAt: lastCard.created_at,
-				cursorId: lastCard.id,
-			});
-			folderCards = [...folderCards, ...nextBatch];
-			hasMoreFolderCards = nextBatch.length === 20;
-		} catch (err) {
-			console.error("Failed to load more cards for deck:", err);
-		} finally {
-			isLoadingMoreFolderCards = false;
-		}
-	}
-
-	function handleToggleSelectCard(cardId: number | string) {
-		const strId = String(cardId);
-		if (selectedFolderCardIds.some((id) => String(id) === strId)) {
-			selectedFolderCardIds = selectedFolderCardIds.filter(
-				(id) => String(id) !== strId,
-			);
-		} else {
-			selectedFolderCardIds = [...selectedFolderCardIds, cardId];
-		}
-	}
-
-	function handleSelectAllCards(selectAll: boolean) {
-		if (selectAll) {
-			selectedFolderCardIds = folderCards.map((c) => c.id);
-		} else {
-			selectedFolderCardIds = [];
-		}
-	}
-
-	async function handleBulkDeleteCards() {
-		if (selectedFolderCardIds.length === 0 || isDeletingBulkCards) return;
-		const count = selectedFolderCardIds.length;
-		if (
-			!confirm(
-				`Are you sure you want to delete ${count} selected card${count > 1 ? "s" : ""}?`,
-			)
-		) {
-			return;
-		}
-
-		isDeletingBulkCards = true;
-		try {
-			await flashcardsStore.deleteCards(selectedFolderCardIds);
-			const deletedSet = new Set(
-				selectedFolderCardIds.map((id) => String(id)),
-			);
-			folderCards = folderCards.filter(
-				(c) => !deletedSet.has(String(c.id)),
-			);
-			selectedFolderCardIds = [];
-		} catch (err) {
-			console.error("Failed to bulk delete cards:", err);
-		} finally {
-			isDeletingBulkCards = false;
+			isLoadingDeckReport = false;
 		}
 	}
 
@@ -260,7 +174,7 @@
 			currentDeckFolderId &&
 			String(currentDeckFolderId) === String(deckId)
 		) {
-			await loadFolderCards(deckId);
+			await loadDeckReport(deckId);
 		}
 	}
 
@@ -282,12 +196,12 @@
 			payload.tags
 		);
 
-		// If viewing this deck, refresh cards in place without leaving the page
+		// If viewing this deck, refresh report in place without leaving the page
 		if (
 			currentDeckFolderId &&
 			String(currentDeckFolderId) === String(payload.deckId)
 		) {
-			await loadFolderCards(payload.deckId);
+			await loadDeckReport(payload.deckId);
 		}
 	}
 </script>
@@ -499,116 +413,14 @@
 				{/if}
 
 				{#if currentDeckFolderId}
-					<div class="deck-cards-subdivision">
-						<div class="subdivision-header">
-							<div class="subdivision-title-group">
-								<h3 class="subdivision-heading">
-									Cards in this Deck
-								</h3>
-								<span class="subdivision-tally"
-									>{folderCards.length}</span
-								>
-								{#if selectedFolderCardIds.length > 0}
-									<span class="selected-tally"
-										>({selectedFolderCardIds.length} selected)</span
-									>
-								{/if}
-							</div>
-							<div class="subdivision-actions">
-								{#if selectedFolderCardIds.length > 0}
-									<button
-										type="button"
-										class="btn btn-danger compact"
-										disabled={isDeletingBulkCards}
-										onclick={handleBulkDeleteCards}
-									>
-										<svg
-											class="btn-icon"
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="2"
-										>
-											<polyline points="3 6 5 6 21 6" />
-											<path
-												d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-											/>
-										</svg>
-										<span
-											>{isDeletingBulkCards
-												? "Deleting..."
-												: `Delete (${selectedFolderCardIds.length})`}</span
-										>
-									</button>
-								{/if}
-								<button
-									type="button"
-									class="btn btn-secondary compact"
-									onclick={() => handleAddCard(currentFolderDeck)}
-								>
-									<svg
-										class="btn-icon"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-									>
-										<line x1="12" y1="5" x2="12" y2="19" />
-										<line x1="5" y1="12" x2="19" y2="12" />
-									</svg>
-									<span>Add Card</span>
-								</button>
-							</div>
-						</div>
-
-						{#if isLoadingFolderCards}
-							<div class="cards-loading">
-								<div class="spinner small"></div>
-								<span>Loading cards...</span>
-							</div>
-						{:else if folderCards.length === 0}
-							<div class="empty-state compact-empty">
-								<p class="empty-desc">
-									No cards in this deck yet.
-								</p>
-								{#if currentFolderDeck}
-									<button
-										type="button"
-										class="btn btn-primary compact"
-										onclick={() => handleAddCard(currentFolderDeck)}
-									>
-										+ Add Card to this Deck
-									</button>
-								{/if}
-							</div>
-						{:else}
-							<DueTodayListView
-								cards={folderCards}
-								selectable={true}
-								selectedCardIds={selectedFolderCardIds}
-								onToggleSelect={handleToggleSelectCard}
-								onSelectAll={handleSelectAllCards}
-								onCardClick={(card) => {
-									inspectedCard = card;
-									isPreviewDrawerOpen = true;
-								}}
-							/>
-							{#if hasMoreFolderCards}
-								<div class="load-more-row">
-									<button
-										type="button"
-										class="btn btn-secondary compact"
-										disabled={isLoadingMoreFolderCards}
-										onclick={loadMoreFolderCards}
-									>
-										{isLoadingMoreFolderCards
-											? "Loading..."
-											: "Load More"}
-									</button>
-								</div>
-							{/if}
-						{/if}
-					</div>
+					<DeckReportView
+						deck={currentFolderDeck ?? null}
+						report={deckReport}
+						isLoading={isLoadingDeckReport}
+						onStudy={handleStudyDeck}
+						onAddCard={(d) => handleAddCard(d)}
+						onUploadCsv={handleOpenCsvUpload}
+					/>
 				{/if}
 			</section>
 		{/if}
@@ -653,24 +465,6 @@
 			quickAddTargetDeck = null;
 		}}
 		onSave={handleQuickAddCard}
-	/>
-
-	<!-- Slide-Over Card Preview Drawer & Audit Ledger -->
-	<CardPreviewDrawer
-		isOpen={isPreviewDrawerOpen}
-		card={inspectedCard}
-		onClose={() => {
-			isPreviewDrawerOpen = false;
-			inspectedCard = null;
-		}}
-		onCardUpdated={(updated) => {
-			if (inspectedCard && inspectedCard.id === updated.id) {
-				inspectedCard = {
-					...inspectedCard,
-					...updated,
-				};
-			}
-		}}
 	/>
 </div>
 
@@ -819,12 +613,6 @@
 		border-radius: var(--radius-full);
 	}
 
-	.load-more-row {
-		display: flex;
-		justify-content: center;
-		margin-top: 0.75rem;
-	}
-
 	.compact-empty {
 		padding: 1.5rem 1rem !important;
 	}
@@ -914,83 +702,5 @@
 	.btn-secondary:hover {
 		background-color: var(--bg-secondary);
 		border-color: var(--border-focus);
-	}
-
-	/* Deck Cards Subdivision */
-	.deck-cards-subdivision {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-		margin-top: 1rem;
-		padding-top: 1rem;
-		border-top: 1px dashed var(--border-subtle);
-	}
-
-	.subdivision-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-	}
-
-	.subdivision-title-group {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.subdivision-heading {
-		font-size: 0.875rem;
-		font-weight: 600;
-		color: var(--text-primary);
-		margin: 0;
-	}
-
-	.subdivision-tally {
-		font-size: 0.6875rem;
-		font-family: var(--font-mono);
-		font-weight: 600;
-		background-color: var(--bg-tertiary);
-		color: var(--text-secondary);
-		padding: 0.0625rem 0.375rem;
-		border-radius: var(--radius-full);
-		border: 1px solid var(--border-subtle);
-	}
-
-	.selected-tally {
-		font-size: 0.75rem;
-		font-weight: 500;
-		color: var(--accent-primary, #60a5fa);
-	}
-
-	.subdivision-actions {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.btn-danger {
-		background-color: rgba(239, 68, 68, 0.15);
-		border-color: rgba(239, 68, 68, 0.3);
-		color: #f87171;
-	}
-
-	.btn-danger:hover:not(:disabled) {
-		background-color: #ef4444;
-		color: #ffffff;
-	}
-
-	.cards-loading {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		font-size: 0.75rem;
-		color: var(--text-muted);
-		padding: 1rem 0;
-	}
-
-	.spinner.small {
-		width: 14px;
-		height: 14px;
-		border-width: 2px;
 	}
 </style>

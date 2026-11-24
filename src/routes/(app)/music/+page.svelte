@@ -13,7 +13,6 @@
 
 	let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 	let exporting = $state(false);
-	let ytPlayer = $state<any>(null);
 
 	onMount(async () => {
 		await musicStore.loadInitial();
@@ -110,9 +109,9 @@
 
 	<!-- 2-Column Split Workspace -->
 	<div class="music-workspace">
-		<FilterRail onPlayerReady={(p) => (ytPlayer = p)} />
+		<FilterRail />
 		<SongCatalog />
 	</div>
 
-	<PlayerBar player={ytPlayer} />
+	<PlayerBar player={musicStore.ytPlayer} />
 </div>

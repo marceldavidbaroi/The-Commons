@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { musicStore } from '$lib/stores/music.svelte';
 	import { getYoutubeThumbnail, getYoutubeWatchUrl } from '$lib/utils/music';
+	import HeartIcon from './HeartIcon.svelte';
 
 	interface Props {
 		player: any;
@@ -91,19 +92,41 @@
 		}
 	}
 
-	async function setRating(rating: number) {
+	async function toggleFavourite() {
 		const track = musicStore.currentTrack;
 		if (!track) return;
-		await musicStore.saveSongEdit(track.id, { rating });
+		await musicStore.toggleFavourite(track);
 	}
+
+	$effect(() => {
+		const track = musicStore.currentTrack;
+		if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
+		if (track) {
+			navigator.mediaSession.metadata = new MediaMetadata({
+				title: track.title,
+				artist: track.artist ?? 'Unknown Artist'
+			});
+			navigator.mediaSession.setActionHandler('play', () => togglePlayPause());
+			navigator.mediaSession.setActionHandler('pause', () => togglePlayPause());
+			navigator.mediaSession.setActionHandler('previoustrack', () => musicStore.prevTrack());
+			navigator.mediaSession.setActionHandler('nexttrack', () => void musicStore.nextTrack());
+		}
+	});
 </script>
 
 <svelte:window
 	onkeydown={(e) => {
 		const tag = (e.target as HTMLElement)?.tagName;
-		if (e.code === 'Space' && tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT' && musicStore.currentTrack) {
+		if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || !musicStore.currentTrack) return;
+		if (e.code === 'Space') {
 			e.preventDefault();
 			togglePlayPause();
+		} else if (e.code === 'F7' || e.key === 'MediaTrackPrevious') {
+			e.preventDefault();
+			musicStore.prevTrack();
+		} else if (e.code === 'F9' || e.key === 'MediaTrackNext') {
+			e.preventDefault();
+			void musicStore.nextTrack();
 		}
 	}}
 />
@@ -187,17 +210,28 @@
 				<button
 					type="button"
 					onclick={togglePlayMode}
-					title="Mode: {musicStore.playMode}"
+					title="Mode: {musicStore.playMode === 'shuffle' ? 'Shuffle' : 'Serial'}"
 					aria-label="Toggle Play Mode"
-					style="padding: 0.375rem; border: none; background: transparent; color: {musicStore.playMode === 'shuffle' ? 'var(--primary)' : 'var(--text-muted)'}; display: flex; align-items: center; justify-content: center;"
+					style="padding: 0.375rem; border: none; background: transparent; color: {musicStore.playMode === 'shuffle' ? 'var(--primary)' : 'var(--text-muted)'}; display: flex; align-items: center; justify-content: center; cursor: pointer;"
 				>
-					<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<polyline points="16 3 21 3 21 8" />
-						<line x1="4" y1="20" x2="21" y2="3" />
-						<polyline points="21 16 21 21 16 21" />
-						<line x1="15" y1="15" x2="21" y2="21" />
-						<line x1="4" y1="4" x2="9" y2="9" />
-					</svg>
+					{#if musicStore.playMode === 'shuffle'}
+						<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<polyline points="16 3 21 3 21 8" />
+							<line x1="4" y1="20" x2="21" y2="3" />
+							<polyline points="21 16 21 21 16 21" />
+							<line x1="15" y1="15" x2="21" y2="21" />
+							<line x1="4" y1="4" x2="9" y2="9" />
+						</svg>
+					{:else}
+						<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<line x1="8" y1="6" x2="21" y2="6" />
+							<line x1="8" y1="12" x2="21" y2="12" />
+							<line x1="8" y1="18" x2="21" y2="18" />
+							<line x1="3" y1="6" x2="3.01" y2="6" />
+							<line x1="3" y1="12" x2="3.01" y2="12" />
+							<line x1="3" y1="18" x2="3.01" y2="18" />
+						</svg>
+					{/if}
 				</button>
 			</div>
 
@@ -222,18 +256,16 @@
 
 		<!-- Right Zone: Quick Telemetry & Link Health -->
 		<div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem; flex: 1 1 0%;">
-			<div style="display: flex; align-items: center; gap: 2px;">
-				{#each [1, 2, 3, 4, 5] as r}
-					<button
-						type="button"
-						onclick={() => setRating(r)}
-						title="Rate {r} stars"
-						style="border: none; background: transparent; padding: 2px; font-size: 14px; line-height: 1; color: {track.rating >= r ? '#f59e0b' : 'var(--text-muted)'}; opacity: {track.rating >= r ? 1 : 0.35};"
-					>
-						★
-					</button>
-				{/each}
-			</div>
+			<button
+				type="button"
+				onclick={toggleFavourite}
+				title={track.rating === 5 ? 'Remove from favourites' : 'Add to favourites'}
+				aria-label={track.rating === 5 ? 'Remove from favourites' : 'Add to favourites'}
+				aria-pressed={track.rating === 5}
+				style="border: none; background: transparent; padding: 0.375rem; color: {track.rating === 5 ? '#ef4444' : 'var(--text-muted)'}; display: flex; align-items: center; justify-content: center; cursor: pointer;"
+			>
+				<HeartIcon filled={track.rating === 5} size={16} />
+			</button>
 
 			<button
 				type="button"
@@ -254,20 +286,6 @@
 						<path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
 					</svg>
 				{/if}
-			</button>
-
-			<button
-				type="button"
-				onclick={() => musicStore.handleTrackError()}
-				title="Flag dead link & skip"
-				aria-label="Flag dead link & skip"
-				style="border: none; background: transparent; padding: 0.375rem; color: #f59e0b; display: flex; align-items: center; justify-content: center;"
-			>
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-					<path d="M12 9v4" />
-					<path d="M12 17h.01" />
-				</svg>
 			</button>
 
 			{#if confirmingDelete}

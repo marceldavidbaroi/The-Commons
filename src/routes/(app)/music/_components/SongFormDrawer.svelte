@@ -3,6 +3,7 @@
 	import { MUSIC_FILTERS } from '$lib/types/music';
 	import { findSongByYoutubeId } from '$lib/services/music-service';
 	import { extractYoutubeId, getYoutubeThumbnail } from '$lib/utils/music';
+	import HeartIcon from './HeartIcon.svelte';
 
 	const LANGUAGES = $derived(musicStore.filterOptions.language);
 	const GENRES = $derived(musicStore.filterOptions.genre);
@@ -25,6 +26,8 @@
 	let saving = $state(false);
 	let formError = $state<string | null>(null);
 	let duplicateNotice = $state<string | null>(null);
+	let promptCopied = $state(false);
+	let aiPasteInput = $state('');
 
 	// Sync form fields when editingSong changes
 	$effect(() => {
@@ -173,6 +176,76 @@
 		}
 	}
 
+	async function copyAiPrompt() {
+		const urlPart = urlInput.trim() || '[PASTE YOUTUBE URL HERE]';
+		const prompt = `Analyze this song: ${urlPart}
+
+Return ONLY a valid JSON object (no markdown, no explanation) with these exact keys:
+{
+  "youtube_url": "${urlPart}",
+  "title": "clean song title",
+  "artist": "primary artist / featuring",
+  "language": ["choose 1+ from: ${LANGUAGES.join(', ')}"],
+  "genre": ["choose 1+ from: ${GENRES.join(', ')}"],
+  "version": ["choose 1+ from: ${VERSIONS.join(', ')}"],
+  "vibe": ["choose 2-5 from: ${PRESET_VIBES.join(', ')}"],
+  "energy": 3
+}
+Notes: "energy" must be an integer 1 (very chill) to 5 (high energy).`;
+
+		try {
+			await navigator.clipboard.writeText(prompt);
+			promptCopied = true;
+			setTimeout(() => (promptCopied = false), 2000);
+		} catch {
+			formError = 'Failed to copy prompt to clipboard';
+		}
+	}
+
+	function applyAiJson(raw: string = aiPasteInput) {
+		const trimmed = raw.trim();
+		if (!trimmed) return;
+		formError = null;
+		try {
+			const cleaned = trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+			const parsed = JSON.parse(cleaned) as Record<string, unknown>;
+
+			if (typeof parsed.youtube_url === 'string' && parsed.youtube_url.trim() && !parsed.youtube_url.includes('[PASTE')) {
+				const rawUrl = parsed.youtube_url.trim();
+				const mdLinkMatch = rawUrl.match(/^\[.*?\]\((https?:\/\/[^)]+)\)$/);
+				urlInput = mdLinkMatch ? mdLinkMatch[1] : rawUrl.replace(/^\[|\]$/g, '');
+				void handleUrlBlurOrPaste();
+			}
+			if (typeof parsed.title === 'string' && parsed.title.trim()) {
+				title = parsed.title.trim();
+			}
+			if (typeof parsed.artist === 'string') {
+				artist = parsed.artist.trim();
+			}
+			if (Array.isArray(parsed.language)) {
+				const langs = parsed.language.map((v) => String(v).trim().toLowerCase()).filter(Boolean);
+				if (langs.length > 0) language = langs;
+			}
+			if (Array.isArray(parsed.genre)) {
+				const genres = parsed.genre.map((v) => String(v).trim().toLowerCase()).filter(Boolean);
+				if (genres.length > 0) genre = genres;
+			}
+			if (Array.isArray(parsed.version)) {
+				const versions = parsed.version.map((v) => String(v).trim().toLowerCase()).filter(Boolean);
+				if (versions.length > 0) version = versions;
+			}
+			if (Array.isArray(parsed.vibe)) {
+				vibe = parsed.vibe.map((v) => String(v).trim().toLowerCase()).filter(Boolean);
+			}
+			if (typeof parsed.energy === 'number' && parsed.energy >= 1 && parsed.energy <= 5) {
+				energy = Math.round(parsed.energy);
+			}
+			aiPasteInput = '';
+		} catch {
+			formError = 'Invalid JSON from AI. Paste the JSON object returned by the prompt.';
+		}
+	}
+
 	async function handleDelete() {
 		if (!musicStore.editingSong) return;
 		saving = true;
@@ -209,12 +282,46 @@
 			{/if}
 			<button
 				type="button"
+				onclick={copyAiPrompt}
+				title="Copy AI prompt to fill song details"
+				class="px-2 py-0.5 text-xs rounded border border-border hover:bg-accent text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+			>
+				{promptCopied ? '✓ Copied Prompt' : 'Prompt'}
+			</button>
+			<button
+				type="button"
 				onclick={() => musicStore.closeDrawer()}
 				class="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
 			>
 				✕ Close (Esc)
 			</button>
 		</div>
+	</div>
+
+	<!-- Quick AI JSON Paste -->
+	<div class="flex items-center gap-2">
+		<input
+			type="text"
+			bind:value={aiPasteInput}
+			onpaste={(e) => {
+				const pasted = e.clipboardData?.getData('text') ?? '';
+				if (pasted) {
+					e.preventDefault();
+					aiPasteInput = pasted;
+					applyAiJson(pasted);
+				}
+			}}
+			placeholder="Paste AI JSON response here to auto-fill..."
+			class="flex-1 px-2.5 py-1 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+		/>
+		<button
+			type="button"
+			onclick={() => applyAiJson()}
+			disabled={!aiPasteInput.trim()}
+			class="px-2.5 py-1 text-xs rounded border border-border hover:bg-accent disabled:opacity-40 cursor-pointer"
+		>
+			Fill
+		</button>
 	</div>
 
 	<!-- Row 1: Link & Identity -->
@@ -345,20 +452,18 @@
 		</div>
 
 		<div class="flex flex-col gap-1">
-			<span class="text-[11px] font-medium text-muted-foreground">Rating (1–5)</span>
-			<div class="flex gap-1 h-8">
-				{#each [1, 2, 3, 4, 5] as r}
-					<button
-						type="button"
-						onclick={() => (rating = r)}
-						class="flex-1 text-xs rounded border cursor-pointer {rating === r
-							? 'bg-primary text-primary-foreground border-primary'
-							: 'border-border text-muted-foreground hover:text-foreground'}"
-					>
-						{r}★
-					</button>
-				{/each}
-			</div>
+			<span class="text-[11px] font-medium text-muted-foreground">Favourite</span>
+			<button
+				type="button"
+				onclick={() => (rating = rating === 5 ? 3 : 5)}
+				aria-pressed={rating === 5}
+				class="h-8 px-3 text-xs rounded border cursor-pointer flex items-center justify-center gap-1.5 transition-colors {rating === 5
+					? 'bg-red-500/10 text-red-500 border-red-500/40'
+					: 'border-border text-muted-foreground hover:text-foreground'}"
+			>
+				<HeartIcon filled={rating === 5} size={14} />
+				<span>{rating === 5 ? 'Favourited' : 'Add to Favourites'}</span>
+			</button>
 		</div>
 	</div>
 
