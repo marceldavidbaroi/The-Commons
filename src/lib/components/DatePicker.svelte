@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 
 	let {
 		value = $bindable(''),
@@ -15,6 +15,56 @@
 
 	let isOpen = $state(false);
 	let pickerContainer: HTMLElement | null = null;
+	let triggerEl: HTMLButtonElement | null = null;
+	let popoverEl: HTMLElement | null = $state(null);
+	let popoverPos = $state({ top: 0, left: 0 });
+
+	const VIEWPORT_MARGIN = 8;
+	const POPOVER_GAP = 6;
+	const DEFAULT_POPOVER_WIDTH = 250;
+	const DEFAULT_POPOVER_HEIGHT = 310;
+
+	function updatePosition() {
+		if (!triggerEl) return;
+		const rect = triggerEl.getBoundingClientRect();
+		const pw = popoverEl?.offsetWidth || DEFAULT_POPOVER_WIDTH;
+		const ph = popoverEl?.offsetHeight || DEFAULT_POPOVER_HEIGHT;
+		const vw = window.innerWidth;
+		const vh = window.innerHeight;
+
+		let left = rect.left;
+		if (left + pw > vw - VIEWPORT_MARGIN) {
+			left = vw - pw - VIEWPORT_MARGIN;
+		}
+		if (left < VIEWPORT_MARGIN) {
+			left = VIEWPORT_MARGIN;
+		}
+
+		const spaceBelow = vh - rect.bottom - VIEWPORT_MARGIN;
+		const spaceAbove = rect.top - VIEWPORT_MARGIN;
+		let top: number;
+		if (spaceBelow >= ph + POPOVER_GAP || spaceBelow >= spaceAbove) {
+			top = rect.bottom + POPOVER_GAP;
+			if (top + ph > vh - VIEWPORT_MARGIN) {
+				top = Math.max(VIEWPORT_MARGIN, vh - ph - VIEWPORT_MARGIN);
+			}
+		} else {
+			top = Math.max(VIEWPORT_MARGIN, rect.top - ph - POPOVER_GAP);
+		}
+
+		popoverPos = { top, left };
+	}
+
+	async function toggleOpen() {
+		if (isOpen) {
+			isOpen = false;
+			return;
+		}
+		updatePosition();
+		isOpen = true;
+		await tick();
+		updatePosition();
+	}
 
 	// View calendar navigation state
 	let viewYear = $state(new Date().getFullYear());
@@ -176,12 +226,22 @@
 			}
 		}
 
+		function handleReposition() {
+			if (isOpen) {
+				updatePosition();
+			}
+		}
+
 		window.addEventListener('click', handleClickOutside);
 		window.addEventListener('keydown', handleKeyDown);
+		window.addEventListener('resize', handleReposition);
+		window.addEventListener('scroll', handleReposition, true);
 
 		return () => {
 			window.removeEventListener('click', handleClickOutside);
 			window.removeEventListener('keydown', handleKeyDown);
+			window.removeEventListener('resize', handleReposition);
+			window.removeEventListener('scroll', handleReposition, true);
 		};
 	});
 </script>
@@ -193,7 +253,8 @@
 		class="date-trigger"
 		class:active={isOpen}
 		class:has-value={!!value}
-		onclick={() => (isOpen = !isOpen)}
+		bind:this={triggerEl}
+		onclick={toggleOpen}
 		aria-haspopup="dialog"
 		aria-expanded={isOpen}
 		aria-label={`${label}: ${value ? formatDisplayDate(value) : placeholder}`}
@@ -209,7 +270,13 @@
 
 	<!-- Calendar Dropdown Popover -->
 	{#if isOpen}
-		<div class="calendar-popover" role="dialog" aria-modal="false">
+		<div
+			class="calendar-popover"
+			bind:this={popoverEl}
+			style="top: {popoverPos.top}px; left: {popoverPos.left}px;"
+			role="dialog"
+			aria-modal="false"
+		>
 			<!-- Quick Presets -->
 			<div class="quick-presets">
 				<button type="button" class="preset-pill" onclick={() => setQuick('today')}>Today</button>
@@ -309,10 +376,11 @@
 
 	/* Calendar Popover */
 	.calendar-popover {
-		position: absolute;
-		top: calc(100% + 6px);
-		left: 0;
+		position: fixed;
 		width: 250px;
+		max-width: calc(100vw - 16px);
+		max-height: calc(100vh - 16px);
+		overflow-y: auto;
 		background-color: var(--bg-secondary);
 		border: 1px solid var(--border-subtle);
 		border-radius: var(--radius-md);

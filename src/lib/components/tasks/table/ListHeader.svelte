@@ -4,20 +4,24 @@
 
   interface Props {
     list: ListRecord;
+    parentList?: ListRecord | null;
     totalFiltered: number;
     totalLive: number;
     hasActiveFilters: boolean;
     onRename: (name: string) => Promise<unknown> | unknown;
     onDelete: () => Promise<void> | void;
+    onCreateSubList?: () => void;
   }
 
   let {
     list,
+    parentList = null,
     totalFiltered,
     totalLive,
     hasActiveFilters,
     onRename,
     onDelete,
+    onCreateSubList,
   }: Props = $props();
 
   let isEditingName = $state(false);
@@ -74,9 +78,9 @@
 <header class="tasks-header">
   <div class="tasks-header-left">
     <a
-      href="/tasks"
+      href={parentList ? `/tasks/lists/${parentList.id}` : "/tasks"}
       class="tasks-icon-btn"
-      title="Back to lists"
+      title={parentList ? `Back to ${parentList.name}` : "Back to lists"}
     >
       <svg
         style="width: 1.25rem; height: 1.25rem;"
@@ -93,7 +97,16 @@
       </svg>
     </a>
 
-    <div style="display: flex; align-items: center; gap: 0.5rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+      {#if parentList}
+        <a
+          href={`/tasks/lists/${parentList.id}`}
+          style="font-size: 0.875rem; color: var(--color-ink-muted); text-decoration: none;"
+        >
+          {parentList.name}
+        </a>
+        <span style="color: var(--color-ink-muted); font-size: 0.875rem;">/</span>
+      {/if}
       {#if isEditingName}
         <input
           bind:this={nameInputEl}
@@ -147,6 +160,28 @@
         />
       </svg>
     </button>
+    {#if onCreateSubList}
+      <button
+        type="button"
+        onclick={onCreateSubList}
+        class="tasks-btn tasks-btn-secondary"
+      >
+        <svg
+          style="width: 0.875rem; height: 0.875rem;"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 4v16m8-8H4"
+          />
+        </svg>
+        <span>Sub-list</span>
+      </button>
+    {/if}
     <a
       href={`/tasks/lists/${list.id}/tasks/new`}
       class="tasks-btn tasks-btn-primary"

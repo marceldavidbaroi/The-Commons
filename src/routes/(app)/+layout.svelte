@@ -35,8 +35,8 @@
 			icon: "home",
 		},
 		{
-			path: "/notes",
-			label: "Notes",
+			path: "/wiki",
+			label: "Wiki",
 			icon: "notes",
 		},
 		{
@@ -477,7 +477,7 @@
 
 	<!-- Main Content Area -->
 	<main class="main-content">
-		<div class="content-wrapper" class:full-bleed={page.url.pathname.startsWith("/notes") || page.url.pathname.startsWith("/movies")}>
+		<div class="content-wrapper" class:full-bleed={page.url.pathname.startsWith("/wiki") || page.url.pathname.startsWith("/movies")}>
 			{@render children()}
 		</div>
 	</main>

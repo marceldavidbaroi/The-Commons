@@ -1,10 +1,11 @@
 <script lang="ts">
   interface Props {
+    parentListName?: string | null;
     onClose: () => void;
     onCreate: (name: string) => Promise<void>;
   }
 
-  let { onClose, onCreate }: Props = $props();
+  let { parentListName = null, onClose, onCreate }: Props = $props();
 
   let name = $state("");
   let isSubmitting = $state(false);
@@ -28,11 +29,15 @@
 
 <div class="tasks-modal-backdrop">
   <div class="tasks-modal-dialog" role="dialog" aria-modal="true">
-    <h3 class="tasks-modal-title">Create new list</h3>
+    <h3 class="tasks-modal-title">
+      {parentListName ? `New sub-list in ${parentListName}` : "Create new list"}
+    </h3>
 
     <form onsubmit={handleSubmit} style="display: flex; flex-direction: column; gap: 1rem;">
       <div class="tasks-form-group">
-        <label for="list-name" class="tasks-form-label">List name</label>
+        <label for="list-name" class="tasks-form-label">
+          {parentListName ? "Sub-list name" : "List name"}
+        </label>
         <input
           id="list-name"
           type="text"
@@ -58,7 +63,11 @@
           disabled={!name.trim() || isSubmitting}
           class="tasks-btn tasks-btn-primary"
         >
-          {isSubmitting ? "Creating..." : "Create list"}
+          {isSubmitting
+            ? "Creating..."
+            : parentListName
+              ? "Create sub-list"
+              : "Create list"}
         </button>
       </div>
     </form>

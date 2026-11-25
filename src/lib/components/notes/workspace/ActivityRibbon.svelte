@@ -11,7 +11,7 @@
 		onToggleExplorer?: () => void;
 	}>();
 
-	const isGraphRoute = $derived(page.url.pathname.includes('/notes/graph'));
+	const isGraphRoute = $derived(page.url.pathname.includes('/wiki/graph'));
 
 	function handleExplorerClick() {
 		if (onToggleExplorer) {
@@ -21,9 +21,9 @@
 
 	function handleGraphClick() {
 		if (isGraphRoute) {
-			goto('/notes');
+			goto('/wiki');
 		} else {
-			goto('/notes/graph');
+			goto('/wiki/graph');
 		}
 	}
 

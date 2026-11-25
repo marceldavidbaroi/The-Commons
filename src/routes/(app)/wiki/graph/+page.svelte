@@ -8,11 +8,11 @@
 	function handleNodeClick(nodeId: string, isGhost: boolean, title: string) {
 		if (isGhost) {
 			notesStore.createNewNote(title).then((newNote) => {
-				goto('/notes');
+				goto('/wiki');
 			});
 		} else {
 			notesStore.openNoteInActivePane(nodeId);
-			goto('/notes');
+			goto('/wiki');
 		}
 	}
 </script>
@@ -26,7 +26,7 @@
 		<button
 			type="button"
 			class="back-to-vault-btn"
-			onclick={() => goto('/notes')}
+			onclick={() => goto('/wiki')}
 		>
 			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 				<path d="m15 18-6-6 6-6" />

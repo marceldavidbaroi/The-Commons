@@ -34,11 +34,34 @@ export function deserializeCursor(cursor: string): TaskCursorPayload | null {
 // LISTS API
 // -------------------------------------------------------------
 
+const LIST_COLUMNS =
+  'id, name, owner_id, parent_list_id, sort_mode, live_tasks_count, active_tasks_count, deleted_at, trash_reason, created_at, updated_at';
+
+function collectDescendantIds(
+  rootId: number,
+  rows: Array<{ id: number; parent_list_id: number | null }>
+): number[] {
+  const byParent = new Map<number, number[]>();
+  for (const row of rows) {
+    if (row.parent_list_id !== null) {
+      const children = byParent.get(row.parent_list_id) ?? [];
+      children.push(row.id);
+      byParent.set(row.parent_list_id, children);
+    }
+  }
+  const result: number[] = [rootId];
+  for (let i = 0; i < result.length; i++) {
+    const children = byParent.get(result[i]);
+    if (children) result.push(...children);
+  }
+  return result;
+}
+
 export async function fetchLists(customClient?: SupabaseClient<Database>): Promise<ListRecord[]> {
   const supabase = getClient(customClient);
   const { data, error } = await supabase
     .from('lists')
-    .select('id, name, owner_id, sort_mode, live_tasks_count, active_tasks_count, deleted_at, trash_reason, created_at, updated_at')
+    .select(LIST_COLUMNS)
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
@@ -56,7 +79,7 @@ export async function fetchListById(id: number | string, customClient?: Supabase
   const supabase = getClient(customClient);
   const { data, error } = await supabase
     .from('lists')
-    .select('id, name, owner_id, sort_mode, live_tasks_count, active_tasks_count, deleted_at, trash_reason, created_at, updated_at')
+    .select(LIST_COLUMNS)
     .eq('id', numericId)
     .single();
 
@@ -68,12 +91,16 @@ export async function fetchListById(id: number | string, customClient?: Supabase
   return data as ListRecord;
 }
 
-export async function createList(name: string, customClient?: SupabaseClient<Database>): Promise<ListRecord> {
+export async function createList(
+  name: string,
+  parentListId: number | null = null,
+  customClient?: SupabaseClient<Database>
+): Promise<ListRecord> {
   const supabase = getClient(customClient);
   const { data, error } = await supabase
     .from('lists')
-    .insert({ name: name.trim() })
-    .select('id, name, owner_id, sort_mode, live_tasks_count, active_tasks_count, deleted_at, trash_reason, created_at, updated_at')
+    .insert({ name: name.trim(), parent_list_id: parentListId })
+    .select(LIST_COLUMNS)
     .single();
 
   if (error) {
@@ -90,7 +117,7 @@ export async function renameList(id: number | string, name: string, customClient
     .from('lists')
     .update({ name: name.trim(), updated_at: new Date().toISOString() })
     .eq('id', numericId)
-    .select('id, name, owner_id, sort_mode, live_tasks_count, active_tasks_count, deleted_at, trash_reason, created_at, updated_at')
+    .select(LIST_COLUMNS)
     .single();
 
   if (error) {
@@ -107,7 +134,7 @@ export async function updateListSortMode(id: number | string, sort_mode: TaskSor
     .from('lists')
     .update({ sort_mode, updated_at: new Date().toISOString() })
     .eq('id', numericId)
-    .select('id, name, owner_id, sort_mode, live_tasks_count, active_tasks_count, deleted_at, trash_reason, created_at, updated_at')
+    .select(LIST_COLUMNS)
     .single();
 
   if (error) {
@@ -118,27 +145,38 @@ export async function updateListSortMode(id: number | string, sort_mode: TaskSor
 }
 
 /**
- * Soft delete list and all its live tasks as a bundle.
+ * Soft delete list, any descendant sub-lists, and all their live tasks as a bundle.
  */
 export async function trashListBundle(id: number | string, customClient?: SupabaseClient<Database>): Promise<void> {
   const supabase = getClient(customClient);
   const numericId = Number(id);
   const now = new Date().toISOString();
 
-  // 1. Soft delete all live tasks in list with trash_reason = 'list_deleted'
+  const { data: liveLists, error: fetchErr } = await supabase
+    .from('lists')
+    .select('id, parent_list_id')
+    .is('deleted_at', null);
+
+  if (fetchErr) throw fetchErr;
+  const targetIds = collectDescendantIds(
+    numericId,
+    (liveLists || []) as Array<{ id: number; parent_list_id: number | null }>
+  );
+
+  // 1. Soft delete all live tasks in list + sub-lists with trash_reason = 'list_deleted'
   const { error: tasksErr } = await supabase
     .from('tasks')
     .update({ deleted_at: now, trash_reason: 'list_deleted', updated_at: now })
-    .eq('list_id', numericId)
+    .in('list_id', targetIds)
     .is('deleted_at', null);
 
   if (tasksErr) throw tasksErr;
 
-  // 2. Soft delete list
+  // 2. Soft delete list + sub-lists
   const { error: listErr } = await supabase
     .from('lists')
     .update({ deleted_at: now, trash_reason: 'list_deleted', updated_at: now })
-    .eq('id', numericId);
+    .in('id', targetIds);
 
   if (listErr) throw listErr;
 }
@@ -152,18 +190,70 @@ export async function fetchTasksPage(
   customClient?: SupabaseClient<Database>
 ): Promise<TasksPageResponse> {
   const supabase = getClient(customClient);
-  const { listId, sortMode, statusFilters, priorityFilters, dueTab, cursor, limit = 10 } = params as typeof params & { dueTab?: DueTab };
+  const {
+    listId,
+    sortMode,
+    statusFilters,
+    priorityFilters,
+    scope = 'all',
+    subListIds,
+    dueTab,
+    cursor,
+    limit = 10
+  } = params as typeof params & { dueTab?: DueTab };
   const numericListId = Number(listId);
 
-  // 1. Fetch current list to get live_tasks_count
-  const list = await fetchListById(numericListId, customClient);
-  const totalLive = list?.live_tasks_count ?? 0;
+  // 1. Resolve target list IDs (own list + descendant sub-lists) and totalLive
+  let descendantOnlyIds: number[];
+  let totalLive = 0;
+
+  if (scope === 'own') {
+    descendantOnlyIds = [];
+    const list = await fetchListById(numericListId, customClient);
+    totalLive = list?.live_tasks_count ?? 0;
+  } else {
+    const { data: liveLists, error: listsErr } = await supabase
+      .from('lists')
+      .select('id, parent_list_id, live_tasks_count')
+      .is('deleted_at', null);
+
+    if (listsErr) throw listsErr;
+    const rows = (liveLists || []) as Array<{
+      id: number;
+      parent_list_id: number | null;
+      live_tasks_count: number;
+    }>;
+
+    descendantOnlyIds = subListIds
+      ? subListIds
+      : collectDescendantIds(numericListId, rows).filter((id) => id !== numericListId);
+
+    const targetSet = new Set(
+      scope === 'sublists' ? descendantOnlyIds : [numericListId, ...descendantOnlyIds]
+    );
+    for (const row of rows) {
+      if (targetSet.has(row.id)) {
+        totalLive += row.live_tasks_count || 0;
+      }
+    }
+  }
+
+  const targetListIds =
+    scope === 'own'
+      ? [numericListId]
+      : scope === 'sublists'
+        ? descendantOnlyIds
+        : [numericListId, ...descendantOnlyIds];
+
+  if (targetListIds.length === 0) {
+    return { tasks: [], nextCursor: null, totalLive: 0, totalFiltered: 0 };
+  }
 
   // 2. Build base query for tasks
   let query = supabase
     .from('tasks')
     .select('id, list_id, title, description_html, status, priority, due_date, position, deleted_at, trash_reason, created_at, updated_at')
-    .eq('list_id', numericListId)
+    .in('list_id', targetListIds)
     .is('deleted_at', null);
 
   if (statusFilters && statusFilters.length > 0) {
@@ -261,7 +351,7 @@ export async function fetchTasksPage(
     let countQuery = supabase
       .from('tasks')
       .select('*', { count: 'exact', head: true })
-      .eq('list_id', numericListId)
+      .in('list_id', targetListIds)
       .is('deleted_at', null);
 
     if (statusFilters && statusFilters.length > 0) {
@@ -636,7 +726,7 @@ export async function fetchTrash(customClient?: SupabaseClient<Database>): Promi
   // Trashed lists
   const { data: trashedLists, error: listsErr } = await supabase
     .from('lists')
-    .select('id, name, owner_id, sort_mode, live_tasks_count, active_tasks_count, deleted_at, trash_reason, created_at, updated_at')
+    .select(LIST_COLUMNS)
     .not('deleted_at', 'is', null)
     .order('deleted_at', { ascending: false });
 
@@ -682,19 +772,31 @@ export async function restoreListBundle(listId: number | string, customClient?: 
   const numericListId = Number(listId);
   const now = new Date().toISOString();
 
-  // 1. Restore list
+  const { data: trashedLists, error: fetchErr } = await supabase
+    .from('lists')
+    .select('id, parent_list_id')
+    .eq('trash_reason', 'list_deleted')
+    .not('deleted_at', 'is', null);
+
+  if (fetchErr) throw fetchErr;
+  const targetIds = collectDescendantIds(
+    numericListId,
+    (trashedLists || []) as Array<{ id: number; parent_list_id: number | null }>
+  );
+
+  // 1. Restore list + any sub-lists trashed with it
   const { error: listErr } = await supabase
     .from('lists')
     .update({ deleted_at: null, trash_reason: null, updated_at: now })
-    .eq('id', numericListId);
+    .in('id', targetIds);
 
   if (listErr) throw listErr;
 
-  // 2. Restore tasks where list_id = listId AND trash_reason = 'list_deleted'
+  // 2. Restore tasks where list_id IN targetIds AND trash_reason = 'list_deleted'
   const { error: tasksErr } = await supabase
     .from('tasks')
     .update({ deleted_at: null, trash_reason: null, updated_at: now })
-    .eq('list_id', numericListId)
+    .in('list_id', targetIds)
     .eq('trash_reason', 'list_deleted');
 
   if (tasksErr) throw tasksErr;

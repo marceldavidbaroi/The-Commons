@@ -8,6 +8,7 @@
   import StatusPill from "../shared/StatusPill.svelte";
   import PriorityFlag from "../shared/PriorityFlag.svelte";
   import DatePicker from "$lib/components/DatePicker.svelte";
+  import { tasksStore } from "$lib/state/tasks.svelte";
 
   interface Props {
     task: TaskRecord;
@@ -36,6 +37,12 @@
     onDragOver,
     onDrop,
   }: Props = $props();
+
+  const subListName = $derived(
+    task.list_id !== Number(listId)
+      ? (tasksStore.lists.find((l) => l.id === task.list_id)?.name ?? null)
+      : null,
+  );
 </script>
 
 <div
@@ -67,7 +74,7 @@
     />
 
     <a
-      href={`/tasks/lists/${listId}/tasks/${task.id}`}
+      href={`/tasks/lists/${task.list_id}/tasks/${task.id}`}
       style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; color: var(--text-primary); text-decoration: none; flex: 1;"
     >
       {task.title}
@@ -75,6 +82,15 @@
   </div>
 
   <div style="display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; margin-left: 1rem;">
+    {#if subListName}
+      <a
+        href={`/tasks/lists/${task.list_id}`}
+        class="tasks-badge"
+        style="text-decoration: none;"
+      >
+        {subListName}
+      </a>
+    {/if}
     <DatePicker
       value={task.due_date ?? ""}
       label=""

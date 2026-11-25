@@ -24,7 +24,7 @@ import {
 } from '$lib/services/goals-service';
 
 function clone<T>(value: T): T {
-	return structuredClone(value);
+	return structuredClone($state.snapshot(value)) as T;
 }
 
 function stableEqual(a: unknown, b: unknown): boolean {

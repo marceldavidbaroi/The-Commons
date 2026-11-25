@@ -12,6 +12,18 @@
   import PriorityFilter from "$lib/components/tasks/table/PriorityFilter.svelte";
 
   let showCreateModal = $state(false);
+  const topLevelLists = $derived(
+    tasksStore.lists.filter((l) => l.parent_list_id === null),
+  );
+  const subListCountByParent = $derived.by(() => {
+    const counts = new Map<number, number>();
+    for (const l of tasksStore.lists) {
+      if (l.parent_list_id !== null) {
+        counts.set(l.parent_list_id, (counts.get(l.parent_list_id) ?? 0) + 1);
+      }
+    }
+    return counts;
+  });
   let activeTab = $state<DueTab>("all");
   let statusFilters = $state<TaskStatus[]>([]);
   let priorityFilters = $state<TaskPriority[]>([]);
@@ -107,7 +119,7 @@
     <div class="tasks-header-left">
       <h1 class="tasks-title">Tasks</h1>
       <span class="tasks-badge">
-        {tasksStore.lists.length} {tasksStore.lists.length === 1 ? "list" : "lists"}
+        {topLevelLists.length} {topLevelLists.length === 1 ? "list" : "lists"}
       </span>
     </div>
 
@@ -180,7 +192,7 @@
           </div>
         {/each}
       </div>
-    {:else if tasksStore.lists.length === 0}
+    {:else if topLevelLists.length === 0}
       <div class="tasks-empty">
         <svg
           style="width: 3rem; height: 3rem; opacity: 0.5;"
@@ -209,8 +221,12 @@
       </div>
     {:else}
       <div class="tasks-grid">
-        {#each tasksStore.lists as list (list.id)}
-          <ListCard {list} onTrash={handleTrash} />
+        {#each topLevelLists as list (list.id)}
+          <ListCard
+            {list}
+            subListCount={subListCountByParent.get(list.id) ?? 0}
+            onTrash={handleTrash}
+          />
         {/each}
       </div>
     {/if}

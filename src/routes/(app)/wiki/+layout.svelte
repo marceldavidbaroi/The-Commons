@@ -19,7 +19,7 @@
 	let lastActiveNoteId = $state<string | null>(null);
 	let initialized = $state<boolean>(false);
 
-	const isGraphRoute = $derived(page.url.pathname.includes('/notes/graph'));
+	const isGraphRoute = $derived(page.url.pathname.includes('/wiki/graph'));
 
 	$effect(() => {
 		const currentId =
@@ -129,7 +129,7 @@
 		</div>
 
 		<!-- 4. Context Dock / Inspector (Backlinks, Outgoing, Local Graph) -->
-		{#if !page.url.pathname.includes('/notes/graph')}
+		{#if !page.url.pathname.includes('/wiki/graph')}
 			<ContextDock />
 		{/if}
 	</div>
@@ -170,7 +170,7 @@
 			class="mobile-bar-btn"
 			aria-label="New Note"
 			onclick={() => {
-				if (isGraphRoute) goto('/notes');
+				if (isGraphRoute) goto('/wiki');
 				notesStore.createNewNote();
 			}}
 		>
@@ -186,7 +186,7 @@
 			class="mobile-bar-btn"
 			class:active={isGraphRoute}
 			aria-label="Graph View"
-			onclick={() => goto(isGraphRoute ? '/notes' : '/notes/graph')}
+			onclick={() => goto(isGraphRoute ? '/wiki' : '/wiki/graph')}
 		>
 			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mobile-bar-icon">
 				<circle cx="6" cy="6" r="3" />

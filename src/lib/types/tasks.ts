@@ -1,6 +1,7 @@
 export type TaskSortMode = 'created' | 'priority' | 'due_date' | 'manual';
 export type TaskStatus = 'todo' | 'in_progress' | 'done' | 'cancelled';
 export type TaskPriority = 'urgent' | 'high' | 'medium' | 'low' | 'none';
+export type TaskScopeFilter = 'all' | 'own' | 'sublists';
 export type TaskTrashReason = 'individual' | 'bulk' | 'list_deleted';
 export type ListTrashReason = 'list_deleted';
 
@@ -8,6 +9,7 @@ export interface ListRecord {
   id: number;
   name: string;
   owner_id: string;
+  parent_list_id: number | null;
   sort_mode: TaskSortMode;
   live_tasks_count: number;
   active_tasks_count: number;
@@ -51,6 +53,8 @@ export interface FetchTasksParams {
   sortMode: TaskSortMode;
   statusFilters?: TaskStatus[];
   priorityFilters?: TaskPriority[];
+  scope?: TaskScopeFilter;
+  subListIds?: number[];
   cursor?: string | null;
   limit?: number;
 }
