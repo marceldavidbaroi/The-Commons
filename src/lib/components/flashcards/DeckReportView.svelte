@@ -5,18 +5,12 @@
 		deck: DeckWithStats | null;
 		report: DeckReport | null;
 		isLoading?: boolean;
-		onStudy?: (deck: DeckWithStats) => void;
-		onAddCard?: (deck: DeckWithStats) => void;
-		onUploadCsv?: (deck: DeckWithStats) => void;
 	}
 
 	let {
 		deck,
 		report,
-		isLoading = false,
-		onStudy,
-		onAddCard,
-		onUploadCsv
+		isLoading = false
 	}: Props = $props();
 
 	const total = $derived(report?.totalCards ?? deck?.totalCards ?? 0);
@@ -45,37 +39,6 @@
 			<h3 class="report-heading">Deck Report</h3>
 			<span class="report-tally">{total} total</span>
 		</div>
-		{#if deck}
-			<div class="report-actions">
-				{#if onUploadCsv}
-					<button
-						type="button"
-						class="btn btn-secondary compact"
-						onclick={() => onUploadCsv(deck)}
-					>
-						Upload CSV
-					</button>
-				{/if}
-				{#if onAddCard}
-					<button
-						type="button"
-						class="btn btn-secondary compact"
-						onclick={() => onAddCard(deck)}
-					>
-						+ Add Card
-					</button>
-				{/if}
-				{#if onStudy && (report?.dueNow ?? deck.dueCards) > 0}
-					<button
-						type="button"
-						class="btn btn-primary compact"
-						onclick={() => onStudy(deck)}
-					>
-						Study Now ({report?.dueNow ?? deck.dueCards})
-					</button>
-				{/if}
-			</div>
-		{/if}
 	</div>
 
 	{#if isLoading}
@@ -243,46 +206,6 @@
 		padding: 0.0625rem 0.5rem;
 		border-radius: var(--radius-full);
 		border: 1px solid var(--border-subtle);
-	}
-
-	.report-actions {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 0.375rem;
-	}
-
-	.btn {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.375rem;
-		padding: 0.3125rem 0.625rem;
-		font-size: 0.75rem;
-		font-weight: 600;
-		border-radius: var(--radius-sm);
-		border: 1px solid transparent;
-		cursor: pointer;
-		transition: all 0.15s ease;
-	}
-
-	.btn-primary {
-		background-color: var(--primary);
-		color: var(--primary-foreground);
-	}
-
-	.btn-primary:hover {
-		background-color: var(--primary-hover);
-	}
-
-	.btn-secondary {
-		background-color: var(--bg-secondary);
-		border-color: var(--border-subtle);
-		color: var(--text-primary);
-	}
-
-	.btn-secondary:hover {
-		background-color: var(--bg-tertiary);
-		border-color: var(--border-focus);
 	}
 
 	.report-loading {

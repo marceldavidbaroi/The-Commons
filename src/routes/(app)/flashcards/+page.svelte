@@ -417,9 +417,6 @@
 						deck={currentFolderDeck ?? null}
 						report={deckReport}
 						isLoading={isLoadingDeckReport}
-						onStudy={handleStudyDeck}
-						onAddCard={(d) => handleAddCard(d)}
-						onUploadCsv={handleOpenCsvUpload}
 					/>
 				{/if}
 			</section>
