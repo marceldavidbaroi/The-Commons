@@ -70,6 +70,11 @@
 			icon: "movies",
 		},
 		{
+			path: "/erd",
+			label: "ERD",
+			icon: "erd",
+		},
+		{
 			path: "/settings",
 			label: "Settings",
 			icon: "settings",
@@ -243,6 +248,21 @@
 		>
 			<rect x="2" y="4" width="20" height="16" rx="2" />
 			<path d="M7 4v16M17 4v16M2 8h5M2 12h20M2 16h5M17 8h5M17 16h5" />
+		</svg>
+	{:else if iconName === "erd"}
+		<svg
+			class="sidebar-icon"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+		>
+			<rect x="3" y="3" width="7" height="6" rx="1" />
+			<rect x="14" y="3" width="7" height="6" rx="1" />
+			<rect x="8.5" y="15" width="7" height="6" rx="1" />
+			<path d="M10 6h4M6.5 9v3h11V9M12 12v3" />
 		</svg>
 	{:else if iconName === "settings"}
 		<svg
@@ -482,7 +502,7 @@
 
 	<!-- Main Content Area -->
 	<main class="main-content">
-		<div class="content-wrapper" class:full-bleed={page.url.pathname.startsWith("/wiki") || page.url.pathname.startsWith("/quick-note") || page.url.pathname.startsWith("/movies")}>
+		<div class="content-wrapper" class:full-bleed={page.url.pathname.startsWith("/wiki") || page.url.pathname.startsWith("/quick-note") || page.url.pathname.startsWith("/movies") || page.url.pathname.startsWith("/erd")}>
 			{@render children()}
 		</div>
 	</main>

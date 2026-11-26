@@ -41,6 +41,9 @@ importers:
       '@tiptap/suggestion':
         specifier: ^3.33.0
         version: 3.33.0(@floating-ui/dom@1.8.0)(@tiptap/core@3.33.0(@tiptap/pm@3.33.0))(@tiptap/pm@3.33.0)
+      '@xyflow/svelte':
+        specifier: ^2.0.3
+        version: 2.0.3(svelte@5.57.1)
       katex:
         specifier: ^0.19.1
         version: 0.19.1
@@ -693,6 +696,11 @@ packages:
       '@opentelemetry/api':
         optional: true
 
+  '@svelte-put/shortcut@4.2.1':
+    resolution: {integrity: sha512-a6DBclDvX/ILfqU3vXOgzwHJZ88FRPjnx+L4STjWBJKVW/EHaBniIfGfMXwJySVAo3FUoTO/K2s0p6bVTl8GeA==}
+    peerDependencies:
+      svelte: '>=5.0.0'
+
   '@sveltejs/acorn-typescript@1.0.13':
     resolution: {integrity: sha512-wgKggnhZVL9Bfx1OaKKTrYY9BFRk6C8UAkQNUcIv1+llzYrIqy+RZm5HPKzn0NpEBvTVhTqB4kQyllZywsRBRQ==}
     peerDependencies:
@@ -1037,6 +1045,16 @@ packages:
 
   '@vitest/spy@5.0.5':
     resolution: {integrity: sha512-lwJRExuH417257Q5wv9QYugN9IMJkoxcrKrYxGPQkBzl7wlNpTUxD/5yNX4ESKVUIShKPgkGchYPFMWOOk0wzw==}
+
+  '@xyflow/svelte@2.0.3':
+    resolution: {integrity: sha512-W5hMPWsvw40YYXd66si+2i7B/G1KTj733mw+rxno0l2nD5PPA5sXXwK2IzGhj0u4SfrUNR/gPF2avNAT4EqP0g==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      svelte: ^5.25.0
+
+  '@xyflow/system@1.0.1':
+    resolution: {integrity: sha512-0vMyv9EbnV9lNe15USaIbBxJVuLF2awbzZNT+foIOd59Mpc2rw04oaozoms1TaSetTa376aHl7mJ/YNKqIoqJA==}
+    engines: {node: '>=20'}
 
   acorn@8.18.0:
     resolution: {integrity: sha512-lGq+9yr1/GuAWaVYIHRjvvySG5/4VfKIvC8EWxStPdcDh/Ka7FG3twP6v4d5BkravUilhIAsG4Qj83t02LWUPQ==}
@@ -2272,6 +2290,10 @@ snapshots:
       '@supabase/realtime-js': 2.117.2
       '@supabase/storage-js': 2.117.2
 
+  '@svelte-put/shortcut@4.2.1(svelte@5.57.1)':
+    dependencies:
+      svelte: 5.57.1
+
   '@sveltejs/acorn-typescript@1.0.13(acorn@8.18.0)':
     dependencies:
       acorn: 8.18.0
@@ -2647,6 +2669,24 @@ snapshots:
       vite: 8.3.1(@types/node@26.6.3)(esbuild@0.28.1)
 
   '@vitest/spy@5.0.5': {}
+
+  '@xyflow/svelte@2.0.3(svelte@5.57.1)':
+    dependencies:
+      '@svelte-put/shortcut': 4.2.1(svelte@5.57.1)
+      '@xyflow/system': 1.0.1
+      svelte: 5.57.1
+
+  '@xyflow/system@1.0.1':
+    dependencies:
+      '@types/d3-drag': 3.0.7
+      '@types/d3-interpolate': 3.0.4
+      '@types/d3-selection': 3.0.12
+      '@types/d3-transition': 3.0.9
+      '@types/d3-zoom': 3.0.9
+      d3-drag: 3.0.0
+      d3-interpolate: 3.0.1
+      d3-selection: 3.0.0
+      d3-zoom: 3.0.0
 
   acorn@8.18.0: {}
 
