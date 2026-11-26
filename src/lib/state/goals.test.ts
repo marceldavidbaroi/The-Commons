@@ -6,6 +6,7 @@ vi.mock('$lib/services/goals-service', () => ({
 	fetchGoalDetail: vi.fn(),
 	saveGoalArchitecture: vi.fn(),
 	createMilestone: vi.fn(),
+	deleteMilestone: vi.fn(),
 	fetchMilestoneDetail: vi.fn(),
 	fetchModuleTasksPage: vi.fn(),
 	saveMilestoneExecution: vi.fn(),
@@ -153,5 +154,66 @@ describe('goalsStore', () => {
 		expect(goalsStore.milestoneDraft!.modules[0].tasks).toHaveLength(1);
 		expect(goalsStore.milestoneDraft!.modules[0].hasMoreTasks).toBe(false);
 		expect(goalsStore.isMilestoneDirty).toBe(false);
+	});
+
+	it('deleteMilestone removes milestone from goal draft, baseline, and summary counts in-place', async () => {
+		const detail = {
+			id: 1,
+			user_id: 'u1',
+			title: 'Ship',
+			north_star: null,
+			final_outcome: null,
+			start_date: null,
+			target_end_date: null,
+			weekly_hours_budget: null,
+			status: 'active' as const,
+			created_at: '2026-11-20T00:00:00Z',
+			updated_at: '2026-11-20T00:00:00Z',
+			dod_items: [],
+			milestones: [
+				{
+					id: 10,
+					goal_id: 1,
+					title: 'M1',
+					sort_order: 1,
+					start_date: null,
+					due_date: null,
+					status: 'passed' as const,
+					passed_at: null,
+					retrospective_note: null,
+					dod_count: 2
+				},
+				{
+					id: 11,
+					goal_id: 1,
+					title: 'M2',
+					sort_order: 2,
+					start_date: null,
+					due_date: null,
+					status: 'locked' as const,
+					passed_at: null,
+					retrospective_note: null,
+					dod_count: 0
+				}
+			]
+		};
+		goalsStore.goals = [
+			{
+				...detail,
+				total_milestones: 2,
+				passed_milestones: 1
+			}
+		];
+		vi.mocked(service.fetchGoalDetail).mockResolvedValueOnce(detail);
+		await goalsStore.loadGoalDetail(1, true);
+
+		vi.mocked(service.deleteMilestone).mockResolvedValueOnce(undefined);
+		await goalsStore.deleteMilestone(10, 1);
+
+		expect(service.deleteMilestone).toHaveBeenCalledWith(10);
+		expect(goalsStore.goalDraft?.milestones.map((m) => m.id)).toEqual([11]);
+		expect(goalsStore.goalBaseline?.milestones.map((m) => m.id)).toEqual([11]);
+		expect(goalsStore.goals[0].total_milestones).toBe(1);
+		expect(goalsStore.goals[0].passed_milestones).toBe(0);
 	});
 });

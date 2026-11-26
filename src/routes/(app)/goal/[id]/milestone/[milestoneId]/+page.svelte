@@ -1,15 +1,20 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { goalsStore } from '$lib/state/goals.svelte';
 	import type { MilestoneStatus } from '$lib/types/goals';
 	import { useUnsavedGuard } from '$lib/components/goals/useUnsavedGuard.svelte';
 	import UnsavedChangesDialog from '$lib/components/goals/UnsavedChangesDialog.svelte';
+	import DeleteMilestoneDialog from '$lib/components/goals/DeleteMilestoneDialog.svelte';
 	import DodCriteriaList from '$lib/components/goals/DodCriteriaList.svelte';
 	import GoalModuleCard from '$lib/components/goals/GoalModuleCard.svelte';
 
 	let errorMsg = $state<string | null>(null);
 	let newModuleTitle = $state('');
 	let addingModule = $state(false);
+	let deleteDialogOpen = $state(false);
+	let deletingMilestone = $state(false);
+	let deleteError = $state<string | null>(null);
 
 	const goalId = $derived(Number($page.params.id));
 	const milestoneId = $derived(Number($page.params.milestoneId));
@@ -61,7 +66,33 @@
 	}
 
 	const MILESTONE_STATUSES: MilestoneStatus[] = ['locked', 'in_progress', 'passed', 'slipped'];
+
+	async function handleConfirmDeleteMilestone() {
+		if (deletingMilestone) return;
+		deletingMilestone = true;
+		deleteError = null;
+		try {
+			await goalsStore.deleteMilestone(milestoneId, goalId);
+			deleteDialogOpen = false;
+			await goto(`/goal/${goalId}`);
+		} catch (err) {
+			deleteError = err instanceof Error ? err.message : 'Failed to delete milestone';
+		} finally {
+			deletingMilestone = false;
+		}
+	}
+
+	function handleKeydown(e: KeyboardEvent) {
+		if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+			e.preventDefault();
+			if (goalsStore.isMilestoneDirty && !goalsStore.milestoneSaving) {
+				handleSave();
+			}
+		}
+	}
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <div class="goals-detail-page">
 	<div class="goals-sticky-bar">
@@ -72,6 +103,19 @@
 			<div class="goals-bar-actions">
 				{#if goalsStore.isMilestoneDirty}
 					<span class="goals-dirty-indicator">Unsaved edits</span>
+				{/if}
+				{#if goalsStore.milestoneDraft}
+					<button
+						type="button"
+						onclick={() => {
+							deleteError = null;
+							deleteDialogOpen = true;
+						}}
+						disabled={goalsStore.milestoneSaving || deletingMilestone}
+						class="goals-btn-danger-outline"
+					>
+						Delete
+					</button>
 				{/if}
 				<button
 					type="button"
@@ -216,3 +260,17 @@
 	onDiscard={guard.discardAndLeave}
 	onCancel={guard.cancelLeave}
 />
+
+{#if deleteDialogOpen && goalsStore.milestoneDraft}
+	<DeleteMilestoneDialog
+		open={true}
+		milestoneTitle={goalsStore.milestoneDraft.title}
+		deleting={deletingMilestone}
+		error={deleteError}
+		onConfirm={handleConfirmDeleteMilestone}
+		onCancel={() => {
+			deleteDialogOpen = false;
+			deleteError = null;
+		}}
+	/>
+{/if}

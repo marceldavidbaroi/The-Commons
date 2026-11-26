@@ -11,10 +11,13 @@ import {
 	createGoalTask,
 	createMilestone,
 	createModule,
+	deleteMilestone as deleteMilestoneService,
 	fetchGoalDetail,
+	fetchGoalStructure,
 	fetchGoalsPage,
 	fetchMilestoneDetail,
 	fetchModuleTasksPage,
+	formatGoalStructureMarkdown,
 	saveGoalArchitecture,
 	saveMilestoneExecution,
 	type DodBatchOps,
@@ -204,6 +207,76 @@ class GoalsStore {
 		);
 
 		return created;
+	}
+
+	async deleteMilestone(milestoneId: number, goalId?: number): Promise<void> {
+		const targetGoalId =
+			goalId ??
+			this.milestoneBaseline?.goal_id ??
+			this.milestoneDraft?.goal_id ??
+			this.goalDraft?.id ??
+			this.goalBaseline?.id;
+
+		const deletedFromGoal =
+			this.goalBaseline?.milestones.find((m) => m.id === milestoneId) ??
+			this.goalDraft?.milestones.find((m) => m.id === milestoneId);
+		const wasPassed =
+			deletedFromGoal?.status === 'passed' ||
+			(this.milestoneBaseline?.id === milestoneId && this.milestoneBaseline.status === 'passed');
+
+		await deleteMilestoneService(milestoneId);
+
+		this.milestoneCache.delete(milestoneId);
+		if (this.milestoneBaseline?.id === milestoneId) {
+			this.milestoneBaseline = null;
+		}
+		if (this.milestoneDraft?.id === milestoneId) {
+			this.milestoneDraft = null;
+		}
+
+		if (this.goalBaseline && (!targetGoalId || this.goalBaseline.id === targetGoalId)) {
+			this.goalBaseline = {
+				...this.goalBaseline,
+				milestones: this.goalBaseline.milestones.filter((m) => m.id !== milestoneId)
+			};
+			this.goalCache.set(this.goalBaseline.id, clone(this.goalBaseline));
+		} else if (targetGoalId) {
+			const cachedGoal = this.goalCache.get(targetGoalId);
+			if (cachedGoal) {
+				this.goalCache.set(targetGoalId, {
+					...cachedGoal,
+					milestones: cachedGoal.milestones.filter((m) => m.id !== milestoneId)
+				});
+			}
+		}
+
+		if (this.goalDraft && (!targetGoalId || this.goalDraft.id === targetGoalId)) {
+			this.goalDraft = {
+				...this.goalDraft,
+				milestones: this.goalDraft.milestones.filter((m) => m.id !== milestoneId)
+			};
+		}
+
+		if (targetGoalId) {
+			this.goals = this.goals.map((g) =>
+				g.id === targetGoalId
+					? {
+							...g,
+							total_milestones: Math.max(0, g.total_milestones - 1),
+							passed_milestones: wasPassed
+								? Math.max(0, g.passed_milestones - 1)
+								: g.passed_milestones
+						}
+					: g
+			);
+		}
+	}
+
+	async exportGoalStructure(goalId: number): Promise<string> {
+		const goal =
+			this.goalDraft?.id === goalId ? this.goalDraft : await fetchGoalDetail(goalId);
+		const milestones = await fetchGoalStructure(goalId);
+		return formatGoalStructureMarkdown(goal, milestones);
 	}
 
 	async loadMilestoneDetail(milestoneId: number, force = false): Promise<void> {

@@ -196,6 +196,176 @@ export async function fetchGoalDetail(
 	};
 }
 
+export interface GoalStructureModule {
+	id: number;
+	milestone_id: number;
+	title: string;
+	status: string;
+	tasks: Array<{
+		id: number;
+		module_id: number;
+		title: string;
+		status: string;
+		estimated_minutes: number;
+	}>;
+}
+
+export interface GoalStructureMilestone {
+	id: number;
+	title: string;
+	status: string;
+	start_date: string | null;
+	due_date: string | null;
+	modules: GoalStructureModule[];
+}
+
+/**
+ * Fetch the full Milestone -> Module -> Task hierarchy for a goal.
+ */
+export async function fetchGoalStructure(
+	goalId: number,
+	customClient?: SupabaseClient<Database>
+): Promise<GoalStructureMilestone[]> {
+	const supabase = getClient(customClient);
+
+	const { data: milestonesData, error: mErr } = await supabase
+		.from('milestones')
+		.select('id, title, status, start_date, due_date, sort_order')
+		.eq('goal_id', goalId)
+		.order('sort_order', { ascending: true })
+		.order('id', { ascending: true });
+	if (mErr) throw mErr;
+
+	const milestones = (milestonesData ?? []) as Array<{
+		id: number;
+		title: string;
+		status: string;
+		start_date: string | null;
+		due_date: string | null;
+		sort_order: number;
+	}>;
+	if (milestones.length === 0) return [];
+
+	const milestoneIds = milestones.map((m) => m.id);
+	const { data: modulesData, error: modErr } = await supabase
+		.from('goal_modules')
+		.select('id, milestone_id, title, status, sort_order')
+		.in('milestone_id', milestoneIds)
+		.order('sort_order', { ascending: true })
+		.order('id', { ascending: true });
+	if (modErr) throw modErr;
+
+	const modules = (modulesData ?? []) as Array<{
+		id: number;
+		milestone_id: number;
+		title: string;
+		status: string;
+		sort_order: number;
+	}>;
+
+	let tasks: Array<{
+		id: number;
+		module_id: number;
+		title: string;
+		status: string;
+		estimated_minutes: number;
+		sort_order: number;
+	}> = [];
+	if (modules.length > 0) {
+		const moduleIds = modules.map((mod) => mod.id);
+		const { data: tasksData, error: tErr } = await supabase
+			.from('goal_tasks')
+			.select('id, module_id, title, status, estimated_minutes, sort_order')
+			.in('module_id', moduleIds)
+			.order('sort_order', { ascending: true })
+			.order('id', { ascending: true });
+		if (tErr) throw tErr;
+		tasks = (tasksData ?? []) as typeof tasks;
+	}
+
+	const tasksByModule = new Map<number, GoalStructureModule['tasks']>();
+	for (const t of tasks) {
+		const list = tasksByModule.get(t.module_id) ?? [];
+		list.push({
+			id: t.id,
+			module_id: t.module_id,
+			title: t.title,
+			status: t.status,
+			estimated_minutes: t.estimated_minutes
+		});
+		tasksByModule.set(t.module_id, list);
+	}
+
+	const modulesByMilestone = new Map<number, GoalStructureModule[]>();
+	for (const mod of modules) {
+		const list = modulesByMilestone.get(mod.milestone_id) ?? [];
+		list.push({
+			id: mod.id,
+			milestone_id: mod.milestone_id,
+			title: mod.title,
+			status: mod.status,
+			tasks: tasksByModule.get(mod.id) ?? []
+		});
+		modulesByMilestone.set(mod.milestone_id, list);
+	}
+
+	return milestones.map((m) => ({
+		id: m.id,
+		title: m.title,
+		status: m.status,
+		start_date: m.start_date,
+		due_date: m.due_date,
+		modules: modulesByMilestone.get(m.id) ?? []
+	}));
+}
+
+/**
+ * Format a goal's Milestone -> Module -> Task hierarchy as Markdown for thinking or AI prompting.
+ */
+export function formatGoalStructureMarkdown(
+	goal: Pick<GoalDetail, 'title' | 'status' | 'north_star' | 'final_outcome' | 'dod_items'>,
+	milestones: GoalStructureMilestone[]
+): string {
+	const lines: string[] = [`# Goal: ${goal.title} (${goal.status})`];
+	if (goal.north_star) lines.push(`North Star: ${goal.north_star}`);
+	if (goal.final_outcome) lines.push(`Final Outcome: ${goal.final_outcome}`);
+
+	if (goal.dod_items.length > 0) {
+		lines.push('', '## Definition of Done');
+		for (const item of goal.dod_items) {
+			lines.push(`- ${item.criterion}`);
+		}
+	}
+
+	lines.push('', '## Structure');
+	if (milestones.length === 0) {
+		lines.push('- (no milestones)');
+		return lines.join('\n');
+	}
+
+	milestones.forEach((m, idx) => {
+		const dates =
+			m.start_date || m.due_date ? ` (${m.start_date ?? '?'} - ${m.due_date ?? '?'})` : '';
+		lines.push(`- Milestone ${idx + 1}: ${m.title} [${m.status}]${dates}`);
+		if (m.modules.length === 0) {
+			lines.push('  - (no modules)');
+			return;
+		}
+		for (const mod of m.modules) {
+			lines.push(`  - Module: ${mod.title} [${mod.status}]`);
+			if (mod.tasks.length === 0) {
+				lines.push('    - (no tasks)');
+				continue;
+			}
+			for (const task of mod.tasks) {
+				lines.push(`    - Task: ${task.title} (${task.estimated_minutes}m, ${task.status})`);
+			}
+		}
+	});
+
+	return lines.join('\n');
+}
+
 /**
  * Persist edits to a goal and its project-level Definition of Done items.
  */
@@ -262,6 +432,18 @@ export async function createMilestone(
 		...(data as Omit<MilestoneSummary, 'dod_count'>),
 		dod_count: 0
 	};
+}
+
+/**
+ * Delete a milestone by ID. Cascading FKs remove its modules, tasks, and DoD items.
+ */
+export async function deleteMilestone(
+	milestoneId: number,
+	customClient?: SupabaseClient<Database>
+): Promise<void> {
+	const supabase = getClient(customClient);
+	const { error } = await supabase.from('milestones').delete().eq('id', milestoneId);
+	if (error) throw error;
 }
 
 /**

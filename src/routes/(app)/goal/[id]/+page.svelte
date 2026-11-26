@@ -6,10 +6,16 @@
 	import UnsavedChangesDialog from '$lib/components/goals/UnsavedChangesDialog.svelte';
 	import StatusBadge from '$lib/components/goals/StatusBadge.svelte';
 	import DodCriteriaList from '$lib/components/goals/DodCriteriaList.svelte';
+	import DeleteMilestoneDialog from '$lib/components/goals/DeleteMilestoneDialog.svelte';
 
 	let errorMsg = $state<string | null>(null);
 	let newMilestoneTitle = $state('');
 	let addingMilestone = $state(false);
+	let deleteTarget = $state<{ id: number; title: string } | null>(null);
+	let deletingMilestone = $state(false);
+	let deleteError = $state<string | null>(null);
+	let copyingStructure = $state(false);
+	let copiedStructure = $state(false);
 
 	const goalId = $derived(Number($page.params.id));
 
@@ -53,7 +59,50 @@
 	}
 
 	const GOAL_STATUSES: GoalStatus[] = ['draft', 'active', 'completed', 'archived'];
+
+	async function handleConfirmDeleteMilestone() {
+		if (!deleteTarget || deletingMilestone) return;
+		deletingMilestone = true;
+		deleteError = null;
+		try {
+			await goalsStore.deleteMilestone(deleteTarget.id, goalId);
+			deleteTarget = null;
+		} catch (err) {
+			deleteError = err instanceof Error ? err.message : 'Failed to delete milestone';
+		} finally {
+			deletingMilestone = false;
+		}
+	}
+
+	async function handleCopyStructure() {
+		if (copyingStructure || !Number.isFinite(goalId)) return;
+		copyingStructure = true;
+		errorMsg = null;
+		try {
+			const markdown = await goalsStore.exportGoalStructure(goalId);
+			await navigator.clipboard.writeText(markdown);
+			copiedStructure = true;
+			setTimeout(() => {
+				copiedStructure = false;
+			}, 2000);
+		} catch (err) {
+			errorMsg = err instanceof Error ? err.message : 'Failed to copy structure';
+		} finally {
+			copyingStructure = false;
+		}
+	}
+
+	function handleKeydown(e: KeyboardEvent) {
+		if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+			e.preventDefault();
+			if (goalsStore.isGoalDirty && !goalsStore.goalSaving) {
+				handleSave();
+			}
+		}
+	}
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <div class="goals-detail-page">
 	<div class="goals-sticky-bar">
@@ -63,6 +112,14 @@
 				{#if goalsStore.isGoalDirty}
 					<span class="goals-dirty-indicator">Unsaved edits</span>
 				{/if}
+				<button
+					type="button"
+					onclick={handleCopyStructure}
+					disabled={copyingStructure || !goalsStore.goalDraft}
+					class="goals-btn-secondary"
+				>
+					{copiedStructure ? 'Copied!' : copyingStructure ? 'Copying...' : 'Copy Structure'}
+				</button>
 				<button
 					type="button"
 					onclick={() => goalsStore.clearGoalDraft()}
@@ -194,22 +251,35 @@
 					{:else}
 						<div class="goals-milestone-list">
 							{#each draft.milestones as milestone, idx (milestone.id)}
-								<a
-									href={`/goal/${draft.id}/milestone/${milestone.id}`}
-									class="goals-milestone-row"
-								>
-									<div class="goals-milestone-left">
-										<span class="goals-milestone-idx">M{idx + 1}</span>
-										<span class="goals-milestone-title">{milestone.title}</span>
-										<StatusBadge status={milestone.status} />
-									</div>
-									<div class="goals-milestone-right">
-										{#if milestone.start_date || milestone.due_date}
-											<span>{milestone.start_date ?? '?'} – {milestone.due_date ?? '?'}</span>
-										{/if}
-										<span>{milestone.dod_count} DoD criteria</span>
-									</div>
-								</a>
+								<div class="goals-milestone-row">
+									<a
+										href={`/goal/${draft.id}/milestone/${milestone.id}`}
+										class="goals-milestone-link"
+									>
+										<div class="goals-milestone-left">
+											<span class="goals-milestone-idx">M{idx + 1}</span>
+											<span class="goals-milestone-title">{milestone.title}</span>
+											<StatusBadge status={milestone.status} />
+										</div>
+										<div class="goals-milestone-right">
+											{#if milestone.start_date || milestone.due_date}
+												<span>{milestone.start_date ?? '?'} – {milestone.due_date ?? '?'}</span>
+											{/if}
+											<span>{milestone.dod_count} DoD criteria</span>
+										</div>
+									</a>
+									<button
+										type="button"
+										onclick={() => {
+											deleteError = null;
+											deleteTarget = { id: milestone.id, title: milestone.title };
+										}}
+										aria-label={`Delete milestone ${milestone.title}`}
+										class="goals-btn-icon"
+									>
+										Delete
+									</button>
+								</div>
 							{/each}
 						</div>
 					{/if}
@@ -243,3 +313,17 @@
 	onDiscard={guard.discardAndLeave}
 	onCancel={guard.cancelLeave}
 />
+
+{#if deleteTarget}
+	<DeleteMilestoneDialog
+		open={true}
+		milestoneTitle={deleteTarget.title}
+		deleting={deletingMilestone}
+		error={deleteError}
+		onConfirm={handleConfirmDeleteMilestone}
+		onCancel={() => {
+			deleteTarget = null;
+			deleteError = null;
+		}}
+	/>
+{/if}

@@ -40,6 +40,11 @@
 			icon: "notes",
 		},
 		{
+			path: "/quick-note",
+			label: "Quick Note",
+			icon: "notes",
+		},
+		{
 			path: "/tasks",
 			label: "Tasks",
 			icon: "tasks",
@@ -477,7 +482,7 @@
 
 	<!-- Main Content Area -->
 	<main class="main-content">
-		<div class="content-wrapper" class:full-bleed={page.url.pathname.startsWith("/wiki") || page.url.pathname.startsWith("/movies")}>
+		<div class="content-wrapper" class:full-bleed={page.url.pathname.startsWith("/wiki") || page.url.pathname.startsWith("/quick-note") || page.url.pathname.startsWith("/movies")}>
 			{@render children()}
 		</div>
 	</main>

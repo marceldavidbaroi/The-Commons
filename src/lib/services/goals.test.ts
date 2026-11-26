@@ -7,7 +7,10 @@ import {
 	fetchGoalDetail,
 	saveGoalArchitecture,
 	createMilestone,
+	deleteMilestone,
+	fetchGoalStructure,
 	fetchModuleTasksPage,
+	formatGoalStructureMarkdown,
 	createModule,
 	createGoalTask,
 	GOALS_PAGE_SIZE
@@ -224,5 +227,84 @@ describe('goals-service', () => {
 
 		await fetchModuleTasksPage(3, { sort_order: 5, id: 12 }, mockClient);
 		expect(chain.or).toHaveBeenCalledWith('sort_order.gt.5,and(sort_order.eq.5,id.gt.12)');
+	});
+
+	it('deleteMilestone deletes milestone by id', async () => {
+		const chain = createQueryChain({ data: null, error: null });
+		const mockClient = { from: vi.fn(() => chain) } as unknown as SupabaseClient<Database>;
+
+		await deleteMilestone(42, mockClient);
+		expect(mockClient.from).toHaveBeenCalledWith('milestones');
+		expect(chain.delete).toHaveBeenCalled();
+		expect(chain.eq).toHaveBeenCalledWith('id', 42);
+	});
+
+	it('fetchGoalStructure and formatGoalStructureMarkdown build nested Milestone -> Module -> Task output', async () => {
+		const mockClient = {
+			from: vi.fn((table: string) => {
+				if (table === 'milestones') {
+					return createQueryChain({
+						data: [
+							{
+								id: 10,
+								title: 'Foundation',
+								status: 'in_progress',
+								start_date: null,
+								due_date: '2026-12-01',
+								sort_order: 1
+							}
+						],
+						error: null
+					});
+				}
+				if (table === 'goal_modules') {
+					return createQueryChain({
+						data: [
+							{
+								id: 20,
+								milestone_id: 10,
+								title: 'Auth',
+								status: 'pending',
+								sort_order: 0
+							}
+						],
+						error: null
+					});
+				}
+				if (table === 'goal_tasks') {
+					return createQueryChain({
+						data: [
+							{
+								id: 30,
+								module_id: 20,
+								title: 'Setup RLS',
+								status: 'todo',
+								estimated_minutes: 45,
+								sort_order: 0
+							}
+						],
+						error: null
+					});
+				}
+				return createQueryChain({ data: [], error: null });
+			})
+		} as unknown as SupabaseClient<Database>;
+
+		const structure = await fetchGoalStructure(1, mockClient);
+		const text = formatGoalStructureMarkdown(
+			{
+				title: 'Launch App',
+				status: 'active',
+				north_star: 'Ship v1',
+				final_outcome: 'Live in prod',
+				dod_items: [{ id: 1, goal_id: 1, milestone_id: null, criterion: 'Zero errors', sort_order: 0 }]
+			},
+			structure
+		);
+
+		expect(text).toContain('# Goal: Launch App (active)');
+		expect(text).toContain('- Milestone 1: Foundation [in_progress] (? - 2026-12-01)');
+		expect(text).toContain('  - Module: Auth [pending]');
+		expect(text).toContain('    - Task: Setup RLS (45m, todo)');
 	});
 });
