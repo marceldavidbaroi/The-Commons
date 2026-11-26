@@ -1,7 +1,7 @@
 {
 	"name": "the-commons",
 	"private": true,
-	"version": "0.1.0",
+	"version": "0.1.2",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
@@ -13,8 +13,8 @@
 		"check:all": "bash scripts/check-all.sh",
 		"env:local": "cp .env.local.docker .env.local && echo 'Switched to local docker environment (.env.local.docker -> .env.local)'",
 		"env:prod": "cp .env.local.prod .env.local && echo 'Switched to production environment (.env.local.prod -> .env.local)'",
-		"backend:prod": "pnpm env:prod && node scripts/deploy-migrations.mjs",
-		"frontend:prod": "pnpm env:prod && wrangler login && pnpm build && wrangler pages deploy .svelte-kit/cloudflare --project-name=the-commons --branch=main --commit-dirty=true",
+		"backend:prod": "node scripts/deploy-version.mjs --target=backend",
+		"frontend:prod": "node scripts/deploy-version.mjs --target=frontend",
 		"db:seed": "pnpm env:prod && npx supabase db execute --file supabase/seed.sql",
 		"tag:prod": "pnpm env:prod && python3 scripts/seed_tags.py",
 		"types:db": "npx supabase gen types typescript --project-id rbnbgyytxgkkcrmkgnro > src/lib/types/database.types.ts",

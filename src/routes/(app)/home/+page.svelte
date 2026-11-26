@@ -1,4 +1,6 @@
 <script lang="ts">
+	import versionInfo from '$lib/version.json';
+
 	const features = [
 		{
 			title: 'Settings',
@@ -32,6 +34,10 @@
 			</a>
 		{/each}
 	</div>
+
+	<footer class="home-version">
+		The Commons &middot; Frontend v{versionInfo.frontend} &middot; Backend v{versionInfo.backend}
+	</footer>
 </div>
 
 <style>
@@ -104,6 +110,13 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+	}
+
+	.home-version {
+		margin-top: 2rem;
+		font-size: 0.75rem;
+		color: var(--text-secondary);
+		opacity: 0.8;
 	}
 
 	@media (max-width: 540px) {

@@ -4,6 +4,7 @@
 	import { getSupabaseClient } from '$lib/supabase';
 	import CommonsLogo from '$lib/components/brand/CommonsLogo.svelte';
 	import ThemeSelector from '$lib/components/ThemeSelector.svelte';
+	import versionInfo from '$lib/version.json';
 
 	let checkingAuth = $state(true);
 
@@ -138,7 +139,9 @@
 		<div class="footer-inner">
 			<div class="footer-left">
 				<CommonsLogo variant="mark" size="xs" />
-				<span class="footer-copy">The Commons &copy; 2026. All rights reserved.</span>
+				<span class="footer-copy">
+					The Commons &middot; Frontend v{versionInfo.frontend} &middot; Backend v{versionInfo.backend}
+				</span>
 			</div>
 			<div class="footer-links">
 				<a href="/dev/design-system" class="footer-link">Design System</a>
