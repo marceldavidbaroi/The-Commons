@@ -7,11 +7,13 @@ vi.mock('$lib/services/goals-service', () => ({
 	saveGoalArchitecture: vi.fn(),
 	createMilestone: vi.fn(),
 	deleteMilestone: vi.fn(),
+	reorderMilestones: vi.fn(),
 	fetchMilestoneDetail: vi.fn(),
 	fetchModuleTasksPage: vi.fn(),
 	saveMilestoneExecution: vi.fn(),
 	createModule: vi.fn(),
-	createGoalTask: vi.fn()
+	createGoalTask: vi.fn(),
+	deleteGoalTask: vi.fn()
 }));
 
 import { goalsStore } from './goals.svelte';
@@ -215,5 +217,173 @@ describe('goalsStore', () => {
 		expect(goalsStore.goalBaseline?.milestones.map((m) => m.id)).toEqual([11]);
 		expect(goalsStore.goals[0].total_milestones).toBe(1);
 		expect(goalsStore.goals[0].passed_milestones).toBe(0);
+	});
+
+	it('reorderMilestones updates draft sort_order, marks dirty, and persists on commitGoalSave', async () => {
+		const detail = {
+			id: 1,
+			user_id: 'u1',
+			title: 'Ship',
+			north_star: null,
+			final_outcome: null,
+			start_date: null,
+			target_end_date: null,
+			weekly_hours_budget: null,
+			status: 'active' as const,
+			created_at: '2026-11-20T00:00:00Z',
+			updated_at: '2026-11-20T00:00:00Z',
+			dod_items: [],
+			milestones: [
+				{
+					id: 10,
+					goal_id: 1,
+					title: 'M1',
+					sort_order: 1,
+					start_date: null,
+					due_date: null,
+					status: 'locked' as const,
+					passed_at: null,
+					retrospective_note: null,
+					dod_count: 0
+				},
+				{
+					id: 11,
+					goal_id: 1,
+					title: 'M2',
+					sort_order: 2,
+					start_date: null,
+					due_date: null,
+					status: 'locked' as const,
+					passed_at: null,
+					retrospective_note: null,
+					dod_count: 0
+				}
+			]
+		};
+		vi.mocked(service.fetchGoalDetail).mockResolvedValueOnce(detail);
+		await goalsStore.loadGoalDetail(1, true);
+
+		goalsStore.reorderMilestones(0, 1);
+		expect(goalsStore.isGoalDirty).toBe(true);
+		expect(goalsStore.goalDraft?.milestones.map((m) => [m.id, m.sort_order])).toEqual([
+			[11, 1],
+			[10, 2]
+		]);
+
+		vi.mocked(service.saveGoalArchitecture).mockResolvedValueOnce({
+			goal: null,
+			insertedDod: [],
+			updatedDod: [],
+			deletedDodIds: []
+		});
+		vi.mocked(service.reorderMilestones).mockResolvedValueOnce(undefined);
+
+		await goalsStore.commitGoalSave();
+		expect(service.reorderMilestones).toHaveBeenCalledWith([
+			{ id: 11, sort_order: 1 },
+			{ id: 10, sort_order: 2 }
+		]);
+		expect(goalsStore.isGoalDirty).toBe(false);
+	});
+
+	it('reorderModules updates draft sort_order and marks milestone dirty', async () => {
+		const milestone = {
+			id: 10,
+			goal_id: 1,
+			goal_title: 'Ship',
+			title: 'M1',
+			sort_order: 1,
+			start_date: null,
+			due_date: null,
+			status: 'in_progress' as const,
+			passed_at: null,
+			retrospective_note: null,
+			dod_items: [],
+			modules: [
+				{
+					id: 20,
+					milestone_id: 10,
+					title: 'Mod A',
+					description: null,
+					sort_order: 0,
+					status: 'pending' as const,
+					tasks: [],
+					hasMoreTasks: false,
+					tasksCursor: null
+				},
+				{
+					id: 21,
+					milestone_id: 10,
+					title: 'Mod B',
+					description: null,
+					sort_order: 1,
+					status: 'pending' as const,
+					tasks: [],
+					hasMoreTasks: false,
+					tasksCursor: null
+				}
+			]
+		};
+		vi.mocked(service.fetchMilestoneDetail).mockResolvedValueOnce(milestone);
+		await goalsStore.loadMilestoneDetail(10, true);
+
+		goalsStore.reorderModules(1, 0);
+		expect(goalsStore.isMilestoneDirty).toBe(true);
+		expect(goalsStore.milestoneDraft?.modules.map((m) => [m.id, m.sort_order])).toEqual([
+			[21, 0],
+			[20, 1]
+		]);
+	});
+
+	it('deleteTask deletes via service and removes task from draft and baseline', async () => {
+		const milestone = {
+			id: 10,
+			goal_id: 1,
+			goal_title: 'Ship',
+			title: 'M1',
+			sort_order: 1,
+			start_date: null,
+			due_date: null,
+			status: 'in_progress' as const,
+			passed_at: null,
+			retrospective_note: null,
+			dod_items: [],
+			modules: [
+				{
+					id: 20,
+					milestone_id: 10,
+					title: 'Mod A',
+					description: null,
+					sort_order: 0,
+					status: 'pending' as const,
+					tasks: [
+						{
+							id: 101,
+							module_id: 20,
+							title: 'Task 1',
+							acceptance_note: null,
+							estimated_minutes: 30,
+							actual_minutes: null,
+							status: 'todo' as const,
+							due_date: null,
+							completed_at: null,
+							sort_order: 0
+						}
+					],
+					hasMoreTasks: false,
+					tasksCursor: null
+				}
+			]
+		};
+		vi.mocked(service.fetchMilestoneDetail).mockResolvedValueOnce(milestone);
+		await goalsStore.loadMilestoneDetail(10, true);
+
+		vi.mocked(service.deleteGoalTask).mockResolvedValueOnce(undefined);
+		await goalsStore.deleteTask(20, 101);
+
+		expect(service.deleteGoalTask).toHaveBeenCalledWith(101);
+		expect(goalsStore.milestoneDraft?.modules[0].tasks).toEqual([]);
+		expect(goalsStore.milestoneBaseline?.modules[0].tasks).toEqual([]);
+		expect(goalsStore.isMilestoneDirty).toBe(false);
 	});
 });

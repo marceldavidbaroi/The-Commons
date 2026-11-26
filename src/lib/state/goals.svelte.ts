@@ -11,6 +11,7 @@ import {
 	createGoalTask,
 	createMilestone,
 	createModule,
+	deleteGoalTask as deleteGoalTaskService,
 	deleteMilestone as deleteMilestoneService,
 	fetchGoalDetail,
 	fetchGoalStructure,
@@ -18,6 +19,7 @@ import {
 	fetchMilestoneDetail,
 	fetchModuleTasksPage,
 	formatGoalStructureMarkdown,
+	reorderMilestones as reorderMilestonesService,
 	saveGoalArchitecture,
 	saveMilestoneExecution,
 	type DodBatchOps,
@@ -148,7 +150,18 @@ class GoalsStore {
 			if (draft.status !== base.status) goalPatch.status = draft.status;
 
 			const dodOps = diffDodItems(base.dod_items, draft.dod_items);
-			const res = await saveGoalArchitecture(base.id, goalPatch, dodOps);
+			const milestoneOrderUpdates = diffMilestoneOrder(base.milestones, draft.milestones);
+			const [res] = await Promise.all([
+				saveGoalArchitecture(base.id, goalPatch, dodOps),
+				reorderMilestonesService(milestoneOrderUpdates)
+			]);
+
+			for (const upd of milestoneOrderUpdates) {
+				const cachedMilestone = this.milestoneCache.get(upd.id);
+				if (cachedMilestone) {
+					this.milestoneCache.set(upd.id, { ...cachedMilestone, sort_order: upd.sort_order });
+				}
+			}
 
 			const updatedGoal: GoalDetail = {
 				...draft,
@@ -178,6 +191,16 @@ class GoalsStore {
 		} finally {
 			this.goalSaving = false;
 		}
+	}
+
+	reorderMilestones(fromIndex: number, toIndex: number): void {
+		if (!this.goalDraft) return;
+		const reordered = reorderList(this.goalDraft.milestones, fromIndex, toIndex, 1);
+		if (reordered === this.goalDraft.milestones) return;
+		this.goalDraft = {
+			...this.goalDraft,
+			milestones: reordered
+		};
 	}
 
 	async addMilestone(goalId: number, title: string): Promise<MilestoneSummary> {
@@ -335,6 +358,16 @@ class GoalsStore {
 		}
 	}
 
+	reorderModules(fromIndex: number, toIndex: number): void {
+		if (!this.milestoneDraft) return;
+		const reordered = reorderList(this.milestoneDraft.modules, fromIndex, toIndex, 0);
+		if (reordered === this.milestoneDraft.modules) return;
+		this.milestoneDraft = {
+			...this.milestoneDraft,
+			modules: reordered
+		};
+	}
+
 	async addModule(milestoneId: number, title: string): Promise<GoalModuleWithTasks> {
 		const mods = this.milestoneDraft?.modules ?? [];
 		const nextOrder = mods.length > 0 ? Math.max(...mods.map((m) => m.sort_order)) + 1 : 0;
@@ -378,6 +411,29 @@ class GoalsStore {
 			this.milestoneBaseline = {
 				...this.milestoneBaseline,
 				modules: appendTask(this.milestoneBaseline.modules)
+			};
+			this.milestoneCache.set(this.milestoneBaseline.id, clone(this.milestoneBaseline));
+		}
+	}
+
+	async deleteTask(moduleId: number, taskId: number): Promise<void> {
+		await deleteGoalTaskService(taskId);
+
+		const removeTask = (modules: GoalModuleWithTasks[]) =>
+			modules.map((m) =>
+				m.id === moduleId ? { ...m, tasks: m.tasks.filter((t) => t.id !== taskId) } : m
+			);
+
+		if (this.milestoneDraft) {
+			this.milestoneDraft = {
+				...this.milestoneDraft,
+				modules: removeTask(this.milestoneDraft.modules)
+			};
+		}
+		if (this.milestoneBaseline) {
+			this.milestoneBaseline = {
+				...this.milestoneBaseline,
+				modules: removeTask(this.milestoneBaseline.modules)
 			};
 			this.milestoneCache.set(this.milestoneBaseline.id, clone(this.milestoneBaseline));
 		}
@@ -551,6 +607,42 @@ function diffTasks(base: GoalModuleWithTasks[], draft: GoalModuleWithTasks[]): T
 	}
 
 	return { updates, deletes };
+}
+
+function reorderList<T extends { sort_order: number }>(
+	items: T[],
+	fromIndex: number,
+	toIndex: number,
+	startOrder = 0
+): T[] {
+	if (
+		fromIndex === toIndex ||
+		fromIndex < 0 ||
+		toIndex < 0 ||
+		fromIndex >= items.length ||
+		toIndex >= items.length
+	) {
+		return items;
+	}
+	const copy = [...items];
+	const [moved] = copy.splice(fromIndex, 1);
+	copy.splice(toIndex, 0, moved);
+	return copy.map((item, idx) => ({ ...item, sort_order: startOrder + idx }));
+}
+
+function diffMilestoneOrder(
+	base: MilestoneSummary[],
+	draft: MilestoneSummary[]
+): Array<{ id: number; sort_order: number }> {
+	const baseMap = new Map(base.map((m) => [m.id, m]));
+	const updates: Array<{ id: number; sort_order: number }> = [];
+	for (const m of draft) {
+		const orig = baseMap.get(m.id);
+		if (orig && orig.sort_order !== m.sort_order) {
+			updates.push({ id: m.id, sort_order: m.sort_order });
+		}
+	}
+	return updates;
 }
 
 export const goalsStore = new GoalsStore();

@@ -8,11 +8,13 @@ import {
 	saveGoalArchitecture,
 	createMilestone,
 	deleteMilestone,
+	reorderMilestones,
 	fetchGoalStructure,
 	fetchModuleTasksPage,
 	formatGoalStructureMarkdown,
 	createModule,
 	createGoalTask,
+	deleteGoalTask,
 	GOALS_PAGE_SIZE
 } from './goals-service';
 
@@ -306,5 +308,35 @@ describe('goals-service', () => {
 		expect(text).toContain('- Milestone 1: Foundation [in_progress] (? - 2026-12-01)');
 		expect(text).toContain('  - Module: Auth [pending]');
 		expect(text).toContain('    - Task: Setup RLS (45m, todo)');
+	});
+
+	it('reorderMilestones updates sort_order for each milestone', async () => {
+		const chain = createQueryChain({ data: null, error: null });
+		const mockClient = { from: vi.fn(() => chain) } as unknown as SupabaseClient<Database>;
+
+		await reorderMilestones(
+			[
+				{ id: 11, sort_order: 1 },
+				{ id: 10, sort_order: 2 }
+			],
+			mockClient
+		);
+
+		expect(mockClient.from).toHaveBeenCalledWith('milestones');
+		expect(chain.update).toHaveBeenCalledWith({ sort_order: 1 });
+		expect(chain.update).toHaveBeenCalledWith({ sort_order: 2 });
+		expect(chain.eq).toHaveBeenCalledWith('id', 11);
+		expect(chain.eq).toHaveBeenCalledWith('id', 10);
+	});
+
+	it('deleteGoalTask deletes from goal_tasks by id', async () => {
+		const chain = createQueryChain({ data: null, error: null });
+		const mockClient = { from: vi.fn(() => chain) } as unknown as SupabaseClient<Database>;
+
+		await deleteGoalTask(42, mockClient);
+
+		expect(mockClient.from).toHaveBeenCalledWith('goal_tasks');
+		expect(chain.delete).toHaveBeenCalled();
+		expect(chain.eq).toHaveBeenCalledWith('id', 42);
 	});
 });

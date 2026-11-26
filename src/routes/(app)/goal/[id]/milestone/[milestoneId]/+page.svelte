@@ -8,6 +8,7 @@
 	import DeleteMilestoneDialog from '$lib/components/goals/DeleteMilestoneDialog.svelte';
 	import DodCriteriaList from '$lib/components/goals/DodCriteriaList.svelte';
 	import GoalModuleCard from '$lib/components/goals/GoalModuleCard.svelte';
+	import RichNoteDrawer from '$lib/components/goals/RichNoteDrawer.svelte';
 
 	let errorMsg = $state<string | null>(null);
 	let newModuleTitle = $state('');
@@ -15,6 +16,35 @@
 	let deleteDialogOpen = $state(false);
 	let deletingMilestone = $state(false);
 	let deleteError = $state<string | null>(null);
+	let activeDrawer = $state<
+		| { type: 'module'; moduleId: number }
+		| { type: 'task'; moduleId: number; taskId: number }
+		| { type: 'retro' }
+		| null
+	>(null);
+	let draggedModuleIdx = $state<number | null>(null);
+	let dragOverModuleIdx = $state<number | null>(null);
+
+	const activeNoteModule = $derived(
+		activeDrawer?.type === 'module'
+			? (goalsStore.milestoneDraft?.modules.find((m) => m.id === activeDrawer.moduleId) ?? null)
+			: null
+	);
+
+	const activeNoteTask = $derived(
+		activeDrawer?.type === 'task'
+			? (goalsStore.milestoneDraft?.modules
+					.find((m) => m.id === activeDrawer.moduleId)
+					?.tasks.find((t) => t.id === activeDrawer.taskId) ?? null)
+			: null
+	);
+
+	function stripHtml(html: string | null): string {
+		if (!html) return '';
+		return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+	}
+
+	const retroPreview = $derived(stripHtml(goalsStore.milestoneDraft?.retrospective_note ?? null));
 
 	const goalId = $derived(Number($page.params.id));
 	const milestoneId = $derived(Number($page.params.milestoneId));
@@ -190,15 +220,36 @@
 					</div>
 
 					<div>
-						<label for="retro-note" class="goals-field-label">Retrospective Note</label>
-						<textarea
-							id="retro-note"
-							rows="2"
-							value={draft.retrospective_note ?? ''}
-							oninput={(e) => (draft.retrospective_note = e.currentTarget.value || null)}
-							placeholder="Post-milestone review or scope-cut notes..."
-							class="goals-textarea"
-						></textarea>
+						<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
+							<span class="goals-field-label" style="margin-bottom: 0;">Retrospective Note</span>
+							<button
+								type="button"
+								onclick={() => (activeDrawer = { type: 'retro' })}
+								class="goals-btn-secondary goals-btn-sm {retroPreview ? 'goals-btn-has-note' : ''}"
+							>
+								{retroPreview ? 'Note •' : '+ Note'}
+							</button>
+						</div>
+						{#if retroPreview}
+							<button
+								type="button"
+								onclick={() => (activeDrawer = { type: 'retro' })}
+								class="goals-module-note-preview"
+								style="width: 100%; text-align: left;"
+								title="Open retrospective note"
+							>
+								{retroPreview}
+							</button>
+						{:else}
+							<button
+								type="button"
+								onclick={() => (activeDrawer = { type: 'retro' })}
+								class="goals-module-note-preview goals-muted"
+								style="width: 100%; text-align: left;"
+							>
+								Add post-milestone review or scope-cut notes...
+							</button>
+						{/if}
 					</div>
 				</section>
 
@@ -238,13 +289,54 @@
 							No modules yet. Add a module above to break this milestone into tasks.
 						</div>
 					{:else}
-						{#each draft.modules as mod (mod.id)}
-							<GoalModuleCard
-								module={mod}
-								onDeleteModule={handleDeleteModule}
-								onAddTask={(modId, title, mins) => goalsStore.addTask(modId, title, mins)}
-								onLoadMoreTasks={(modId) => goalsStore.loadMoreModuleTasks(modId)}
-							/>
+						{#each draft.modules as mod, idx (mod.id)}
+							<div
+								role="listitem"
+								class="goals-module-drop-wrap {dragOverModuleIdx === idx && draggedModuleIdx !== idx ? 'is-drag-over' : ''}"
+								ondragover={(e) => {
+									if (draggedModuleIdx === null) return;
+									e.preventDefault();
+									dragOverModuleIdx = idx;
+								}}
+								ondrop={(e) => {
+									e.preventDefault();
+									if (draggedModuleIdx !== null && draggedModuleIdx !== idx) {
+										goalsStore.reorderModules(draggedModuleIdx, idx);
+									}
+									draggedModuleIdx = null;
+									dragOverModuleIdx = null;
+								}}
+							>
+								<GoalModuleCard
+									module={mod}
+									index={idx}
+									total={draft.modules.length}
+									onMoveModule={(i, dir) => goalsStore.reorderModules(i, i + dir)}
+									onDragStart={(e) => {
+										draggedModuleIdx = idx;
+										if (e.dataTransfer) {
+											e.dataTransfer.effectAllowed = 'move';
+											e.dataTransfer.setData('text/plain', String(mod.id));
+										}
+									}}
+									onDragEnd={() => {
+										draggedModuleIdx = null;
+										dragOverModuleIdx = null;
+									}}
+									onDeleteModule={handleDeleteModule}
+									onOpenNote={(modId) => (activeDrawer = { type: 'module', moduleId: modId })}
+									onOpenTaskNote={(modId, taskId) =>
+										(activeDrawer = { type: 'task', moduleId: modId, taskId })}
+									onAddTask={(modId, title, mins) => goalsStore.addTask(modId, title, mins)}
+									onDeleteTask={async (modId, taskId) => {
+										if (activeDrawer?.type === 'task' && activeDrawer.taskId === taskId) {
+											activeDrawer = null;
+										}
+										await goalsStore.deleteTask(modId, taskId);
+									}}
+									onLoadMoreTasks={(modId) => goalsStore.loadMoreModuleTasks(modId)}
+								/>
+							</div>
 						{/each}
 					{/if}
 				</div>
@@ -274,3 +366,44 @@
 		}}
 	/>
 {/if}
+
+<RichNoteDrawer
+	open={activeDrawer?.type === 'retro' || activeNoteModule !== null || activeNoteTask !== null}
+	noteKey={activeDrawer?.type === 'retro'
+		? `retro-${milestoneId}`
+		: activeNoteModule
+			? `module-${activeNoteModule.id}`
+			: activeNoteTask
+				? `task-${activeNoteTask.id}`
+				: null}
+	kicker={activeDrawer?.type === 'retro'
+		? 'Retrospective Note'
+		: activeNoteTask
+			? 'Task Note'
+			: 'Module Note'}
+	title={activeDrawer?.type === 'retro'
+		? (goalsStore.milestoneDraft?.title || 'Untitled Milestone')
+		: activeNoteTask
+			? (activeNoteTask.title || 'Untitled Task')
+			: (activeNoteModule?.title || 'Untitled Module')}
+	content={activeDrawer?.type === 'retro'
+		? (goalsStore.milestoneDraft?.retrospective_note ?? null)
+		: activeNoteTask
+			? activeNoteTask.acceptance_note
+			: (activeNoteModule?.description ?? null)}
+	ariaLabel={activeDrawer?.type === 'retro'
+		? 'Retrospective Note Editor'
+		: activeNoteTask
+			? 'Task Note Editor'
+			: 'Module Note Editor'}
+	onClose={() => (activeDrawer = null)}
+	onChange={(html) => {
+		if (activeDrawer?.type === 'retro' && goalsStore.milestoneDraft) {
+			goalsStore.milestoneDraft.retrospective_note = html;
+		} else if (activeNoteTask) {
+			activeNoteTask.acceptance_note = html;
+		} else if (activeNoteModule) {
+			activeNoteModule.description = html;
+		}
+	}}
+/>

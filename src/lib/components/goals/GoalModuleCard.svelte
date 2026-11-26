@@ -3,18 +3,39 @@
 
 	interface Props {
 		module: GoalModuleWithTasks;
+		index?: number;
+		total?: number;
+		onMoveModule?: (index: number, direction: -1 | 1) => void;
+		onDragStart?: (e: DragEvent) => void;
+		onDragEnd?: () => void;
 		onDeleteModule: (moduleId: number) => void;
+		onOpenNote: (moduleId: number) => void;
+		onOpenTaskNote: (moduleId: number, taskId: number) => void;
 		onAddTask: (moduleId: number, title: string, estimatedMinutes: number) => Promise<void>;
+		onDeleteTask: (moduleId: number, taskId: number) => Promise<void>;
 		onLoadMoreTasks: (moduleId: number) => Promise<void>;
 	}
 
-	let { module, onDeleteModule, onAddTask, onLoadMoreTasks }: Props = $props();
+	let {
+		module,
+		index = 0,
+		total = 1,
+		onMoveModule,
+		onDragStart,
+		onDragEnd,
+		onDeleteModule,
+		onOpenNote,
+		onOpenTaskNote,
+		onAddTask,
+		onDeleteTask,
+		onLoadMoreTasks
+	}: Props = $props();
 
 	let newTaskTitle = $state('');
 	let newTaskMinutes = $state(60);
 	let addingTask = $state(false);
 	let loadingMore = $state(false);
-	let expandedNotes = $state<Record<number, boolean>>({});
+	let deletingTaskId = $state<number | null>(null);
 
 	const MODULE_STATUSES: GoalModuleStatus[] = ['pending', 'in_progress', 'completed', 'deferred'];
 	const TASK_STATUSES: GoalTaskStatus[] = ['todo', 'in_progress', 'done', 'cut'];
@@ -44,24 +65,73 @@
 		}
 	}
 
-	function removeTask(taskId: number) {
-		module.tasks = module.tasks.filter((t) => t.id !== taskId);
+	async function handleDeleteTask(taskId: number) {
+		if (deletingTaskId === taskId) return;
+		deletingTaskId = taskId;
+		try {
+			await onDeleteTask(module.id, taskId);
+		} finally {
+			if (deletingTaskId === taskId) deletingTaskId = null;
+		}
 	}
 
-	function toggleNote(taskId: number) {
-		expandedNotes = { ...expandedNotes, [taskId]: !expandedNotes[taskId] };
+	function stripHtml(html: string | null): string {
+		if (!html) return '';
+		return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 	}
+
+	const notePreview = $derived(stripHtml(module.description));
 </script>
 
 <div class="goals-module-card">
 	<div class="goals-module-header">
 		<div class="goals-module-header-top">
+			{#if total > 1 && onMoveModule}
+				<span
+					class="goals-drag-handle"
+					draggable="true"
+					ondragstart={onDragStart}
+					ondragend={onDragEnd}
+					title="Drag to reorder module"
+					aria-hidden="true"
+				>
+					⋮⋮
+				</span>
+				<div class="goals-dod-reorder">
+					<button
+						type="button"
+						onclick={() => onMoveModule(index, -1)}
+						disabled={index === 0}
+						aria-label={`Move module ${module.title} up`}
+						class="goals-dod-arrow"
+					>
+						▲
+					</button>
+					<button
+						type="button"
+						onclick={() => onMoveModule(index, 1)}
+						disabled={index === total - 1}
+						aria-label={`Move module ${module.title} down`}
+						class="goals-dod-arrow"
+					>
+						▼
+					</button>
+				</div>
+			{/if}
 			<input
 				type="text"
 				bind:value={module.title}
 				placeholder="Module title"
 				class="goals-module-title"
 			/>
+			<button
+				type="button"
+				onclick={() => onOpenNote(module.id)}
+				class="goals-btn-secondary goals-btn-sm {notePreview ? 'goals-btn-has-note' : ''}"
+				title={notePreview ? 'View / edit module note' : 'Add module note'}
+			>
+				{notePreview ? 'Note •' : '+ Note'}
+			</button>
 			<select
 				bind:value={module.status}
 				aria-label="Module status"
@@ -80,13 +150,16 @@
 				Delete
 			</button>
 		</div>
-		<input
-			type="text"
-			value={module.description ?? ''}
-			oninput={(e) => (module.description = e.currentTarget.value || null)}
-			placeholder="Optional scope notes..."
-			class="goals-module-desc"
-		/>
+		{#if notePreview}
+			<button
+				type="button"
+				onclick={() => onOpenNote(module.id)}
+				class="goals-module-note-preview"
+				title="Open module note"
+			>
+				{notePreview}
+			</button>
+		{/if}
 	</div>
 
 	<div>
@@ -150,15 +223,17 @@
 
 							<button
 								type="button"
-								onclick={() => toggleNote(task.id)}
-								class="goals-btn-secondary goals-btn-sm"
+								onclick={() => onOpenTaskNote(module.id, task.id)}
+								class="goals-btn-secondary goals-btn-sm {stripHtml(task.acceptance_note) ? 'goals-btn-has-note' : ''}"
+								title={stripHtml(task.acceptance_note) ? 'View / edit task note' : 'Add task note'}
 							>
-								{expandedNotes[task.id] ? 'Hide note' : 'Note'}
+								{stripHtml(task.acceptance_note) ? 'Note •' : '+ Note'}
 							</button>
 
 							<button
 								type="button"
-								onclick={() => removeTask(task.id)}
+								onclick={() => handleDeleteTask(task.id)}
+								disabled={deletingTaskId === task.id}
 								aria-label="Delete task"
 								class="goals-btn-icon"
 							>
@@ -166,19 +241,6 @@
 							</button>
 						</div>
 					</div>
-
-					{#if expandedNotes[task.id]}
-						<div style="margin-top: 8px; padding-left: 8px;">
-							<textarea
-								rows="2"
-								value={task.acceptance_note ?? ''}
-								oninput={(e) => (task.acceptance_note = e.currentTarget.value || null)}
-								placeholder="Acceptance note / verification details..."
-								class="goals-textarea"
-								style="font-size: 0.75rem;"
-							></textarea>
-						</div>
-					{/if}
 				</div>
 			{/each}
 		{/if}

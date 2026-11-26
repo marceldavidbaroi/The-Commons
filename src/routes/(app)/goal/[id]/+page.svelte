@@ -16,6 +16,8 @@
 	let deleteError = $state<string | null>(null);
 	let copyingStructure = $state(false);
 	let copiedStructure = $state(false);
+	let draggedMilestoneIdx = $state<number | null>(null);
+	let dragOverMilestoneIdx = $state<number | null>(null);
 
 	const goalId = $derived(Number($page.params.id));
 
@@ -249,9 +251,60 @@
 					{#if draft.milestones.length === 0}
 						<p class="goals-muted">No milestones yet.</p>
 					{:else}
-						<div class="goals-milestone-list">
+						<div class="goals-milestone-list" role="list">
 							{#each draft.milestones as milestone, idx (milestone.id)}
-								<div class="goals-milestone-row">
+								<div
+									role="listitem"
+									class="goals-milestone-row {dragOverMilestoneIdx === idx && draggedMilestoneIdx !== idx ? 'is-drag-over' : ''}"
+									draggable={draft.milestones.length > 1}
+									ondragstart={(e) => {
+										draggedMilestoneIdx = idx;
+										if (e.dataTransfer) {
+											e.dataTransfer.effectAllowed = 'move';
+											e.dataTransfer.setData('text/plain', String(milestone.id));
+										}
+									}}
+									ondragover={(e) => {
+										if (draggedMilestoneIdx === null) return;
+										e.preventDefault();
+										dragOverMilestoneIdx = idx;
+									}}
+									ondrop={(e) => {
+										e.preventDefault();
+										if (draggedMilestoneIdx !== null && draggedMilestoneIdx !== idx) {
+											goalsStore.reorderMilestones(draggedMilestoneIdx, idx);
+										}
+										draggedMilestoneIdx = null;
+										dragOverMilestoneIdx = null;
+									}}
+									ondragend={() => {
+										draggedMilestoneIdx = null;
+										dragOverMilestoneIdx = null;
+									}}
+								>
+									{#if draft.milestones.length > 1}
+										<span class="goals-drag-handle" title="Drag to reorder" aria-hidden="true">⋮⋮</span>
+										<div class="goals-dod-reorder">
+											<button
+												type="button"
+												onclick={() => goalsStore.reorderMilestones(idx, idx - 1)}
+												disabled={idx === 0}
+												aria-label={`Move milestone ${milestone.title} up`}
+												class="goals-dod-arrow"
+											>
+												▲
+											</button>
+											<button
+												type="button"
+												onclick={() => goalsStore.reorderMilestones(idx, idx + 1)}
+												disabled={idx === draft.milestones.length - 1}
+												aria-label={`Move milestone ${milestone.title} down`}
+												class="goals-dod-arrow"
+											>
+												▼
+											</button>
+										</div>
+									{/if}
 									<a
 										href={`/goal/${draft.id}/milestone/${milestone.id}`}
 										class="goals-milestone-link"

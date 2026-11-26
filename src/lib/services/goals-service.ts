@@ -447,6 +447,24 @@ export async function deleteMilestone(
 }
 
 /**
+ * Persist updated sort_order values for reordered milestones.
+ */
+export async function reorderMilestones(
+	updates: Array<{ id: number; sort_order: number }>,
+	customClient?: SupabaseClient<Database>
+): Promise<void> {
+	if (updates.length === 0) return;
+	const supabase = getClient(customClient);
+	for (const item of updates) {
+		const { error } = await supabase
+			.from('milestones')
+			.update({ sort_order: item.sort_order })
+			.eq('id', item.id);
+		if (error) throw error;
+	}
+}
+
+/**
  * Fetch a keyset-paginated page of goal_tasks for a module (20 per page).
  */
 export async function fetchModuleTasksPage(
@@ -639,6 +657,18 @@ export async function createGoalTask(
 
 	if (error) throw error;
 	return data as GoalTask;
+}
+
+/**
+ * Delete a goal task by ID.
+ */
+export async function deleteGoalTask(
+	taskId: number,
+	customClient?: SupabaseClient<Database>
+): Promise<void> {
+	const supabase = getClient(customClient);
+	const { error } = await supabase.from('goal_tasks').delete().eq('id', taskId);
+	if (error) throw error;
 }
 
 async function applyDodBatchOps(
