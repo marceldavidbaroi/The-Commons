@@ -452,6 +452,7 @@ export async function createTablesBulk(
 export async function updateTable(
 	id: string,
 	payload: UpdateErTablePayload,
+	previousGroupId?: string | null,
 	customClient?: SupabaseClient<Database>
 ): Promise<ErTable> {
 	const supabase = getClient(customClient);
@@ -463,7 +464,32 @@ export async function updateTable(
 		.single();
 
 	if (error) throw error;
-	return data as ErTable;
+
+	const table = data as ErTable;
+	if (payload.group_id !== undefined && payload.group_id !== previousGroupId) {
+		if (previousGroupId) {
+			const { error: delErr } = await supabase
+				.from('er_table_groups')
+				.delete()
+				.eq('table_id', id)
+				.eq('group_id', previousGroupId);
+			if (delErr) throw delErr;
+		}
+		if (payload.group_id) {
+			const { error: linkErr } = await supabase.from('er_table_groups').upsert(
+				{
+					diagram_id: table.diagram_id,
+					table_id: id,
+					group_id: payload.group_id,
+					position: table.position ?? null
+				},
+				{ onConflict: 'table_id,group_id' }
+			);
+			if (linkErr) throw linkErr;
+		}
+	}
+
+	return table;
 }
 
 export async function deleteTable(

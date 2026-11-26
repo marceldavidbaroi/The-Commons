@@ -51,6 +51,7 @@
 	let showNewGroupModal = $state(false);
 	let editingCurrentGroup = $state(false);
 	let showAddExistingModal = $state(false);
+	let addExistingGroupKey = $state<string | undefined>(undefined);
 	let showEdgeLabels = $state(false);
 	let autoLayingOut = $state(false);
 	let exportCopied = $state(false);
@@ -229,6 +230,14 @@
 		tableDrawerGroupKey = groupMenu.groupId;
 		editingTable = null;
 		showTableDrawer = true;
+		groupMenu = null;
+		showGroupMoveSubmenu = false;
+	}
+
+	function handleAddExistingInGroup() {
+		if (!groupMenu) return;
+		addExistingGroupKey = groupMenu.groupId;
+		showAddExistingModal = true;
 		groupMenu = null;
 		showGroupMoveSubmenu = false;
 	}
@@ -983,7 +992,12 @@
 
 	<AddExistingTableModal
 		open={showAddExistingModal}
-		onClose={() => (showAddExistingModal = false)}
+		targetGroupKey={addExistingGroupKey}
+		onAdded={scheduleAutoLayout}
+		onClose={() => {
+			showAddExistingModal = false;
+			addExistingGroupKey = undefined;
+		}}
 	/>
 
 	{#if showDeleteGroupConfirm && currentGroup}
@@ -1120,6 +1134,14 @@
 			onclick={handleAddTableInGroup}
 		>
 			Add Table
+		</button>
+		<button
+			type="button"
+			class="erd-context-item"
+			role="menuitem"
+			onclick={handleAddExistingInGroup}
+		>
+			Add Existing Table
 		</button>
 		<button
 			type="button"

@@ -410,13 +410,15 @@ class ErStore {
 		payload: UpdateErTablePayload,
 		previousGroupId?: string | null
 	): Promise<ErTable> {
-		const updated = await erService.updateTable(id, payload);
-		const oldKey =
+		const resolvedOldKey =
 			previousGroupId !== undefined
 				? toGroupKey(previousGroupId)
 				: (Object.keys(this.tablesByGroup).find((k) =>
 						this.tablesByGroup[k]?.some((t) => t.id === id)
-					) ?? toGroupKey(updated.group_id));
+					) ?? UNGROUPED_KEY);
+		const resolvedPrevId = resolvedOldKey === UNGROUPED_KEY ? null : resolvedOldKey;
+		const updated = await erService.updateTable(id, payload, resolvedPrevId);
+		const oldKey = resolvedOldKey;
 		const newKey = toGroupKey(updated.group_id);
 
 		if (oldKey === newKey) {

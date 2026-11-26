@@ -5,10 +5,12 @@
 
 	interface Props {
 		open: boolean;
+		targetGroupKey?: string;
+		onAdded?: () => void;
 		onClose: () => void;
 	}
 
-	let { open, onClose }: Props = $props();
+	let { open, targetGroupKey, onAdded, onClose }: Props = $props();
 
 	let search = $state('');
 	let tables = $state<ErTableSummary[]>([]);
@@ -16,8 +18,10 @@
 	let addingId = $state<string | null>(null);
 	let errorMsg = $state<string | null>(null);
 
+	const resolvedGroupKey = $derived(targetGroupKey ?? erStore.activeGroupKey);
+
 	const activeGroupId = $derived(
-		erStore.activeGroupKey === UNGROUPED_KEY ? null : erStore.activeGroupKey
+		resolvedGroupKey === UNGROUPED_KEY ? null : resolvedGroupKey
 	);
 
 	const activeGroupName = $derived(
@@ -25,7 +29,7 @@
 	);
 
 	const memberIds = $derived(
-		new Set((erStore.tablesByGroup[erStore.activeGroupKey] ?? []).map((t) => t.id))
+		new Set((erStore.tablesByGroup[resolvedGroupKey] ?? []).map((t) => t.id))
 	);
 
 	$effect(() => {
@@ -53,6 +57,7 @@
 		errorMsg = null;
 		try {
 			await erStore.addTableToGroup(tableId, activeGroupId);
+			onAdded?.();
 		} catch (err) {
 			errorMsg = err instanceof Error ? err.message : 'Failed to add table to group';
 		} finally {
