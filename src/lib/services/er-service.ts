@@ -545,6 +545,62 @@ export async function deleteNote(
 	if (error) throw error;
 }
 
+// --- Single-Roundtrip RPCs ---
+
+export interface ErDiagramOverviewBundle {
+	diagram: ErDiagram | null;
+	groups: ErGroup[];
+	counts: ErGroupTableCount[];
+	notes: ErNote[];
+}
+
+export async function fetchDiagramOverview(
+	diagramId: string,
+	customClient?: SupabaseClient<Database>
+): Promise<ErDiagramOverviewBundle> {
+	const supabase = getClient(customClient);
+	const { data, error } = await supabase.rpc('get_er_diagram_overview', {
+		p_diagram_id: diagramId
+	});
+	if (error) throw error;
+	return (
+		(data as ErDiagramOverviewBundle) ?? {
+			diagram: null,
+			groups: [],
+			counts: [],
+			notes: []
+		}
+	);
+}
+
+export async function fetchGroupBundle(
+	diagramId: string,
+	groupId: string | null,
+	customClient?: SupabaseClient<Database>
+): Promise<ErTable[]> {
+	const supabase = getClient(customClient);
+	const { data, error } = await supabase.rpc('get_er_group_bundle', {
+		p_diagram_id: diagramId,
+		p_group_id: groupId
+	});
+	if (error) throw error;
+	return ((data as { tables?: ErTable[] })?.tables ?? []) as ErTable[];
+}
+
+export async function fetchTableNeighbors(
+	diagramId: string,
+	tableId: string,
+	customClient?: SupabaseClient<Database>
+): Promise<ErTable[]> {
+	const supabase = getClient(customClient);
+	const { data, error } = await supabase.rpc('get_er_table_neighbors', {
+		p_diagram_id: diagramId,
+		p_table_id: tableId
+	});
+	if (error) throw error;
+	return (data as ErTable[]) ?? [];
+}
+
 // --- Live Public Schema Introspection ---
 
 export async function fetchPublicSchemaMetadata(

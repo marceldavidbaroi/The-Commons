@@ -43,6 +43,44 @@ class ErStore {
 
 	activeGroupKey = $state<string>(UNGROUPED_KEY);
 	isolateMode = $state(true);
+	expandAllTables = $state(false);
+	groupsLoadedForDiagram = $state(false);
+	layoutCache = $state<Record<string, ErPosition>>({});
+	neighborsByTableId = $state<Record<string, ErTable[]>>({});
+
+	constructor() {
+		if (typeof sessionStorage !== 'undefined') {
+			try {
+				const raw = sessionStorage.getItem('er_canvas_layout_v1');
+				if (raw) this.layoutCache = JSON.parse(raw);
+			} catch {
+				// ignore storage errors
+			}
+		}
+	}
+
+	private persistLayoutCache(): void {
+		if (typeof sessionStorage !== 'undefined') {
+			try {
+				sessionStorage.setItem('er_canvas_layout_v1', JSON.stringify(this.layoutCache));
+			} catch {
+				// ignore storage errors
+			}
+		}
+	}
+
+	getCachedPosition(viewKey: string, nodeId: string): ErPosition | null {
+		return this.layoutCache[`${viewKey}:${nodeId}`] ?? null;
+	}
+
+	setCachedPositions(viewKey: string, positions: Array<{ id: string; position: ErPosition }>): void {
+		const next = { ...this.layoutCache };
+		for (const item of positions) {
+			next[`${viewKey}:${item.id}`] = item.position;
+		}
+		this.layoutCache = next;
+		this.persistLayoutCache();
+	}
 
 	loadingDiagrams = $state(false);
 	loadingGroups = $state(false);
@@ -107,7 +145,7 @@ class ErStore {
 	}
 
 	async selectDiagram(diagramId: string): Promise<void> {
-		if (this.activeDiagramId === diagramId && Object.keys(this.loadedGroupKeys).length > 0) {
+		if (this.activeDiagramId === diagramId && this.groupsLoadedForDiagram) {
 			return;
 		}
 		this.activeDiagramId = diagramId;
@@ -122,23 +160,21 @@ class ErStore {
 		this.error = null;
 
 		try {
-			const [groupsPage, counts, notesPage] = await Promise.all([
-				erService.fetchGroups(diagramId),
-				erService.fetchGroupTableCounts(diagramId),
-				erService.fetchNotes(diagramId)
-			]);
+			const overview = await erService.fetchDiagramOverview(diagramId);
 
-			this.groups = groupsPage.items;
-			this.notes = notesPage.items;
+			if (overview.diagram && !this.diagrams.some((d) => d.id === overview.diagram!.id)) {
+				this.diagrams = [overview.diagram, ...this.diagrams];
+			}
+
+			this.groups = overview.groups;
+			this.notes = overview.notes;
 
 			const countMap: Record<string, number> = {};
-			for (const row of counts) {
+			for (const row of overview.counts) {
 				countMap[toGroupKey(row.group_id)] = row.table_count;
 			}
 			this.groupCounts = countMap;
-
-			const initialKey = this.groups[0]?.id ?? UNGROUPED_KEY;
-			await this.selectGroup(initialKey);
+			this.groupsLoadedForDiagram = true;
 		} catch (err) {
 			this.error = err instanceof Error ? err.message : 'Failed to load diagram groups';
 		} finally {
@@ -146,10 +182,74 @@ class ErStore {
 		}
 	}
 
-	async selectGroup(groupIdOrKey: string | null): Promise<void> {
+	async loadGroupBundle(diagramId: string, groupIdOrKey: string | null): Promise<void> {
+		if (this.activeDiagramId !== diagramId || !this.groupsLoadedForDiagram) {
+			await this.selectDiagram(diagramId);
+		}
+
 		const key = groupIdOrKey ?? UNGROUPED_KEY;
 		this.activeGroupKey = key;
 
+		const childIds =
+			key === UNGROUPED_KEY
+				? []
+				: this.groups.filter((g) => g.parent_id === key).map((g) => g.id);
+		const requiredKeys = [key, ...childIds];
+
+		if (requiredKeys.every((k) => this.loadedGroupKeys[k])) {
+			return;
+		}
+
+		this.loadingTables = true;
+		this.error = null;
+		try {
+			const tables = await erService.fetchGroupBundle(diagramId, fromGroupKey(key));
+			const grouped: Record<string, ErTable[]> = {};
+			for (const rk of requiredKeys) {
+				grouped[rk] = [];
+			}
+			for (const t of tables) {
+				const tKey = toGroupKey(t.group_id);
+				if (!grouped[tKey]) grouped[tKey] = [];
+				grouped[tKey].push(t);
+			}
+
+			const nextTablesByGroup = { ...this.tablesByGroup };
+			const nextLoaded = { ...this.loadedGroupKeys };
+			for (const rk of requiredKeys) {
+				nextTablesByGroup[rk] = grouped[rk] ?? [];
+				nextLoaded[rk] = true;
+			}
+			this.tablesByGroup = nextTablesByGroup;
+			this.loadedGroupKeys = nextLoaded;
+		} catch (err) {
+			this.error = err instanceof Error ? err.message : 'Failed to load group tables';
+		} finally {
+			this.loadingTables = false;
+		}
+	}
+
+	async loadTableNeighbors(diagramId: string, tableId: string): Promise<void> {
+		if (this.neighborsByTableId[tableId]) return;
+		try {
+			const neighbors = await erService.fetchTableNeighbors(diagramId, tableId);
+			this.neighborsByTableId = {
+				...this.neighborsByTableId,
+				[tableId]: neighbors
+			};
+		} catch (err) {
+			this.error = err instanceof Error ? err.message : 'Failed to load connected FK tables';
+		}
+	}
+
+	async selectGroup(groupIdOrKey: string | null): Promise<void> {
+		const key = groupIdOrKey ?? UNGROUPED_KEY;
+		this.activeGroupKey = key;
+		await this.ensureGroupLoaded(key);
+	}
+
+	async ensureGroupLoaded(groupIdOrKey: string | null): Promise<void> {
+		const key = groupIdOrKey ?? UNGROUPED_KEY;
 		if (!this.activeDiagramId || this.loadedGroupKeys[key]) {
 			return;
 		}
@@ -218,6 +318,7 @@ class ErStore {
 		if (this.activeDiagramId === id) {
 			this.activeDiagramId = null;
 			this.activeGroupKey = UNGROUPED_KEY;
+			this.groupsLoadedForDiagram = false;
 			this.groups = [];
 			this.groupCounts = {};
 			this.tablesByGroup = {};

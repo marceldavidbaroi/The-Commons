@@ -502,7 +502,7 @@
 
 	<!-- Main Content Area -->
 	<main class="main-content">
-		<div class="content-wrapper" class:full-bleed={page.url.pathname.startsWith("/wiki") || page.url.pathname.startsWith("/quick-note") || page.url.pathname.startsWith("/movies") || page.url.pathname.startsWith("/erd")}>
+		<div class="content-wrapper" class:full-bleed={page.url.pathname.startsWith("/wiki") || page.url.pathname.startsWith("/quick-note") || page.url.pathname.startsWith("/movies") || (page.url.pathname.startsWith("/erd/") && page.url.pathname.includes("/groups/"))}>
 			{@render children()}
 		</div>
 	</main>

@@ -190,10 +190,10 @@
 					if (!subId) {
 						const cols = Math.min(3, Math.max(1, sg.tables.length));
 						const rows = Math.max(1, Math.ceil(sg.tables.length / 3));
-						const width = Math.max(480, cols * 310 + 48);
-						const height = Math.max(340, rows * 250 + 80);
-						const sx = parentOrigin.x + 24 + (subIdx % 2) * 660;
-						const sy = parentOrigin.y + 48 + Math.floor(subIdx / 2) * 420;
+						const width = Math.max(360, cols * 300 + 36);
+						const height = Math.max(150, rows * 84 + 68);
+						const sx = parentOrigin.x + 20 + (subIdx % 2) * 980;
+						const sy = parentOrigin.y + 44 + Math.floor(subIdx / 2) * 320;
 						const colorIdx = erStore.groups.findIndex((item) => item.id === parentId);
 						const createdSub = await erStore.createGroup({
 							diagram_id: erStore.activeDiagramId,

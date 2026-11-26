@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { erStore, UNGROUPED_KEY } from '$lib/stores/er.svelte';
-	import type { ErColumn, ErRelation } from '$lib/types/er';
+	import type { ErColumn, ErRelation, ErTable } from '$lib/types/er';
 
 	interface Props {
 		open: boolean;
+		editTable?: ErTable | null;
 		onClose: () => void;
 	}
 
@@ -28,7 +29,7 @@
 		'jsonb'
 	];
 
-	let { open, onClose }: Props = $props();
+	let { open, editTable = null, onClose }: Props = $props();
 
 	let tableName = $state('');
 	let targetGroupKey = $state<string>(UNGROUPED_KEY);
@@ -38,12 +39,24 @@
 
 	$effect(() => {
 		if (open) {
-			tableName = '';
-			targetGroupKey = erStore.activeGroupKey;
-			columns = [
-				{ name: 'id', type: 'uuid', is_pk: true, nullable: false, fk_target: '' },
-				{ name: 'created_at', type: 'timestamptz', is_pk: false, nullable: false, fk_target: '' }
-			];
+			if (editTable) {
+				tableName = editTable.name;
+				targetGroupKey = editTable.group_id ?? UNGROUPED_KEY;
+				columns = (editTable.columns ?? []).map((c) => ({
+					name: c.name,
+					type: c.type || 'text',
+					is_pk: !!c.is_pk,
+					nullable: c.nullable !== false,
+					fk_target: c.fk_target ? `${c.fk_target.table}.${c.fk_target.column}` : ''
+				}));
+			} else {
+				tableName = '';
+				targetGroupKey = erStore.activeGroupKey;
+				columns = [
+					{ name: 'id', type: 'uuid', is_pk: true, nullable: false, fk_target: '' },
+					{ name: 'created_at', type: 'timestamptz', is_pk: false, nullable: false, fk_target: '' }
+				];
+			}
 			errorMsg = null;
 		}
 	});
@@ -110,23 +123,47 @@
 			});
 
 			const groupId = targetGroupKey === UNGROUPED_KEY ? null : targetGroupKey;
-			const existingCount = (erStore.tablesByGroup[targetGroupKey] ?? []).length;
 
-			await erStore.createTable({
-				diagram_id: erStore.activeDiagramId,
-				group_id: groupId,
-				name: cleanName,
-				columns: mappedCols,
-				relations,
-				position: {
-					x: (existingCount % 4) * 320,
-					y: Math.floor(existingCount / 4) * 260
-				}
-			});
+			if (editTable) {
+				await erStore.updateTable(
+					editTable.id,
+					{
+						name: cleanName,
+						columns: mappedCols,
+						relations,
+						group_id: groupId
+					},
+					editTable.group_id
+				);
+			} else {
+				const existingCount = (erStore.tablesByGroup[targetGroupKey] ?? []).length;
+				await erStore.createTable({
+					diagram_id: erStore.activeDiagramId,
+					group_id: groupId,
+					name: cleanName,
+					columns: mappedCols,
+					relations,
+					position: {
+						x: (existingCount % 4) * 320,
+						y: Math.floor(existingCount / 4) * 260
+					}
+				});
+			}
 
 			onClose();
 		} catch (err) {
-			errorMsg = err instanceof Error ? err.message : 'Failed to create table';
+			errorMsg = err instanceof Error ? err.message : 'Failed to save table';
+		} finally {
+			saving = false;
+		}
+	}
+
+	async function handleDelete() {
+		if (!editTable || saving) return;
+		saving = true;
+		try {
+			await erStore.deleteTable(editTable.id, editTable.group_id);
+			onClose();
 		} finally {
 			saving = false;
 		}
@@ -134,9 +171,9 @@
 </script>
 
 {#if open}
-	<aside class="er-table-drawer" aria-label="New Table">
+	<aside class="er-table-drawer" aria-label={editTable ? 'Edit Table' : 'New Table'}>
 		<header class="er-drawer-header">
-			<h2 class="er-drawer-title">New Table</h2>
+			<h2 class="er-drawer-title">{editTable ? `Edit: ${editTable.name}` : 'New Table'}</h2>
 			<button type="button" class="er-close-btn" onclick={onClose} aria-label="Close drawer">
 				×
 			</button>
@@ -236,10 +273,22 @@
 			</div>
 
 			<footer class="er-drawer-footer">
-				<button type="button" class="er-btn-ghost" onclick={onClose}>Cancel</button>
-				<button type="submit" class="er-btn-primary" disabled={saving}>
-					{saving ? 'Creating...' : 'Create Table'}
-				</button>
+				{#if editTable}
+					<button
+						type="button"
+						class="er-btn-danger"
+						disabled={saving}
+						onclick={handleDelete}
+					>
+						Delete
+					</button>
+				{/if}
+				<div class="er-footer-right">
+					<button type="button" class="er-btn-ghost" onclick={onClose}>Cancel</button>
+					<button type="submit" class="er-btn-primary" disabled={saving}>
+						{saving ? 'Saving...' : editTable ? 'Save Changes' : 'Create Table'}
+					</button>
+				</div>
 			</footer>
 		</form>
 
@@ -406,11 +455,30 @@
 
 	.er-drawer-footer {
 		display: flex;
-		justify-content: flex-end;
+		align-items: center;
+		justify-content: space-between;
 		gap: 8px;
 		padding: 10px 12px;
 		border-top: 1px solid var(--border-subtle);
 		background: var(--bg-tertiary);
+	}
+
+	.er-footer-right {
+		display: flex;
+		gap: 8px;
+		margin-left: auto;
+	}
+
+	.er-btn-danger {
+		height: 30px;
+		padding: 0 12px;
+		border-radius: 6px;
+		font-size: 12px;
+		font-weight: 500;
+		cursor: pointer;
+		background: transparent;
+		border: 1px solid rgba(239, 68, 68, 0.35);
+		color: #f87171;
 	}
 
 	.er-btn-ghost,
