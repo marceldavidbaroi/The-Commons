@@ -179,7 +179,243 @@ export function parseSqlDdl(sql: string): ParsedSqlSchema {
 		tables.push({ name: tableName, columns, relations });
 	}
 
+	// Parse pg_dump style ALTER TABLE [ONLY] [schema.]table ADD CONSTRAINT ... PRIMARY KEY / FOREIGN KEY
+	const tableMap = new Map<string, ParsedErTable>();
+	for (const t of tables) {
+		tableMap.set(t.name, t);
+	}
+
+	const alterPkRegex =
+		/alter\s+table\s+(?:only\s+)?([a-zA-Z0-9_."`]+)\s+add\s+constraint\s+\S+\s+primary\s+key\s*\(([^)]+)\)/gi;
+	while ((match = alterPkRegex.exec(cleaned)) !== null) {
+		const tableName = cleanIdentifier(match[1]);
+		const table = tableMap.get(tableName);
+		if (!table) continue;
+		const pkCols = new Set(match[2].split(',').map((c) => cleanIdentifier(c)));
+		for (const col of table.columns) {
+			if (pkCols.has(col.name)) {
+				col.is_pk = true;
+				col.nullable = false;
+			}
+		}
+	}
+
+	const alterFkRegex =
+		/alter\s+table\s+(?:only\s+)?([a-zA-Z0-9_."`]+)\s+add\s+constraint\s+\S+\s+foreign\s+key\s*\(([^)]+)\)\s+references\s+([a-zA-Z0-9_."`]+)\s*\(([^)]+)\)/gi;
+	while ((match = alterFkRegex.exec(cleaned)) !== null) {
+		const tableName = cleanIdentifier(match[1]);
+		const table = tableMap.get(tableName);
+		if (!table) continue;
+		const fromCol = cleanIdentifier(match[2].split(',')[0]);
+		const toTable = cleanIdentifier(match[3]);
+		const toCol = cleanIdentifier(match[4].split(',')[0]);
+
+		if (!table.relations.some((r) => r.from_column === fromCol && r.to_table === toTable)) {
+			table.relations.push({ from_column: fromCol, to_table: toTable, to_column: toCol });
+		}
+		const col = table.columns.find((c) => c.name === fromCol);
+		if (col) {
+			col.fk_target = { table: toTable, column: toCol };
+		}
+	}
+
 	return { tables };
+}
+
+export interface FeatureGroupPath {
+	parent: string;
+	sub: string;
+}
+
+export function inferFeatureGroupHierarchy(tableName: string): FeatureGroupPath {
+	const name = tableName.toLowerCase();
+
+	// Thrift
+	if (name.startsWith('thrift_')) {
+		if (/^thrift_(customers|invoice|sales|return|accounting)/.test(name)) {
+			return { parent: 'Thrift', sub: 'Thrift Sales & Ledger' };
+		}
+		return { parent: 'Thrift', sub: 'Thrift Inventory & Pricing' };
+	}
+
+	// Koba
+	if (name.startsWith('koba_')) {
+		if (/^koba_(carts?|cart_|orders?|order_)/.test(name)) {
+			return { parent: 'Koba', sub: 'Koba Carts & Orders' };
+		}
+		return { parent: 'Koba', sub: 'Koba Catalog' };
+	}
+
+	// People, Tenants & Access
+	if (/^(tenants?|tenant_|system_role)/.test(name)) {
+		return { parent: 'People & Access', sub: 'Tenants & RBAC' };
+	}
+	if (/^(memberships?|membership_|profiles$|recipient_profiles$|user_)/.test(name)) {
+		return { parent: 'People & Access', sub: 'Members & Profiles' };
+	}
+	if (/^(vendors$|investors$|customer_group|markets$)/.test(name)) {
+		return { parent: 'People & Access', sub: 'Vendors & Customers' };
+	}
+
+	// Catalog & Products
+	if (/^(tags$|tag_categories$|entity_tags$)/.test(name)) {
+		return { parent: 'Catalog & Products', sub: 'Tags' };
+	}
+	if (/^(products$|product_brands$|product_categories$|units_of_measure$|catalog_)/.test(name)) {
+		return { parent: 'Catalog & Products', sub: 'Products & Brands' };
+	}
+
+	// Shop & Storefront
+	if (/^(shop_carts?|shop_cart_|shop_auto_gift|shop_stock_reservations|preorder_demand)/.test(name)) {
+		return { parent: 'Shop & Storefront', sub: 'Carts & Demand' };
+	}
+	if (/^(shops$|shop_categories$|shop_product_|shop_pricing_|shop_listing_|shop_customer_)/.test(name)) {
+		return { parent: 'Shop & Storefront', sub: 'Listings & Pricing' };
+	}
+
+	// Orders & Invoices
+	if (/^(shop_orders?|shop_order_|customer_demand_|customer_order_)/.test(name)) {
+		return { parent: 'Orders & Invoices', sub: 'Orders & Backlog' };
+	}
+	if (/^(sales_|invoice_|dropship_)/.test(name)) {
+		return { parent: 'Orders & Invoices', sub: 'Invoices & Dropship' };
+	}
+
+	// Shipments & Logistics
+	if (/^(global_shipment|cargo_|batch_code_)/.test(name)) {
+		return { parent: 'Shipments & Logistics', sub: 'Global Shipments' };
+	}
+	if (/^(shipments$|shipment_|courier_|pickup_)/.test(name)) {
+		return { parent: 'Shipments & Logistics', sub: 'Local Shipments & Couriers' };
+	}
+
+	// Inventory & Stock
+	if (/^global_stock/.test(name)) {
+		return { parent: 'Inventory & Stock', sub: 'Global Stock' };
+	}
+	if (/^stock_/.test(name)) {
+		return { parent: 'Inventory & Stock', sub: 'Locations & Movements' };
+	}
+
+	// Costing
+	if (/^product_based_costing_/.test(name)) {
+		return { parent: 'Costing', sub: 'Product Costing' };
+	}
+	if (/^costing_/.test(name)) {
+		return { parent: 'Costing', sub: 'Costing Files' };
+	}
+
+	// Finance & Cashbook
+	if (/^(pays$|pay_|payment_|bill_settlements$|money_purposes$)/.test(name)) {
+		return { parent: 'Finance & Cashbook', sub: 'Payments & Bills' };
+	}
+	if (/^(cashbook_|bd_banks$|global_currencies$|books_exchange_rates$)/.test(name)) {
+		return { parent: 'Finance & Cashbook', sub: 'Cashbook & Currencies' };
+	}
+
+	// System & Goals
+	if (/^(goals$|goal_|milestones$|definition_of_done)/.test(name)) {
+		return { parent: 'System & Goals', sub: 'Goals & Milestones' };
+	}
+	if (/^notification/.test(name)) {
+		return { parent: 'System & Goals', sub: 'Notifications' };
+	}
+	if (/^(modules$|module_|comments$|document_number_|app_release_)/.test(name)) {
+		return { parent: 'System & Goals', sub: 'System & Docs' };
+	}
+
+	const idx = name.indexOf('_');
+	const raw = idx > 0 ? name.slice(0, idx) : 'core';
+	const label = raw.charAt(0).toUpperCase() + raw.slice(1);
+	return { parent: label, sub: label };
+}
+
+export function inferFeatureGroup(tableName: string): string {
+	return inferFeatureGroupHierarchy(tableName).parent;
+}
+
+export interface ParsedGroupHierarchy {
+	name: string;
+	tables: string[];
+	subgroups: Array<{
+		name: string;
+		tables: string[];
+	}>;
+}
+
+function extractTableNames(line: string): string[] {
+	return line
+		.replace(/`/g, '')
+		.split(/[\s,]+/)
+		.map((s) => s.trim().replace(/^[•*-]+/, '').trim())
+		.filter((s) => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(s));
+}
+
+export function parseGroupHierarchyInput(input: string): ParsedGroupHierarchy[] {
+	const trimmed = input.trim();
+	if (!trimmed) return [];
+
+	if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+		try {
+			const parsed = JSON.parse(trimmed);
+			const arr = Array.isArray(parsed) ? parsed : [parsed];
+			return arr
+				.filter((g) => g && typeof g.name === 'string')
+				.map((g) => ({
+					name: g.name.trim(),
+					tables: Array.isArray(g.tables) ? g.tables.map(String) : [],
+					subgroups: Array.isArray(g.subgroups)
+						? g.subgroups
+								.filter((sg: any) => sg && typeof sg.name === 'string')
+								.map((sg: any) => ({
+									name: sg.name.trim(),
+									tables: Array.isArray(sg.tables) ? sg.tables.map(String) : []
+								}))
+						: []
+				}));
+		} catch {
+			return [];
+		}
+	}
+
+	const groups: ParsedGroupHierarchy[] = [];
+	let currentGroup: ParsedGroupHierarchy | null = null;
+	let currentSub: { name: string; tables: string[] } | null = null;
+
+	for (const rawLine of trimmed.split(/\r?\n/)) {
+		const line = rawLine.trim();
+		if (!line) continue;
+
+		// Top-level heading: "# Name" or "1. Name"
+		const h1Match = line.match(/^(?:#\s+|\d+\.\s+\*{0,2})([^(*\n]+?)(?:\s*\(\d+\))?\*{0,2}$/);
+		if (h1Match) {
+			currentGroup = { name: h1Match[1].trim(), tables: [], subgroups: [] };
+			groups.push(currentGroup);
+			currentSub = null;
+			continue;
+		}
+
+		// Sub-group heading: "## Name" or "- ↳ Name: t1, t2" or "- Name: t1, t2"
+		const h2Match = line.match(/^(?:##\s+|[-*]\s+(?:\*{0,2}↳\s*)?)([^:(\n]+?)(?:\s*\(\d+\))?\*{0,2}(?::\s*(.*))?$/);
+		if (h2Match && currentGroup && (line.startsWith('##') || line.includes(':'))) {
+			const subName = h2Match[1].replace(/\*\*/g, '').trim();
+			const inlineTables = h2Match[2] ? extractTableNames(h2Match[2]) : [];
+			currentSub = { name: subName, tables: inlineTables };
+			currentGroup.subgroups.push(currentSub);
+			continue;
+		}
+
+		const tables = extractTableNames(line);
+		if (tables.length > 0 && currentGroup) {
+			if (currentSub) {
+				currentSub.tables.push(...tables);
+			} else {
+				currentGroup.tables.push(...tables);
+			}
+		}
+	}
+
+	return groups;
 }
 
 export function exportTablesToSql(tables: ErTable[]): string {

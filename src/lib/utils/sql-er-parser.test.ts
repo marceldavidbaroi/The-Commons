@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { exportTablesToSql, parseSqlDdl } from './sql-er-parser';
+import { exportTablesToSql, parseGroupHierarchyInput, parseSqlDdl } from './sql-er-parser';
 import type { ErTable } from '$lib/types/er';
 
 describe('sql-er-parser', () => {
@@ -50,6 +50,33 @@ describe('sql-er-parser', () => {
 		expect(t.relations).toEqual([{ from_column: 'order_id', to_table: 'orders', to_column: 'id' }]);
 	});
 
+	it('parses pg_dump ALTER TABLE ONLY PRIMARY KEY and FOREIGN KEY statements', () => {
+		const sql = `
+			CREATE TABLE IF NOT EXISTS "public"."batch_code_lists" (
+				"id" uuid NOT NULL,
+				"tenant_id" uuid NOT NULL
+			);
+			CREATE TABLE IF NOT EXISTS "public"."tenants" (
+				"id" uuid NOT NULL
+			);
+			ALTER TABLE ONLY "public"."batch_code_lists"
+				ADD CONSTRAINT "batch_code_lists_pkey" PRIMARY KEY ("id");
+			ALTER TABLE ONLY "public"."batch_code_lists"
+				ADD CONSTRAINT "batch_code_lists_tenant_fkey" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE CASCADE;
+		`;
+		const res = parseSqlDdl(sql);
+		expect(res.tables).toHaveLength(2);
+		const listTable = res.tables[0];
+		expect(listTable.columns[0]).toMatchObject({ name: 'id', is_pk: true, nullable: false });
+		expect(listTable.columns[1]).toMatchObject({
+			name: 'tenant_id',
+			fk_target: { table: 'tenants', column: 'id' }
+		});
+		expect(listTable.relations).toEqual([
+			{ from_column: 'tenant_id', to_table: 'tenants', to_column: 'id' }
+		]);
+	});
+
 	it('exports ErTable[] back to CREATE TABLE SQL', () => {
 		const tables: ErTable[] = [
 			{
@@ -72,5 +99,36 @@ describe('sql-er-parser', () => {
 		expect(sql).toContain('CREATE TABLE public.goals');
 		expect(sql).toContain('id uuid PRIMARY KEY');
 		expect(sql).toContain('user_id uuid NOT NULL REFERENCES public.users(id)');
+	});
+
+	it('parses group + subgroup hierarchy from markdown outline and JSON', () => {
+		const md = `
+			# People & Access
+			## Tenants & RBAC
+			tenants, tenant_roles
+			## Members & Profiles
+			memberships, profiles
+		`;
+		const fromMd = parseGroupHierarchyInput(md);
+		expect(fromMd).toEqual([
+			{
+				name: 'People & Access',
+				tables: [],
+				subgroups: [
+					{ name: 'Tenants & RBAC', tables: ['tenants', 'tenant_roles'] },
+					{ name: 'Members & Profiles', tables: ['memberships', 'profiles'] }
+				]
+			}
+		]);
+
+		const json = JSON.stringify([
+			{
+				name: 'Orders',
+				subgroups: [{ name: 'Backlog', tables: ['shop_orders', 'customer_groups'] }]
+			}
+		]);
+		const fromJson = parseGroupHierarchyInput(json);
+		expect(fromJson[0].name).toBe('Orders');
+		expect(fromJson[0].subgroups[0].tables).toEqual(['shop_orders', 'customer_groups']);
 	});
 });

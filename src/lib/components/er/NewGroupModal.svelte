@@ -18,13 +18,17 @@
 	let { open, onClose }: Props = $props();
 
 	let name = $state('');
+	let parentId = $state<string>('');
 	let color = $state('blue');
 	let saving = $state(false);
 	let errorMsg = $state<string | null>(null);
 
+	const topLevelGroups = $derived(erStore.groups.filter((g) => !g.parent_id));
+
 	$effect(() => {
 		if (open) {
 			name = '';
+			parentId = '';
 			color = 'blue';
 			errorMsg = null;
 		}
@@ -41,6 +45,7 @@
 			const offset = erStore.groups.length * 40;
 			const created = await erStore.createGroup({
 				diagram_id: erStore.activeDiagramId,
+				parent_id: parentId || null,
 				name: cleanName,
 				color,
 				position: { x: offset, y: offset, width: 520, height: 380 }
@@ -82,11 +87,23 @@
 						<input
 							type="text"
 							class="er-input"
-							placeholder="e.g. Goals, Auth, Billing"
+							placeholder="e.g. People, Orders, RBAC"
 							bind:value={name}
 							required
 						/>
 					</label>
+
+					{#if topLevelGroups.length > 0}
+						<label class="er-field">
+							<span>Parent Group (optional sub-group)</span>
+							<select class="er-input" bind:value={parentId}>
+								<option value="">None (Top-level group)</option>
+								{#each topLevelGroups as pg (pg.id)}
+									<option value={pg.id}>{pg.name}</option>
+								{/each}
+							</select>
+						</label>
+					{/if}
 
 					<div class="er-field">
 						<span>Color</span>

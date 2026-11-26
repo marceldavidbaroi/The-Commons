@@ -43,6 +43,7 @@ export interface ErDiagram {
 export interface ErGroup {
 	id: string;
 	diagram_id: string;
+	parent_id: string | null;
 	user_id: string;
 	name: string;
 	color: string;
@@ -61,6 +62,11 @@ export interface ErTable {
 	position: ErPosition;
 	created_at: string;
 	updated_at: string;
+}
+
+export interface ErTableSummary {
+	id: string;
+	name: string;
 }
 
 export interface ErNote {
@@ -104,12 +110,14 @@ export interface UpdateErDiagramPayload {
 
 export interface CreateErGroupPayload {
 	diagram_id: string;
+	parent_id?: string | null;
 	name: string;
 	color?: string;
 	position?: ErGroupPosition;
 }
 
 export interface UpdateErGroupPayload {
+	parent_id?: string | null;
 	name?: string;
 	color?: string;
 	position?: ErGroupPosition;

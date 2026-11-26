@@ -14,6 +14,7 @@
 	const group = $derived(data.group);
 	const tableCount = $derived(data.tableCount ?? 0);
 	const noteCount = $derived(data.noteCount ?? 0);
+	const isLoaded = $derived(!!erStore.loadedGroupKeys[group.id]);
 
 	const COLOR_MAP: Record<string, { border: string; bg: string; badge: string }> = {
 		slate: {
@@ -87,6 +88,12 @@
 			<span class="er-group-note-badge" title="{noteCount} note(s)">{noteCount}</span>
 		{/if}
 	</header>
+
+	{#if !isLoaded && tableCount > 0}
+		<div class="er-group-lazy-hint">
+			Click group to load {tableCount} table(s)
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -138,5 +145,12 @@
 	.er-group-note-badge {
 		background: var(--primary);
 		color: var(--primary-foreground);
+	}
+
+	.er-group-lazy-hint {
+		margin: 24px 12px;
+		font-size: 11px;
+		color: var(--text-secondary);
+		font-style: italic;
 	}
 </style>

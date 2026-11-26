@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Handle, Position, type NodeProps } from '@xyflow/svelte';
-	import { erStore } from '$lib/stores/er.svelte';
+	import { erStore, UNGROUPED_KEY } from '$lib/stores/er.svelte';
 	import type { ErTable } from '$lib/types/er';
 
 	interface TableNodeData {
@@ -14,12 +14,18 @@
 	const table = $derived(data.table);
 	const externalTargets = $derived(data.externalTargets ?? []);
 	const noteCount = $derived(data.noteCount ?? 0);
+	const activeGroupId = $derived(
+		erStore.activeGroupKey === UNGROUPED_KEY ? null : erStore.activeGroupKey
+	);
 
-	async function handleGroupChange(event: Event) {
-		const select = event.currentTarget as HTMLSelectElement;
-		const nextGroupId = select.value === '' ? null : select.value;
-		if (nextGroupId === table.group_id) return;
-		await erStore.updateTable(table.id, { group_id: nextGroupId }, table.group_id);
+	async function handlePullFkTarget(targetTableName: string) {
+		if (!activeGroupId) return;
+		await erStore.addTableByNameToGroup(targetTableName, activeGroupId);
+	}
+
+	async function handleRemoveFromGroup() {
+		if (!table.group_id) return;
+		await erStore.removeTableFromGroup(table.id, table.group_id);
 	}
 </script>
 
@@ -60,26 +66,39 @@
 	</ul>
 
 	{#if externalTargets.length > 0}
-		<footer class="er-external-fks">
+		<footer class="er-external-fks nodrag">
 			{#each externalTargets as target (target)}
-				<span class="er-ext-chip" title="External reference: {target}">→ {target}</span>
+				{#if activeGroupId}
+					<button
+						type="button"
+						class="er-ext-chip er-ext-btn"
+						title="Click to pull {target} into this feature group"
+						onclick={(e) => {
+							e.stopPropagation();
+							handlePullFkTarget(target);
+						}}
+					>
+						+ {target}
+					</button>
+				{:else}
+					<span class="er-ext-chip" title="External reference: {target}">→ {target}</span>
+				{/if}
 			{/each}
 		</footer>
 	{/if}
 
-	{#if erStore.groups.length > 0}
+	{#if table.group_id}
 		<div class="er-table-group-bar nodrag">
-			<select
-				class="er-table-group-select"
-				value={table.group_id ?? ''}
-				onchange={handleGroupChange}
-				aria-label="Assign group for {table.name}"
+			<button
+				type="button"
+				class="er-remove-group-btn"
+				onclick={(e) => {
+					e.stopPropagation();
+					handleRemoveFromGroup();
+				}}
 			>
-				<option value="">Ungrouped</option>
-				{#each erStore.groups as group (group.id)}
-					<option value={group.id}>{group.name}</option>
-				{/each}
-			</select>
+				Remove from group
+			</button>
 		</div>
 	{/if}
 </div>
@@ -248,17 +267,29 @@
 		padding: 4px 8px;
 		border-top: 1px solid var(--border-subtle);
 		background: var(--bg-primary);
+		display: flex;
+		justify-content: flex-end;
 	}
 
-	.er-table-group-select {
-		width: 100%;
-		height: 22px;
-		padding: 0 6px;
-		border-radius: 4px;
+	.er-ext-btn {
+		cursor: pointer;
+	}
+
+	.er-ext-btn:hover {
+		border-color: var(--primary);
+		color: var(--text-primary);
+	}
+
+	.er-remove-group-btn {
+		background: transparent;
+		border: none;
+		padding: 1px 4px;
 		font-size: 10px;
-		background: var(--bg-secondary);
-		border: 1px solid var(--border-subtle);
 		color: var(--text-secondary);
 		cursor: pointer;
+	}
+
+	.er-remove-group-btn:hover {
+		color: #f87171;
 	}
 </style>

@@ -16,9 +16,10 @@
 	import GroupNode from '$lib/components/er/GroupNode.svelte';
 	import StickyNoteNode from '$lib/components/er/StickyNoteNode.svelte';
 	import NoteDrawer, { type NoteTarget } from '$lib/components/er/NoteDrawer.svelte';
+	import TableEditorDrawer from '$lib/components/er/TableEditorDrawer.svelte';
 	import ImportSqlModal from '$lib/components/er/ImportSqlModal.svelte';
-	import NewTableModal from '$lib/components/er/NewTableModal.svelte';
 	import NewGroupModal from '$lib/components/er/NewGroupModal.svelte';
+	import AddExistingTableModal from '$lib/components/er/AddExistingTableModal.svelte';
 	import { exportTablesToSql } from '$lib/utils/sql-er-parser';
 	import type { ErTable } from '$lib/types/er';
 
@@ -34,11 +35,14 @@
 	let showNewDiagramForm = $state(false);
 	let newDiagramName = $state('');
 	let creatingDiagram = $state(false);
+	let showDeleteDiagramConfirm = $state(false);
+	let deletingDiagram = $state(false);
 
 	let showImportModal = $state(false);
-	let importInitialTab = $state<'sql' | 'live'>('sql');
+	let importInitialTab = $state<'sql' | 'groups' | 'live'>('sql');
 	let showNewTableModal = $state(false);
 	let showNewGroupModal = $state(false);
+	let showAddExistingModal = $state(false);
 	let exportCopied = $state(false);
 	let selectedNoteTarget = $state<NoteTarget | null>(null);
 
@@ -49,15 +53,45 @@
 		}
 	});
 
+	const orderedGroupPills = $derived.by(() => {
+		const parents = erStore.groups.filter((g) => !g.parent_id);
+		const childrenByParent = new Map<string, typeof erStore.groups>();
+		for (const g of erStore.groups) {
+			if (g.parent_id) {
+				const list = childrenByParent.get(g.parent_id) ?? [];
+				list.push(g);
+				childrenByParent.set(g.parent_id, list);
+			}
+		}
+		const result: Array<{ group: (typeof erStore.groups)[number]; isChild: boolean }> = [];
+		for (const p of parents) {
+			result.push({ group: p, isChild: false });
+			for (const c of childrenByParent.get(p.id) ?? []) {
+				result.push({ group: c, isChild: true });
+			}
+		}
+		return result;
+	});
+
 	$effect(() => {
-		const visible = erStore.visibleTables;
+		const rawVisible = erStore.visibleTables;
+		const seenIds = new Set<string>();
+		const visible: ErTable[] = [];
+		for (const t of rawVisible) {
+			if (!seenIds.has(t.id)) {
+				seenIds.add(t.id);
+				visible.push(t);
+			}
+		}
 		const visibleNames = new Map<string, ErTable>();
 		for (const t of visible) {
 			visibleNames.set(t.name, t);
 		}
 
 		const visibleGroups = erStore.isolateMode
-			? erStore.groups.filter((g) => g.id === erStore.activeGroupKey)
+			? erStore.groups.filter(
+					(g) => g.id === erStore.activeGroupKey || g.parent_id === erStore.activeGroupKey
+				)
 			: erStore.groups;
 
 		const groupNodes: Node[] = visibleGroups.map((group) => {
@@ -158,6 +192,20 @@
 		}
 	}
 
+	async function handleDeleteDiagram() {
+		if (!erStore.activeDiagramId || deletingDiagram) return;
+		deletingDiagram = true;
+		try {
+			await erStore.deleteDiagram(erStore.activeDiagramId);
+			showDeleteDiagramConfirm = false;
+			if (erStore.diagrams.length > 0) {
+				await erStore.selectDiagram(erStore.diagrams[0].id);
+			}
+		} finally {
+			deletingDiagram = false;
+		}
+	}
+
 	async function handleNodeDragStop({ targetNode }: { targetNode: Node | null }) {
 		if (!targetNode) return;
 		const x = Math.round(targetNode.position.x);
@@ -171,7 +219,8 @@
 		} else if (targetNode.type === 'erStickyNote') {
 			await erStore.updateNote(targetNode.id, { position: { x, y } });
 		} else {
-			await erStore.updateTable(targetNode.id, { position: { x, y } });
+			const groupId = erStore.activeGroupKey === UNGROUPED_KEY ? null : erStore.activeGroupKey;
+			await erStore.updateTablePositionInGroup(targetNode.id, groupId, { x, y });
 		}
 	}
 
@@ -179,14 +228,22 @@
 		if (node.type === 'erTable') {
 			const table = (node.data as { table?: ErTable })?.table;
 			if (table) {
+				showNewTableModal = false;
 				selectedNoteTarget = { type: 'table', id: table.id, label: table.name };
 			}
 		} else if (node.type === 'erGroup') {
 			const group = (node.data as { group?: { id: string; name: string } })?.group;
 			if (group) {
+				showNewTableModal = false;
+				erStore.selectGroup(group.id);
 				selectedNoteTarget = { type: 'group', id: group.id, label: group.name };
 			}
 		}
+	}
+
+	function openNewTableDrawer() {
+		selectedNoteTarget = null;
+		showNewTableModal = true;
 	}
 
 	async function handleAddStickyNote() {
@@ -201,7 +258,7 @@
 		});
 	}
 
-	function openImportModal(tab: 'sql' | 'live') {
+	function openImportModal(tab: 'sql' | 'groups' | 'live') {
 		importInitialTab = tab;
 		showImportModal = true;
 	}
@@ -242,6 +299,16 @@
 				>
 					+ Diagram
 				</button>
+				{#if erStore.activeDiagram}
+					<button
+						type="button"
+						class="erd-btn erd-btn-danger-ghost"
+						onclick={() => (showDeleteDiagramConfirm = true)}
+						title="Delete current diagram and all its data"
+					>
+						Delete
+					</button>
+				{/if}
 			</div>
 
 			<div class="erd-actions">
@@ -256,6 +323,15 @@
 				<button
 					type="button"
 					class="erd-btn erd-btn-secondary"
+					disabled={!erStore.activeDiagramId || erStore.activeGroupKey === UNGROUPED_KEY}
+					onclick={() => (showAddExistingModal = true)}
+					title="Add existing tables from this diagram into the active feature group"
+				>
+					+ Add Existing
+				</button>
+				<button
+					type="button"
+					class="erd-btn erd-btn-secondary"
 					disabled={!erStore.activeDiagramId}
 					onclick={() => openImportModal('sql')}
 				>
@@ -263,9 +339,17 @@
 				</button>
 				<button
 					type="button"
+					class="erd-btn erd-btn-secondary"
+					disabled={!erStore.activeDiagramId}
+					onclick={() => openImportModal('groups')}
+				>
+					+ Import Groups
+				</button>
+				<button
+					type="button"
 					class="erd-btn erd-btn-primary"
 					disabled={!erStore.activeDiagramId}
-					onclick={() => (showNewTableModal = true)}
+					onclick={openNewTableDrawer}
 				>
 					+ New Table
 				</button>
@@ -295,7 +379,7 @@
 		{:else}
 			<div class="erd-tier-2">
 				<div class="erd-group-pills" role="tablist" aria-label="Table groups">
-					{#each erStore.groups as group (group.id)}
+					{#each orderedGroupPills as { group, isChild } (group.id)}
 						<button
 							type="button"
 							role="tab"
@@ -304,7 +388,7 @@
 							class:active={erStore.activeGroupKey === group.id}
 							onclick={() => erStore.selectGroup(group.id)}
 						>
-							{group.name} ({erStore.groupCounts[group.id] ?? 0})
+							{isChild ? `↳ ${group.name}` : group.name} ({erStore.groupCounts[group.id] ?? 0})
 						</button>
 					{/each}
 					<button
@@ -402,7 +486,7 @@
 						onnodedragstop={handleNodeDragStop}
 						onnodeclick={handleNodeClick}
 					>
-						<Background />
+						<Background bgColor="var(--bg-primary)" patternColor="var(--border-subtle)" />
 						<Controls />
 						<MiniMap />
 					</SvelteFlow>
@@ -411,6 +495,11 @@
 				<NoteDrawer
 					target={selectedNoteTarget}
 					onClose={() => (selectedNoteTarget = null)}
+				/>
+
+				<TableEditorDrawer
+					open={showNewTableModal}
+					onClose={() => (showNewTableModal = false)}
 				/>
 			</div>
 		{/if}
@@ -422,20 +511,64 @@
 		onClose={() => (showImportModal = false)}
 	/>
 
-	<NewTableModal
-		open={showNewTableModal}
-		onClose={() => (showNewTableModal = false)}
-	/>
-
 	<NewGroupModal
 		open={showNewGroupModal}
 		onClose={() => (showNewGroupModal = false)}
 	/>
+
+	<AddExistingTableModal
+		open={showAddExistingModal}
+		onClose={() => (showAddExistingModal = false)}
+	/>
+
+	{#if showDeleteDiagramConfirm && erStore.activeDiagram}
+		<div
+			class="erd-modal-backdrop"
+			role="presentation"
+			onclick={() => !deletingDiagram && (showDeleteDiagramConfirm = false)}
+		>
+			<div
+				class="erd-confirm-modal"
+				role="dialog"
+				aria-modal="true"
+				aria-label="Delete Diagram"
+				tabindex="-1"
+				onclick={(e) => e.stopPropagation()}
+				onkeydown={(e) => e.key === 'Escape' && !deletingDiagram && (showDeleteDiagramConfirm = false)}
+			>
+				<h2 class="erd-confirm-title">Delete Diagram</h2>
+				<p class="erd-confirm-text">
+					Delete <strong>{erStore.activeDiagram.name}</strong>? This permanently removes all
+					groups, tables, relations, and study notes in this diagram.
+				</p>
+				<div class="erd-confirm-actions">
+					<button
+						type="button"
+						class="erd-btn erd-btn-ghost"
+						disabled={deletingDiagram}
+						onclick={() => (showDeleteDiagramConfirm = false)}
+					>
+						Cancel
+					</button>
+					<button
+						type="button"
+						class="erd-btn erd-btn-danger"
+						disabled={deletingDiagram}
+						onclick={handleDeleteDiagram}
+					>
+						{deletingDiagram ? 'Deleting...' : 'Delete Diagram'}
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
 </div>
 
 <style>
 	.erd-workspace {
+		width: 100%;
 		height: 100dvh;
+		overflow: hidden;
 		display: flex;
 		flex-direction: column;
 		background: var(--bg-primary);
@@ -443,6 +576,8 @@
 	}
 
 	.erd-header {
+		width: 100%;
+		min-width: 0;
 		background: var(--bg-secondary);
 		border-bottom: 1px solid var(--border-subtle);
 		padding: 8px 16px;
@@ -450,6 +585,7 @@
 		flex-direction: column;
 		gap: 6px;
 		flex-shrink: 0;
+		box-sizing: border-box;
 	}
 
 	.erd-tier-1,
@@ -460,6 +596,8 @@
 		justify-content: space-between;
 		gap: 12px;
 		min-height: 34px;
+		min-width: 0;
+		width: 100%;
 	}
 
 	.erd-title-group {
@@ -500,10 +638,13 @@
 	}
 
 	.erd-group-pills {
+		flex: 1;
+		min-width: 0;
 		display: flex;
 		align-items: center;
 		gap: 6px;
 		overflow-x: auto;
+		scrollbar-width: thin;
 	}
 
 	.erd-pill {
@@ -563,6 +704,66 @@
 		color: var(--text-primary);
 	}
 
+	.erd-btn-danger-ghost {
+		background: transparent;
+		border-color: transparent;
+		color: #f87171;
+	}
+
+	.erd-btn-danger-ghost:hover {
+		background: rgba(239, 68, 68, 0.12);
+	}
+
+	.erd-btn-danger {
+		background: #dc2626;
+		border-color: #dc2626;
+		color: #ffffff;
+	}
+
+	.erd-modal-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 50;
+		background: rgba(0, 0, 0, 0.58);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 16px;
+	}
+
+	.erd-confirm-modal {
+		width: 100%;
+		max-width: 400px;
+		background: var(--bg-secondary);
+		border: 1px solid var(--border-subtle);
+		border-radius: 10px;
+		padding: 16px;
+		box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	.erd-confirm-title {
+		margin: 0;
+		font-size: 15px;
+		font-weight: 600;
+	}
+
+	.erd-confirm-text {
+		margin: 0;
+		font-size: 13px;
+		line-height: 1.45;
+		color: var(--text-secondary);
+	}
+
+	.erd-confirm-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 8px;
+		margin-top: 4px;
+	}
+
 	.erd-canvas-wrap {
 		position: relative;
 		flex: 1;
@@ -579,6 +780,21 @@
 		flex: 1;
 		min-width: 0;
 		height: 100%;
+	}
+
+	.erd-flow-container :global(.svelte-flow) {
+		--xy-background-color: var(--bg-primary);
+		--xy-edge-stroke-default: var(--text-secondary);
+		--xy-edge-label-background-color-default: var(--bg-secondary);
+		--xy-edge-label-color-default: var(--text-primary);
+		--xy-controls-button-background-color: var(--bg-secondary);
+		--xy-controls-button-background-color-hover: var(--bg-tertiary);
+		--xy-controls-button-color: var(--text-primary);
+		--xy-controls-button-border-color: var(--border-subtle);
+		--xy-minimap-background-color: var(--bg-secondary);
+		--xy-minimap-mask-background-color: rgba(128, 128, 128, 0.12);
+		--xy-minimap-node-background-color: var(--bg-tertiary);
+		background: var(--bg-primary);
 	}
 
 	.erd-banner-error {

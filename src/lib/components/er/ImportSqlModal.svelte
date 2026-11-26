@@ -2,21 +2,24 @@
 	import * as erService from '$lib/services/er-service';
 	import { erStore, UNGROUPED_KEY } from '$lib/stores/er.svelte';
 	import type { CreateErTablePayload, ErColumn, ErRelation, PublicSchemaMetadata } from '$lib/types/er';
-	import { parseSqlDdl } from '$lib/utils/sql-er-parser';
+	import { parseGroupHierarchyInput, parseSqlDdl } from '$lib/utils/sql-er-parser';
 
 	interface Props {
 		open: boolean;
-		initialTab?: 'sql' | 'live';
+		initialTab?: 'sql' | 'groups' | 'live';
 		onClose: () => void;
 	}
 
 	let { open, initialTab = 'sql', onClose }: Props = $props();
 
-	let activeTab = $state<'sql' | 'live'>('sql');
+	let activeTab = $state<'sql' | 'groups' | 'live'>('sql');
 	let sqlInput = $state('');
+	let groupInput = $state('');
 	let targetGroupKey = $state<string>(UNGROUPED_KEY);
 	let importing = $state(false);
 	let errorMsg = $state<string | null>(null);
+
+	const GROUP_COLORS = ['blue', 'emerald', 'amber', 'rose', 'violet', 'slate'];
 
 	// Live DB introspection state
 	let liveMetadata = $state<PublicSchemaMetadata | null>(null);
@@ -27,7 +30,7 @@
 	$effect(() => {
 		if (open) {
 			activeTab = initialTab;
-			targetGroupKey = erStore.activeGroupKey;
+			targetGroupKey = UNGROUPED_KEY;
 			errorMsg = null;
 			if (initialTab === 'live' && !liveMetadata && !loadingLive) {
 				loadLiveSchema();
@@ -38,6 +41,24 @@
 	const parsedPreview = $derived.by(() => {
 		if (!sqlInput.trim()) return { tables: [] };
 		return parseSqlDdl(sqlInput);
+	});
+
+	const parsedGroupsPreview = $derived.by(() => {
+		if (!groupInput.trim()) return [];
+		return parseGroupHierarchyInput(groupInput);
+	});
+
+	const parsedGroupStats = $derived.by(() => {
+		let subCount = 0;
+		let tableRefs = 0;
+		for (const g of parsedGroupsPreview) {
+			subCount += g.subgroups.length;
+			tableRefs += g.tables.length;
+			for (const sg of g.subgroups) {
+				tableRefs += sg.tables.length;
+			}
+		}
+		return { parents: parsedGroupsPreview.length, subgroups: subCount, tableRefs };
 	});
 
 	const filteredLiveTables = $derived.by(() => {
@@ -63,7 +84,7 @@
 		}
 	}
 
-	function switchTab(tab: 'sql' | 'live') {
+	function switchTab(tab: 'sql' | 'groups' | 'live') {
 		activeTab = tab;
 		errorMsg = null;
 		if (tab === 'live' && !liveMetadata && !loadingLive) {
@@ -84,21 +105,23 @@
 		importing = true;
 		errorMsg = null;
 
-		const groupId = targetGroupKey === UNGROUPED_KEY ? null : targetGroupKey;
-		const existingCount = (erStore.tablesByGroup[targetGroupKey] ?? []).length;
-
 		try {
+			const fixedGroupId = targetGroupKey === UNGROUPED_KEY ? null : targetGroupKey;
+			const group = fixedGroupId ? erStore.groups.find((g) => g.id === fixedGroupId) : null;
+			const origin = group ? { x: group.position?.x ?? 0, y: group.position?.y ?? 0 } : { x: 0, y: 0 };
+			const existingCount = (erStore.tablesByGroup[targetGroupKey] ?? []).length;
+
 			const payloads: CreateErTablePayload[] = parsedPreview.tables.map((t, idx) => {
-				const posIndex = existingCount + idx;
+				const posIdx = existingCount + idx;
 				return {
 					diagram_id: erStore.activeDiagramId!,
-					group_id: groupId,
+					group_id: fixedGroupId,
 					name: t.name,
 					columns: t.columns,
 					relations: t.relations,
 					position: {
-						x: (posIndex % 4) * 320,
-						y: Math.floor(posIndex / 4) * 260
+						x: origin.x + (fixedGroupId ? 24 : 0) + (posIdx % 4) * 320,
+						y: origin.y + (fixedGroupId ? 48 : 0) + Math.floor(posIdx / 4) * 260
 					}
 				};
 			});
@@ -108,6 +131,95 @@
 			onClose();
 		} catch (err) {
 			errorMsg = err instanceof Error ? err.message : 'Failed to import SQL tables';
+		} finally {
+			importing = false;
+		}
+	}
+
+	async function handleImportGroups() {
+		if (!erStore.activeDiagramId || parsedGroupsPreview.length === 0 || importing) return;
+		importing = true;
+		errorMsg = null;
+
+		try {
+			const parentIdByName = new Map<string, string>();
+			const groupPosById = new Map<string, { x: number; y: number }>();
+			const subIdByKey = new Map<string, string>();
+
+			for (const g of erStore.groups) {
+				groupPosById.set(g.id, { x: g.position?.x ?? 0, y: g.position?.y ?? 0 });
+				if (!g.parent_id) {
+					parentIdByName.set(g.name.toLowerCase(), g.id);
+				} else {
+					const parentName = erStore.groups.find((p) => p.id === g.parent_id)?.name ?? '';
+					subIdByKey.set(`${parentName.toLowerCase()}::${g.name.toLowerCase()}`, g.id);
+				}
+			}
+
+			let parentIdx = parentIdByName.size;
+			let firstGroupId: string | null = null;
+
+			for (const g of parsedGroupsPreview) {
+				let parentId = parentIdByName.get(g.name.toLowerCase());
+				if (!parentId) {
+					const px = (parentIdx % 3) * 1400;
+					const py = Math.floor(parentIdx / 3) * 900;
+					const createdParent = await erStore.createGroup({
+						diagram_id: erStore.activeDiagramId,
+						parent_id: null,
+						name: g.name,
+						color: GROUP_COLORS[parentIdx % GROUP_COLORS.length],
+						position: { x: px, y: py, width: 1320, height: 820 }
+					});
+					parentId = createdParent.id;
+					parentIdByName.set(g.name.toLowerCase(), parentId);
+					groupPosById.set(parentId, { x: px, y: py });
+					if (!firstGroupId) firstGroupId = parentId;
+					parentIdx++;
+				}
+
+				for (const tableName of g.tables) {
+					await erStore.addTableByNameToGroup(tableName, parentId);
+				}
+
+				const parentOrigin = groupPosById.get(parentId) ?? { x: 0, y: 0 };
+				let subIdx = 0;
+				for (const sg of g.subgroups) {
+					const subKey = `${g.name.toLowerCase()}::${sg.name.toLowerCase()}`;
+					let subId = subIdByKey.get(subKey);
+					if (!subId) {
+						const cols = Math.min(3, Math.max(1, sg.tables.length));
+						const rows = Math.max(1, Math.ceil(sg.tables.length / 3));
+						const width = Math.max(480, cols * 310 + 48);
+						const height = Math.max(340, rows * 250 + 80);
+						const sx = parentOrigin.x + 24 + (subIdx % 2) * 660;
+						const sy = parentOrigin.y + 48 + Math.floor(subIdx / 2) * 420;
+						const colorIdx = erStore.groups.findIndex((item) => item.id === parentId);
+						const createdSub = await erStore.createGroup({
+							diagram_id: erStore.activeDiagramId,
+							parent_id: parentId,
+							name: sg.name,
+							color: GROUP_COLORS[(colorIdx >= 0 ? colorIdx : 0) % GROUP_COLORS.length],
+							position: { x: sx, y: sy, width, height }
+						});
+						subId = createdSub.id;
+						subIdByKey.set(subKey, subId);
+						subIdx++;
+					}
+
+					for (const tableName of sg.tables) {
+						await erStore.addTableByNameToGroup(tableName, subId);
+					}
+				}
+			}
+
+			if (firstGroupId) {
+				await erStore.selectGroup(firstGroupId);
+			}
+			groupInput = '';
+			onClose();
+		} catch (err) {
+			errorMsg = err instanceof Error ? err.message : 'Failed to import groups';
 		} finally {
 			importing = false;
 		}
@@ -192,6 +304,14 @@
 					<button
 						type="button"
 						class="er-tab"
+						class:active={activeTab === 'groups'}
+						onclick={() => switchTab('groups')}
+					>
+						Import Groups
+					</button>
+					<button
+						type="button"
+						class="er-tab"
 						class:active={activeTab === 'live'}
 						onclick={() => switchTab('live')}
 					>
@@ -206,26 +326,46 @@
 					<div class="er-error-box">{errorMsg}</div>
 				{/if}
 
-				<div class="er-field-row">
-					<label for="er-import-group">Target Group</label>
-					<select id="er-import-group" class="er-select" bind:value={targetGroupKey}>
-						<option value={UNGROUPED_KEY}>Ungrouped</option>
-						{#each erStore.groups as group (group.id)}
-							<option value={group.id}>{group.name}</option>
-						{/each}
-					</select>
-				</div>
+				{#if activeTab !== 'groups'}
+					<div class="er-field-row">
+						<label for="er-import-group">Target Group</label>
+						<select
+							id="er-import-group"
+							class="er-select"
+							bind:value={targetGroupKey}
+						>
+							<option value={UNGROUPED_KEY}>Ungrouped</option>
+							{#each erStore.groups as group (group.id)}
+								<option value={group.id}>{group.name}</option>
+							{/each}
+						</select>
+					</div>
+				{/if}
 
 				{#if activeTab === 'sql'}
 					<textarea
 						class="er-sql-textarea"
 						rows="12"
-						placeholder="Paste CREATE TABLE statements here..."
+						placeholder="Paste CREATE TABLE statements here (imports tables only)..."
 						bind:value={sqlInput}
 					></textarea>
 					<div class="er-preview-bar">
 						<span>
 							Detected <strong>{parsedPreview.tables.length}</strong> table(s)
+						</span>
+					</div>
+				{:else if activeTab === 'groups'}
+					<textarea
+						class="er-sql-textarea"
+						rows="12"
+						placeholder={"Paste group hierarchy (Markdown or JSON):\n\n# People & Access\n## Tenants & RBAC\ntenants, tenant_roles, tenant_role_grants\n## Vendors & Customers\nvendors, customer_groups"}
+						bind:value={groupInput}
+					></textarea>
+					<div class="er-preview-bar">
+						<span>
+							Detected <strong>{parsedGroupStats.parents}</strong> group(s),
+							<strong>{parsedGroupStats.subgroups}</strong> sub-group(s),
+							<strong>{parsedGroupStats.tableRefs}</strong> table link(s)
 						</span>
 					</div>
 				{:else}
@@ -281,6 +421,15 @@
 						onclick={handleImportSql}
 					>
 						{importing ? 'Importing...' : `Import ${parsedPreview.tables.length} Table(s)`}
+					</button>
+				{:else if activeTab === 'groups'}
+					<button
+						type="button"
+						class="er-btn-primary"
+						disabled={parsedGroupStats.parents === 0 || importing}
+						onclick={handleImportGroups}
+					>
+						{importing ? 'Applying...' : `Create ${parsedGroupStats.parents} Group(s) & Link Tables`}
 					</button>
 				{:else}
 					<button
@@ -402,6 +551,15 @@
 
 	.er-search-input {
 		flex: 1;
+	}
+
+	.er-autogroup-check {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 12px;
+		color: var(--text-secondary);
+		cursor: pointer;
 	}
 
 	.er-sql-textarea {

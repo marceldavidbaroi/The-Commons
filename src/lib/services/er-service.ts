@@ -12,7 +12,9 @@ import type {
 	ErGroupTableCount,
 	ErNote,
 	ErPaginatedResult,
+	ErPosition,
 	ErTable,
+	ErTableSummary,
 	PublicSchemaMetadata,
 	UpdateErDiagramPayload,
 	UpdateErGroupPayload,
@@ -23,7 +25,7 @@ import type {
 export const ER_PAGE_SIZE = 20;
 
 const DIAGRAM_COLS = 'id, user_id, name, source_type, created_at, updated_at';
-const GROUP_COLS = 'id, diagram_id, user_id, name, color, position, created_at';
+const GROUP_COLS = 'id, diagram_id, parent_id, user_id, name, color, position, created_at';
 const TABLE_COLS =
 	'id, diagram_id, group_id, user_id, name, columns, relations, position, created_at, updated_at';
 const NOTE_COLS =
@@ -166,6 +168,7 @@ export async function createGroup(
 		.from('er_groups')
 		.insert({
 			diagram_id: payload.diagram_id,
+			parent_id: payload.parent_id ?? null,
 			name: payload.name,
 			color: payload.color ?? 'slate',
 			position: payload.position ?? { x: 0, y: 0, width: 480, height: 360 }
@@ -203,7 +206,7 @@ export async function deleteGroup(
 	if (error) throw error;
 }
 
-// --- Tables (Group-Scoped Lazy Loading) ---
+// --- Tables (Group-Scoped Lazy Loading via er_table_groups) ---
 
 export async function fetchTablesByGroup(
 	diagramId: string,
@@ -212,20 +215,168 @@ export async function fetchTablesByGroup(
 	customClient?: SupabaseClient<Database>
 ): Promise<ErPaginatedResult<ErTable>> {
 	const supabase = getClient(customClient);
+
+	if (groupId === null) {
+		let query = supabase
+			.from('er_ungrouped_tables')
+			.select(TABLE_COLS)
+			.eq('diagram_id', diagramId)
+			.order('created_at', { ascending: false })
+			.order('id', { ascending: false })
+			.limit(ER_PAGE_SIZE + 1);
+
+		query = applyCreatedAtCursor(query, cursor);
+
+		const { data, error } = await query;
+		if (error) throw error;
+		return buildPaginatedResult((data as ErTable[]) ?? []);
+	}
+
 	let query = supabase
-		.from('er_tables')
-		.select(TABLE_COLS)
+		.from('er_table_groups')
+		.select(`table_id, group_id, position, created_at, er_tables!inner(${TABLE_COLS})`)
 		.eq('diagram_id', diagramId)
+		.eq('group_id', groupId)
 		.order('created_at', { ascending: false })
-		.order('id', { ascending: false })
+		.order('table_id', { ascending: false })
 		.limit(ER_PAGE_SIZE + 1);
 
-	query = groupId === null ? query.is('group_id', null) : query.eq('group_id', groupId);
-	query = applyCreatedAtCursor(query, cursor);
+	if (cursor) {
+		query = query.or(
+			`created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},table_id.lt.${cursor.id})`
+		);
+	}
 
 	const { data, error } = await query;
 	if (error) throw error;
-	return buildPaginatedResult((data as ErTable[]) ?? []);
+
+	const rows = (data ?? []) as Array<{
+		table_id: string;
+		group_id: string;
+		position: ErPosition | null;
+		created_at: string;
+		er_tables: ErTable;
+	}>;
+
+	const hasMore = rows.length > ER_PAGE_SIZE;
+	const sliced = hasMore ? rows.slice(0, ER_PAGE_SIZE) : rows;
+	const items: ErTable[] = sliced.map((r) => ({
+		...r.er_tables,
+		group_id: r.group_id,
+		position: r.position ?? r.er_tables.position
+	}));
+
+	const last = sliced[sliced.length - 1];
+	const nextCursor: ErCursor | null =
+		hasMore && last ? { created_at: last.created_at, id: last.table_id } : null;
+
+	return { items, hasMore, nextCursor };
+}
+
+export async function searchDiagramTables(
+	diagramId: string,
+	search = '',
+	customClient?: SupabaseClient<Database>
+): Promise<ErTableSummary[]> {
+	const supabase = getClient(customClient);
+	let query = supabase
+		.from('er_tables')
+		.select('id, name')
+		.eq('diagram_id', diagramId)
+		.order('name', { ascending: true })
+		.limit(ER_PAGE_SIZE);
+
+	if (search.trim()) {
+		query = query.ilike('name', `%${search.trim()}%`);
+	}
+
+	const { data, error } = await query;
+	if (error) throw error;
+	return (data as ErTableSummary[]) ?? [];
+}
+
+export async function addTableToGroup(
+	diagramId: string,
+	tableId: string,
+	groupId: string,
+	position?: ErPosition,
+	customClient?: SupabaseClient<Database>
+): Promise<ErTable> {
+	const supabase = getClient(customClient);
+	const { error: linkError } = await supabase.from('er_table_groups').upsert(
+		{
+			diagram_id: diagramId,
+			table_id: tableId,
+			group_id: groupId,
+			position: position ?? null
+		},
+		{ onConflict: 'table_id,group_id' }
+	);
+	if (linkError) throw linkError;
+
+	const { data, error } = await supabase
+		.from('er_tables')
+		.select(TABLE_COLS)
+		.eq('id', tableId)
+		.single();
+	if (error) throw error;
+
+	const table = data as ErTable;
+	return {
+		...table,
+		group_id: groupId,
+		position: position ?? table.position
+	};
+}
+
+export async function addTableByNameToGroup(
+	diagramId: string,
+	tableName: string,
+	groupId: string,
+	position?: ErPosition,
+	customClient?: SupabaseClient<Database>
+): Promise<ErTable | null> {
+	const supabase = getClient(customClient);
+	const { data: found, error: findError } = await supabase
+		.from('er_tables')
+		.select('id')
+		.eq('diagram_id', diagramId)
+		.eq('name', tableName)
+		.limit(1)
+		.maybeSingle();
+	if (findError) throw findError;
+	if (!found) return null;
+
+	return addTableToGroup(diagramId, found.id, groupId, position, customClient);
+}
+
+export async function removeTableFromGroup(
+	tableId: string,
+	groupId: string,
+	customClient?: SupabaseClient<Database>
+): Promise<void> {
+	const supabase = getClient(customClient);
+	const { error } = await supabase
+		.from('er_table_groups')
+		.delete()
+		.eq('table_id', tableId)
+		.eq('group_id', groupId);
+	if (error) throw error;
+}
+
+export async function updateTablePositionInGroup(
+	tableId: string,
+	groupId: string,
+	position: ErPosition,
+	customClient?: SupabaseClient<Database>
+): Promise<void> {
+	const supabase = getClient(customClient);
+	const { error } = await supabase
+		.from('er_table_groups')
+		.update({ position })
+		.eq('table_id', tableId)
+		.eq('group_id', groupId);
+	if (error) throw error;
 }
 
 export async function createTable(
@@ -247,7 +398,19 @@ export async function createTable(
 		.single();
 
 	if (error) throw error;
-	return data as ErTable;
+	const created = data as ErTable;
+
+	if (payload.group_id) {
+		const { error: linkError } = await supabase.from('er_table_groups').insert({
+			diagram_id: payload.diagram_id,
+			table_id: created.id,
+			group_id: payload.group_id,
+			position: created.position
+		});
+		if (linkError) throw linkError;
+	}
+
+	return created;
 }
 
 export async function createTablesBulk(
@@ -267,7 +430,23 @@ export async function createTablesBulk(
 
 	const { data, error } = await supabase.from('er_tables').insert(rows).select(TABLE_COLS);
 	if (error) throw error;
-	return (data as ErTable[]) ?? [];
+	const createdList = (data as ErTable[]) ?? [];
+
+	const linkRows = createdList
+		.filter((t) => t.group_id !== null)
+		.map((t) => ({
+			diagram_id: t.diagram_id,
+			table_id: t.id,
+			group_id: t.group_id!,
+			position: t.position
+		}));
+
+	if (linkRows.length > 0) {
+		const { error: linkError } = await supabase.from('er_table_groups').insert(linkRows);
+		if (linkError) throw linkError;
+	}
+
+	return createdList;
 }
 
 export async function updateTable(

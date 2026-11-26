@@ -8,6 +8,7 @@ import type {
 	ErDiagram,
 	ErGroup,
 	ErNote,
+	ErPosition,
 	ErTable,
 	UpdateErDiagramPayload,
 	UpdateErGroupPayload,
@@ -41,7 +42,7 @@ class ErStore {
 	notes = $state<ErNote[]>([]);
 
 	activeGroupKey = $state<string>(UNGROUPED_KEY);
-	isolateMode = $state(false);
+	isolateMode = $state(true);
 
 	loadingDiagrams = $state(false);
 	loadingGroups = $state(false);
@@ -216,9 +217,12 @@ class ErStore {
 		this.diagrams = this.diagrams.filter((d) => d.id !== id);
 		if (this.activeDiagramId === id) {
 			this.activeDiagramId = null;
+			this.activeGroupKey = UNGROUPED_KEY;
 			this.groups = [];
 			this.groupCounts = {};
 			this.tablesByGroup = {};
+			this.tableHasMoreByGroup = {};
+			this.tableCursorByGroup = {};
 			this.loadedGroupKeys = {};
 			this.notes = [];
 		}
@@ -243,7 +247,11 @@ class ErStore {
 
 	async deleteGroup(id: string): Promise<void> {
 		await erService.deleteGroup(id);
-		this.groups = this.groups.filter((g) => g.id !== id);
+		const removedIds = new Set<string>([id]);
+		for (const g of this.groups) {
+			if (g.parent_id === id) removedIds.add(g.id);
+		}
+		this.groups = this.groups.filter((g) => !removedIds.has(g.id));
 
 		const orphaned = this.tablesByGroup[id] ?? [];
 		const orphanedCount = this.groupCounts[id] ?? orphaned.length;
@@ -331,6 +339,99 @@ class ErStore {
 		}
 
 		return updated;
+	}
+
+	async addTableToGroup(tableId: string, groupId: string, position?: ErPosition): Promise<void> {
+		if (!this.activeDiagramId) return;
+		const existing = this.tablesByGroup[groupId] ?? [];
+		if (existing.some((t) => t.id === tableId)) return;
+
+		const group = this.groups.find((g) => g.id === groupId);
+		const pos = position ?? {
+			x: (group?.position?.x ?? 0) + 24 + (existing.length % 3) * 320,
+			y: (group?.position?.y ?? 0) + 48 + Math.floor(existing.length / 3) * 260
+		};
+
+		const linked = await erService.addTableToGroup(this.activeDiagramId, tableId, groupId, pos);
+		this.tablesByGroup = {
+			...this.tablesByGroup,
+			[groupId]: [linked, ...existing]
+		};
+		this.adjustGroupCount(groupId, 1);
+
+		// If it was in ungrouped, remove it from ungrouped cache & count
+		const ungrouped = this.tablesByGroup[UNGROUPED_KEY] ?? [];
+		if (ungrouped.some((t) => t.id === tableId)) {
+			this.tablesByGroup = {
+				...this.tablesByGroup,
+				[UNGROUPED_KEY]: ungrouped.filter((t) => t.id !== tableId)
+			};
+			this.adjustGroupCount(UNGROUPED_KEY, -1);
+		}
+	}
+
+	async addTableByNameToGroup(tableName: string, groupId: string): Promise<ErTable | null> {
+		if (!this.activeDiagramId) return null;
+		const existing = this.tablesByGroup[groupId] ?? [];
+		const already = existing.find((t) => t.name === tableName);
+		if (already) return already;
+
+		const group = this.groups.find((g) => g.id === groupId);
+		const pos: ErPosition = {
+			x: (group?.position?.x ?? 0) + 24 + (existing.length % 3) * 320,
+			y: (group?.position?.y ?? 0) + 48 + Math.floor(existing.length / 3) * 260
+		};
+
+		const linked = await erService.addTableByNameToGroup(
+			this.activeDiagramId,
+			tableName,
+			groupId,
+			pos
+		);
+		if (!linked) return null;
+
+		this.tablesByGroup = {
+			...this.tablesByGroup,
+			[groupId]: [linked, ...existing]
+		};
+		this.adjustGroupCount(groupId, 1);
+
+		const ungrouped = this.tablesByGroup[UNGROUPED_KEY] ?? [];
+		if (ungrouped.some((t) => t.id === linked.id)) {
+			this.tablesByGroup = {
+				...this.tablesByGroup,
+				[UNGROUPED_KEY]: ungrouped.filter((t) => t.id !== linked.id)
+			};
+			this.adjustGroupCount(UNGROUPED_KEY, -1);
+		}
+		return linked;
+	}
+
+	async removeTableFromGroup(tableId: string, groupId: string): Promise<void> {
+		await erService.removeTableFromGroup(tableId, groupId);
+		this.tablesByGroup = {
+			...this.tablesByGroup,
+			[groupId]: (this.tablesByGroup[groupId] ?? []).filter((t) => t.id !== tableId)
+		};
+		this.adjustGroupCount(groupId, -1);
+	}
+
+	async updateTablePositionInGroup(
+		tableId: string,
+		groupId: string | null,
+		position: ErPosition
+	): Promise<void> {
+		if (groupId === null) {
+			await this.updateTable(tableId, { position }, null);
+			return;
+		}
+		await erService.updateTablePositionInGroup(tableId, groupId, position);
+		this.tablesByGroup = {
+			...this.tablesByGroup,
+			[groupId]: (this.tablesByGroup[groupId] ?? []).map((t) =>
+				t.id === tableId ? { ...t, position } : t
+			)
+		};
 	}
 
 	async deleteTable(id: string, groupId: string | null): Promise<void> {
