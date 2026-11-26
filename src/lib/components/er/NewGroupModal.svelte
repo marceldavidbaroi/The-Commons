@@ -1,8 +1,11 @@
 <script lang="ts">
 	import { erStore } from '$lib/stores/er.svelte';
+	import type { ErGroup } from '$lib/types/er';
 
 	interface Props {
 		open: boolean;
+		defaultParentId?: string | null;
+		editGroup?: ErGroup | null;
 		onClose: () => void;
 	}
 
@@ -15,7 +18,7 @@
 		{ id: 'violet', hex: '#8b5cf6' }
 	];
 
-	let { open, onClose }: Props = $props();
+	let { open, defaultParentId = null, editGroup = null, onClose }: Props = $props();
 
 	let name = $state('');
 	let parentId = $state<string>('');
@@ -23,13 +26,21 @@
 	let saving = $state(false);
 	let errorMsg = $state<string | null>(null);
 
-	const topLevelGroups = $derived(erStore.groups.filter((g) => !g.parent_id));
+	const parentCandidates = $derived(
+		erStore.groups.filter((g) => !g.parent_id && g.id !== editGroup?.id)
+	);
 
 	$effect(() => {
 		if (open) {
-			name = '';
-			parentId = '';
-			color = 'blue';
+			if (editGroup) {
+				name = editGroup.name;
+				parentId = editGroup.parent_id ?? '';
+				color = editGroup.color || 'blue';
+			} else {
+				name = '';
+				parentId = defaultParentId ?? '';
+				color = 'blue';
+			}
 			errorMsg = null;
 		}
 	});
@@ -42,18 +53,26 @@
 		saving = true;
 		errorMsg = null;
 		try {
-			const offset = erStore.groups.length * 40;
-			const created = await erStore.createGroup({
-				diagram_id: erStore.activeDiagramId,
-				parent_id: parentId || null,
-				name: cleanName,
-				color,
-				position: { x: offset, y: offset, width: 520, height: 380 }
-			});
-			await erStore.selectGroup(created.id);
+			if (editGroup) {
+				await erStore.updateGroup(editGroup.id, {
+					name: cleanName,
+					parent_id: parentId || null,
+					color
+				});
+			} else {
+				const offset = erStore.groups.length * 40;
+				const created = await erStore.createGroup({
+					diagram_id: erStore.activeDiagramId,
+					parent_id: parentId || null,
+					name: cleanName,
+					color,
+					position: { x: offset, y: offset, width: 520, height: 380 }
+				});
+				await erStore.selectGroup(created.id);
+			}
 			onClose();
 		} catch (err) {
-			errorMsg = err instanceof Error ? err.message : 'Failed to create group';
+			errorMsg = err instanceof Error ? err.message : 'Failed to save group';
 		} finally {
 			saving = false;
 		}
@@ -66,13 +85,13 @@
 			class="er-modal"
 			role="dialog"
 			aria-modal="true"
-			aria-label="New Group"
+			aria-label={editGroup ? 'Edit Group' : 'New Group'}
 			tabindex="-1"
 			onclick={(e) => e.stopPropagation()}
 			onkeydown={(e) => e.key === 'Escape' && onClose()}
 		>
 			<header class="er-modal-header">
-				<h2 class="er-modal-title">New Group</h2>
+				<h2 class="er-modal-title">{editGroup ? `Edit: ${editGroup.name}` : 'New Group'}</h2>
 				<button type="button" class="er-close-btn" onclick={onClose} aria-label="Close">×</button>
 			</header>
 
@@ -93,12 +112,12 @@
 						/>
 					</label>
 
-					{#if topLevelGroups.length > 0}
+					{#if parentCandidates.length > 0}
 						<label class="er-field">
 							<span>Parent Group (optional sub-group)</span>
 							<select class="er-input" bind:value={parentId}>
 								<option value="">None (Top-level group)</option>
-								{#each topLevelGroups as pg (pg.id)}
+								{#each parentCandidates as pg (pg.id)}
 									<option value={pg.id}>{pg.name}</option>
 								{/each}
 							</select>
@@ -125,7 +144,7 @@
 				<footer class="er-modal-footer">
 					<button type="button" class="er-btn-ghost" onclick={onClose}>Cancel</button>
 					<button type="submit" class="er-btn-primary" disabled={saving}>
-						{saving ? 'Creating...' : 'Create Group'}
+						{saving ? 'Saving...' : editGroup ? 'Save Changes' : 'Create Group'}
 					</button>
 				</footer>
 			</form>

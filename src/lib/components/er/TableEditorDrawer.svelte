@@ -1,97 +1,324 @@
 <script lang="ts">
+	import * as erService from '$lib/services/er-service';
 	import { erStore, UNGROUPED_KEY } from '$lib/stores/er.svelte';
-	import type { ErColumn, ErRelation, ErTable } from '$lib/types/er';
+	import type { CreateErTablePayload, ErTable } from '$lib/types/er';
+	import {
+		exportTablesToSql,
+		exportTableToShorthand,
+		parseTableInput
+	} from '$lib/utils/sql-er-parser';
 
 	interface Props {
 		open: boolean;
 		editTable?: ErTable | null;
+		defaultGroupKey?: string;
+		onSaved?: () => void;
 		onClose: () => void;
 	}
 
-	interface DraftColumn {
-		name: string;
-		type: string;
-		is_pk: boolean;
-		nullable: boolean;
-		fk_target: string;
-	}
+	const STARTER_SHORTHAND = `new_table
+  id bigint pk
+  created_at timestamptz
+  updated_at timestamptz
+  deleted_at timestamptz?`;
 
-	const COMMON_TYPES = [
-		'uuid',
-		'text',
-		'varchar',
-		'int4',
-		'int8',
-		'bool',
-		'timestamptz',
-		'date',
-		'numeric',
-		'jsonb'
-	];
+	let { open, editTable = null, defaultGroupKey, onSaved, onClose }: Props = $props();
 
-	let { open, editTable = null, onClose }: Props = $props();
-
-	let tableName = $state('');
+	let sqlInput = $state('');
+	let editorMode = $state<'shorten' | 'sql'>('shorten');
 	let targetGroupKey = $state<string>(UNGROUPED_KEY);
-	let columns = $state<DraftColumn[]>([]);
 	let saving = $state(false);
 	let errorMsg = $state<string | null>(null);
+	let gutterRef = $state<HTMLDivElement | null>(null);
+	let highlightRef = $state<HTMLPreElement | null>(null);
+	let editorRef = $state<HTMLTextAreaElement | null>(null);
+	let cursorPos = $state(0);
+	let diagramTableNames = $state<string[]>([]);
+	let selectedSuggestionIdx = $state(0);
+	let hideSuggestions = $state(false);
+
+	const TYPE_SUGGESTIONS = [
+		'bigint',
+		'uuid',
+		'text',
+		'enum(a, b)',
+		'boolean',
+		'timestamptz',
+		'int4',
+		'numeric',
+		'jsonb',
+		'date',
+		'pk',
+		'?'
+	];
+
+	const SNIPPET_SUGGESTIONS = [
+		'id bigint pk',
+		'id uuid pk',
+		'tenant_id uuid -> tenants',
+		'is_active boolean',
+		'deleted_at timestamptz?',
+		'created_at timestamptz',
+		'updated_at timestamptz'
+	];
+
+	const lineNumbers = $derived.by(() => {
+		const count = Math.max(1, sqlInput.split('\n').length);
+		return Array.from({ length: count }, (_, i) => i + 1);
+	});
+
+	function escapeHtml(value: string): string {
+		return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+	}
+
+	const HIGHLIGHT_RE =
+		/(--[^\n]*)|('[^']*')|(->|\?)|\b(CREATE|TABLE|NOT|NULL|PRIMARY|KEY|DEFAULT|REFERENCES|ON|DELETE|CASCADE|SET|GENERATED|ALWAYS|AS|IDENTITY|UNIQUE|CHECK|IN|PUBLIC)\b|\b(bigint|uuid|text|boolean|bool|timestamptz|timestamp|int4|int8|integer|numeric|jsonb|json|date|varchar|enum|pk)\b|([a-zA-Z_][a-zA-Z0-9_]*)|([^\S\n]+|\n|.)/gi;
+
+	const highlightedHtml = $derived.by(() => {
+		const src = sqlInput;
+		if (!src) return '\n';
+		let out = '';
+		let lineStart = true;
+		for (const m of src.matchAll(HIGHLIGHT_RE)) {
+			const [full, comment, str, sym, kw, typ, ident] = m;
+			if (comment) {
+				out += `<span class="tok-comment">${escapeHtml(comment)}</span>`;
+			} else if (str) {
+				out += `<span class="tok-string">${escapeHtml(str)}</span>`;
+			} else if (sym) {
+				out += `<span class="tok-sym">${escapeHtml(sym)}</span>`;
+			} else if (kw) {
+				out += `<span class="tok-kw">${escapeHtml(kw)}</span>`;
+			} else if (typ) {
+				out += `<span class="tok-type">${escapeHtml(typ)}</span>`;
+			} else if (ident) {
+				out += lineStart
+					? `<span class="tok-table">${escapeHtml(ident)}</span>`
+					: `<span class="tok-ident">${escapeHtml(ident)}</span>`;
+			} else {
+				out += escapeHtml(full);
+			}
+			lineStart = full === '\n';
+		}
+		return src.endsWith('\n') ? out + ' ' : out;
+	});
+
+	const activeSuggestions = $derived.by(() => {
+		if (hideSuggestions) return [] as Array<{ label: string; insert: string; replaceLen: number }>;
+		const before = sqlInput.slice(0, cursorPos);
+		const lastNewline = before.lastIndexOf('\n');
+		const lineBefore = before.slice(lastNewline + 1);
+
+		// 1. After "->" -> suggest table names for FK
+		const fkMatch = lineBefore.match(/->\s*([a-zA-Z0-9_]*)$/);
+		if (fkMatch) {
+			const query = fkMatch[1].toLowerCase();
+			return diagramTableNames
+				.filter((name) => name.toLowerCase().includes(query))
+				.slice(0, 8)
+				.map((name) => ({ label: `FK → ${name}`, insert: name, replaceLen: fkMatch[1].length }));
+		}
+
+		// 2. Indented line: after column name -> suggest types / pk / ? / ->
+		const indentedTypeMatch = lineBefore.match(/^\s+[a-zA-Z_][a-zA-Z0-9_]*\s+([a-zA-Z0-9_?]*)$/);
+		if (indentedTypeMatch) {
+			const query = indentedTypeMatch[1].toLowerCase();
+			return TYPE_SUGGESTIONS.filter((t) => t.startsWith(query))
+				.slice(0, 8)
+				.map((t) => ({ label: t, insert: t, replaceLen: indentedTypeMatch[1].length }));
+		}
+
+		// 3. Indented line start -> suggest common column snippets
+		const indentedStartMatch = lineBefore.match(/^\s+([a-zA-Z_][a-zA-Z0-9_]*)$/);
+		if (indentedStartMatch) {
+			const query = indentedStartMatch[1].toLowerCase();
+			return SNIPPET_SUGGESTIONS.filter((s) => s.toLowerCase().startsWith(query))
+				.slice(0, 6)
+				.map((s) => ({
+					label: s,
+					insert: s,
+					replaceLen: indentedStartMatch[1].length
+				}));
+		}
+
+		return [];
+	});
+
+	function updateCursor() {
+		if (editorRef) {
+			cursorPos = editorRef.selectionStart ?? 0;
+			selectedSuggestionIdx = 0;
+			hideSuggestions = false;
+		}
+	}
+
+	function applySuggestion(item: { insert: string; replaceLen: number }) {
+		const start = cursorPos - item.replaceLen;
+		sqlInput = sqlInput.slice(0, start) + item.insert + sqlInput.slice(cursorPos);
+		const nextCursor = start + item.insert.length;
+		hideSuggestions = true;
+		requestAnimationFrame(() => {
+			if (editorRef) {
+				editorRef.focus();
+				editorRef.selectionStart = editorRef.selectionEnd = nextCursor;
+				cursorPos = nextCursor;
+			}
+		});
+	}
+
+	function handleEditorScroll(event: Event) {
+		const ta = event.currentTarget as HTMLTextAreaElement;
+		if (gutterRef) {
+			gutterRef.scrollTop = ta.scrollTop;
+		}
+		if (highlightRef) {
+			highlightRef.scrollTop = ta.scrollTop;
+			highlightRef.scrollLeft = ta.scrollLeft;
+		}
+	}
+
+	function handleEditorKeydown(event: KeyboardEvent) {
+		if (activeSuggestions.length > 0) {
+			if (event.key === 'ArrowDown') {
+				event.preventDefault();
+				selectedSuggestionIdx = (selectedSuggestionIdx + 1) % activeSuggestions.length;
+				return;
+			}
+			if (event.key === 'ArrowUp') {
+				event.preventDefault();
+				selectedSuggestionIdx =
+					(selectedSuggestionIdx - 1 + activeSuggestions.length) % activeSuggestions.length;
+				return;
+			}
+			if (event.key === 'Tab' || (event.key === 'Enter' && !event.metaKey && !event.ctrlKey)) {
+				event.preventDefault();
+				applySuggestion(activeSuggestions[selectedSuggestionIdx]);
+				return;
+			}
+			if (event.key === 'Escape') {
+				event.preventDefault();
+				hideSuggestions = true;
+				return;
+			}
+		}
+
+		if (event.key === 'Tab') {
+			event.preventDefault();
+			const ta = event.currentTarget as HTMLTextAreaElement;
+			const start = ta.selectionStart;
+			const end = ta.selectionEnd;
+			sqlInput = sqlInput.slice(0, start) + '  ' + sqlInput.slice(end);
+			requestAnimationFrame(() => {
+				ta.selectionStart = ta.selectionEnd = start + 2;
+				cursorPos = start + 2;
+			});
+		} else if (
+			(event.metaKey || event.ctrlKey) &&
+			(event.key === 'Enter' || event.key.toLowerCase() === 's')
+		) {
+			event.preventDefault();
+			handleSubmit(event);
+		}
+	}
+
+	function handleWindowKeydown(event: KeyboardEvent) {
+		if (!open) return;
+		if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+			event.preventDefault();
+			handleSubmit(event);
+		}
+	}
+
+	function handleAddCommonFields() {
+		const block =
+			editorMode === 'sql'
+				? `  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  created_at timestamptz NOT NULL DEFAULT now(),\n  updated_at timestamptz NOT NULL DEFAULT now(),\n  deleted_at timestamptz NULL`
+				: `  id bigint pk\n  created_at timestamptz\n  updated_at timestamptz\n  deleted_at timestamptz?`;
+
+		if (!sqlInput.trim()) {
+			sqlInput =
+				editorMode === 'sql'
+					? `CREATE TABLE public.new_table (\n${block}\n);`
+					: `new_table\n${block}`;
+			return;
+		}
+		if (editorMode === 'sql') {
+			const closeIdx = sqlInput.lastIndexOf(')');
+			if (closeIdx !== -1) {
+				const before = sqlInput.slice(0, closeIdx).trimEnd();
+				const sep = before.endsWith('(') || before.endsWith(',') ? '\n' : ',\n';
+				sqlInput = before + sep + block + '\n' + sqlInput.slice(closeIdx);
+				return;
+			}
+		}
+		sqlInput = sqlInput.trimEnd() + '\n' + block;
+	}
+
+	function toTempErTables(): ErTable[] {
+		return parsed.tables.map((t, idx) => ({
+			id: String(idx),
+			diagram_id: '',
+			group_id: null,
+			user_id: '',
+			name: t.name,
+			columns: t.columns,
+			relations: t.relations,
+			position: { x: 0, y: 0 },
+			created_at: '',
+			updated_at: ''
+		}));
+	}
+
+	function setEditorMode(nextMode: 'shorten' | 'sql') {
+		if (editorMode === nextMode) return;
+		editorMode = nextMode;
+		if (parsed.tables.length === 0) return;
+		const tables = toTempErTables();
+		sqlInput =
+			nextMode === 'sql'
+				? exportTablesToSql(tables)
+				: tables.map((t) => exportTableToShorthand(t)).join('\n\n');
+	}
 
 	$effect(() => {
 		if (open) {
 			if (editTable) {
-				tableName = editTable.name;
+				sqlInput = exportTableToShorthand(editTable);
 				targetGroupKey = editTable.group_id ?? UNGROUPED_KEY;
-				columns = (editTable.columns ?? []).map((c) => ({
-					name: c.name,
-					type: c.type || 'text',
-					is_pk: !!c.is_pk,
-					nullable: c.nullable !== false,
-					fk_target: c.fk_target ? `${c.fk_target.table}.${c.fk_target.column}` : ''
-				}));
 			} else {
-				tableName = '';
-				targetGroupKey = erStore.activeGroupKey;
-				columns = [
-					{ name: 'id', type: 'uuid', is_pk: true, nullable: false, fk_target: '' },
-					{ name: 'created_at', type: 'timestamptz', is_pk: false, nullable: false, fk_target: '' }
-				];
+				sqlInput = STARTER_SHORTHAND;
+				targetGroupKey = defaultGroupKey ?? erStore.activeGroupKey;
 			}
+			editorMode = 'shorten';
 			errorMsg = null;
-		}
-	});
+			hideSuggestions = true;
 
-	const fkSuggestions = $derived.by(() => {
-		const suggestions: string[] = [];
-		for (const table of Object.values(erStore.tablesByGroup).flat()) {
-			for (const col of table.columns) {
-				if (col.is_pk || col.name === 'id') {
-					suggestions.push(`${table.name}.${col.name}`);
-				}
+			if (erStore.activeDiagramId) {
+				const cachedNames = new Set(
+					Object.values(erStore.tablesByGroup)
+						.flat()
+						.map((t) => t.name)
+				);
+				diagramTableNames = Array.from(cachedNames).sort();
+				erService.searchDiagramTables(erStore.activeDiagramId, '').then((list) => {
+					const merged = new Set([...cachedNames, ...list.map((t) => t.name)]);
+					diagramTableNames = Array.from(merged).sort();
+				});
 			}
 		}
-		return suggestions;
 	});
 
-	function addColumn() {
-		columns = [
-			...columns,
-			{ name: '', type: 'text', is_pk: false, nullable: true, fk_target: '' }
-		];
-	}
-
-	function removeColumn(index: number) {
-		columns = columns.filter((_, i) => i !== index);
-	}
+	const parsed = $derived.by(() => {
+		if (!sqlInput.trim()) return { tables: [] };
+		return parseTableInput(sqlInput);
+	});
 
 	async function handleSubmit(event: Event) {
 		event.preventDefault();
-		const cleanName = tableName.trim();
-		if (!cleanName || !erStore.activeDiagramId || saving) return;
+		if (!erStore.activeDiagramId || saving) return;
 
-		const validCols = columns.filter((c) => c.name.trim().length > 0);
-		if (validCols.length === 0) {
-			errorMsg = 'Add at least one field.';
+		if (parsed.tables.length === 0) {
+			errorMsg = 'Enter a valid CREATE TABLE statement.';
 			return;
 		}
 
@@ -99,57 +326,51 @@
 		errorMsg = null;
 
 		try {
-			const relations: ErRelation[] = [];
-			const mappedCols: ErColumn[] = validCols.map((c) => {
-				const fkParts = c.fk_target.trim().split('.');
-				const hasFk = fkParts.length === 2 && fkParts[0] && fkParts[1];
-				const fkTarget = hasFk ? { table: fkParts[0], column: fkParts[1] } : null;
-
-				if (fkTarget) {
-					relations.push({
-						from_column: c.name.trim(),
-						to_table: fkTarget.table,
-						to_column: fkTarget.column
-					});
-				}
-
-				return {
-					name: c.name.trim(),
-					type: c.type.trim() || 'text',
-					is_pk: c.is_pk,
-					nullable: c.is_pk ? false : c.nullable,
-					fk_target: fkTarget
-				};
-			});
-
 			const groupId = targetGroupKey === UNGROUPED_KEY ? null : targetGroupKey;
 
 			if (editTable) {
+				const t = parsed.tables[0];
 				await erStore.updateTable(
 					editTable.id,
 					{
-						name: cleanName,
-						columns: mappedCols,
-						relations,
+						name: t.name,
+						columns: t.columns,
+						relations: t.relations,
 						group_id: groupId
 					},
 					editTable.group_id
 				);
-			} else {
+			} else if (parsed.tables.length === 1) {
+				const t = parsed.tables[0];
 				const existingCount = (erStore.tablesByGroup[targetGroupKey] ?? []).length;
 				await erStore.createTable({
 					diagram_id: erStore.activeDiagramId,
 					group_id: groupId,
-					name: cleanName,
-					columns: mappedCols,
-					relations,
+					name: t.name,
+					columns: t.columns,
+					relations: t.relations,
 					position: {
-						x: (existingCount % 4) * 320,
-						y: Math.floor(existingCount / 4) * 260
+						x: (existingCount % 4) * 240,
+						y: Math.floor(existingCount / 4) * 60
 					}
 				});
+			} else {
+				const existingCount = (erStore.tablesByGroup[targetGroupKey] ?? []).length;
+				const payloads: CreateErTablePayload[] = parsed.tables.map((t, idx) => ({
+					diagram_id: erStore.activeDiagramId!,
+					group_id: groupId,
+					name: t.name,
+					columns: t.columns,
+					relations: t.relations,
+					position: {
+						x: ((existingCount + idx) % 4) * 240,
+						y: Math.floor((existingCount + idx) / 4) * 60
+					}
+				}));
+				await erStore.createTablesBulk(payloads);
 			}
 
+			onSaved?.();
 			onClose();
 		} catch (err) {
 			errorMsg = err instanceof Error ? err.message : 'Failed to save table';
@@ -163,6 +384,7 @@
 		saving = true;
 		try {
 			await erStore.deleteTable(editTable.id, editTable.group_id);
+			onSaved?.();
 			onClose();
 		} finally {
 			saving = false;
@@ -170,10 +392,12 @@
 	}
 </script>
 
+<svelte:window onkeydown={handleWindowKeydown} />
+
 {#if open}
 	<aside class="er-table-drawer" aria-label={editTable ? 'Edit Table' : 'New Table'}>
 		<header class="er-drawer-header">
-			<h2 class="er-drawer-title">{editTable ? `Edit: ${editTable.name}` : 'New Table'}</h2>
+			<h2 class="er-drawer-title">{editTable ? `Edit: ${editTable.name}` : 'New Table (SQL)'}</h2>
 			<button type="button" class="er-close-btn" onclick={onClose} aria-label="Close drawer">
 				×
 			</button>
@@ -185,15 +409,9 @@
 					<div class="er-error-box">{errorMsg}</div>
 				{/if}
 
-				<div class="er-top-fields">
-					<input
-						type="text"
-						class="er-input"
-						placeholder="Table name (e.g. goals)"
-						bind:value={tableName}
-						required
-					/>
-					<select class="er-select" bind:value={targetGroupKey} aria-label="Target group">
+				<div class="er-field-row">
+					<label for="er-sql-group">Group</label>
+					<select id="er-sql-group" class="er-select" bind:value={targetGroupKey}>
 						<option value={UNGROUPED_KEY}>Ungrouped</option>
 						{#each erStore.groups as group (group.id)}
 							<option value={group.id}>{group.name}</option>
@@ -201,108 +419,122 @@
 					</select>
 				</div>
 
-				<div class="er-table-wrap">
-					<table class="er-fields-table">
-						<thead>
-							<tr>
-								<th>Field</th>
-								<th>Type</th>
-								<th class="col-center">PK</th>
-								<th class="col-center">Null</th>
-								<th>FK</th>
-								<th></th>
-							</tr>
-						</thead>
-						<tbody>
-							{#each columns as col, i (i)}
-								<tr>
-									<td>
-										<input
-											type="text"
-											class="er-cell-input"
-											placeholder="name"
-											bind:value={col.name}
-										/>
-									</td>
-									<td>
-										<select class="er-cell-select" bind:value={col.type} aria-label="Column type">
-											{#each COMMON_TYPES as t (t)}
-												<option value={t}>{t}</option>
-											{/each}
-										</select>
-									</td>
-									<td class="col-center">
-										<input type="checkbox" bind:checked={col.is_pk} aria-label="Primary key" />
-									</td>
-									<td class="col-center">
-										<input
-											type="checkbox"
-											bind:checked={col.nullable}
-											disabled={col.is_pk}
-											aria-label="Nullable"
-										/>
-									</td>
-									<td>
-										<input
-											type="text"
-											class="er-cell-input"
-											list="er-fk-targets"
-											placeholder="table.col"
-											bind:value={col.fk_target}
-										/>
-									</td>
-									<td class="col-center">
-										<button
-											type="button"
-											class="er-del-btn"
-											onclick={() => removeColumn(i)}
-											aria-label="Remove field"
-										>
-											×
-										</button>
-									</td>
-								</tr>
+				<div class="er-sql-shell">
+					<div class="er-sql-toolbar">
+						<div class="er-mode-toggle" role="group" aria-label="Editor format">
+							<button
+								type="button"
+								class="er-mode-btn"
+								class:active={editorMode === 'shorten'}
+								onclick={() => setEditorMode('shorten')}
+							>
+								Shorten
+							</button>
+							<button
+								type="button"
+								class="er-mode-btn"
+								class:active={editorMode === 'sql'}
+								onclick={() => setEditorMode('sql')}
+							>
+								SQL
+							</button>
+						</div>
+						<div class="er-sql-tools">
+							<button
+								type="button"
+								class="er-format-btn"
+								onclick={handleAddCommonFields}
+								title="Append id, created_at, updated_at, deleted_at"
+							>
+								+ Template
+							</button>
+							<span class="er-sql-hint">⌘S / ⌘↵ to save</span>
+						</div>
+					</div>
+					<div class="er-sql-body">
+						<div class="er-sql-gutter" bind:this={gutterRef} aria-hidden="true">
+							{#each lineNumbers as num (num)}
+								<div>{num}</div>
 							{/each}
-						</tbody>
-					</table>
+						</div>
+						<div class="er-sql-editor-wrap">
+							<pre
+								bind:this={highlightRef}
+								class="er-sql-highlight"
+								aria-hidden="true">{@html highlightedHtml}</pre>
+							<textarea
+								bind:this={editorRef}
+								class="er-sql-editor"
+								spellcheck="false"
+								autocomplete="off"
+								autocapitalize="off"
+								placeholder="CREATE TABLE public.example (...);"
+								bind:value={sqlInput}
+								oninput={updateCursor}
+								onclick={updateCursor}
+								onscroll={handleEditorScroll}
+								onkeydown={handleEditorKeydown}
+							></textarea>
+						</div>
+					</div>
+
+					{#if activeSuggestions.length > 0}
+						<div class="er-suggest-bar" role="listbox" aria-label="Autocomplete suggestions">
+							{#each activeSuggestions as item, idx (item.label)}
+								<button
+									type="button"
+									role="option"
+									aria-selected={idx === selectedSuggestionIdx}
+									class="er-suggest-chip"
+									class:active={idx === selectedSuggestionIdx}
+									onmousedown={(e) => {
+										e.preventDefault();
+										applySuggestion(item);
+									}}
+								>
+									{item.label}
+								</button>
+							{/each}
+						</div>
+					{/if}
 				</div>
 
-				<button type="button" class="er-add-row-btn" onclick={addColumn}>
-					+ Add Field
-				</button>
+				<div class="er-preview-bar">
+					{#if parsed.tables.length > 0}
+						<span>
+							Parsed: <strong>{parsed.tables.map((t) => t.name).join(', ')}</strong>
+							({parsed.tables[0].columns.length} cols, {parsed.tables[0].relations.length} FKs)
+						</span>
+					{:else}
+						<span>Write or paste a CREATE TABLE statement</span>
+					{/if}
+				</div>
 			</div>
 
 			<footer class="er-drawer-footer">
 				{#if editTable}
-					<button
-						type="button"
-						class="er-btn-danger"
-						disabled={saving}
-						onclick={handleDelete}
-					>
+					<button type="button" class="er-btn-danger" disabled={saving} onclick={handleDelete}>
 						Delete
 					</button>
 				{/if}
 				<div class="er-footer-right">
 					<button type="button" class="er-btn-ghost" onclick={onClose}>Cancel</button>
-					<button type="submit" class="er-btn-primary" disabled={saving}>
-						{saving ? 'Saving...' : editTable ? 'Save Changes' : 'Create Table'}
+					<button
+						type="submit"
+						class="er-btn-primary"
+						disabled={saving || parsed.tables.length === 0}
+					>
+						{saving ? 'Saving...' : editTable ? 'Save SQL' : 'Create Table'}
 					</button>
 				</div>
 			</footer>
 		</form>
-
-		<datalist id="er-fk-targets">
-			{#each fkSuggestions as target (target)}
-				<option value={target}></option>
-			{/each}
-		</datalist>
 	</aside>
 {/if}
 
 <style>
 	.er-table-drawer {
-		width: 560px;
+		width: 480px;
 		max-width: 100%;
 		flex-shrink: 0;
 		height: 100%;
@@ -345,7 +577,7 @@
 
 	.er-drawer-body {
 		flex: 1;
-		overflow-y: auto;
+		min-height: 0;
 		padding: 12px;
 		display: flex;
 		flex-direction: column;
@@ -361,13 +593,17 @@
 		font-size: 12px;
 	}
 
-	.er-top-fields {
+	.er-field-row {
 		display: flex;
-		gap: 8px;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+		font-size: 12px;
+		color: var(--text-secondary);
 	}
 
-	.er-input,
 	.er-select {
+		flex: 1;
 		height: 30px;
 		padding: 0 8px;
 		border-radius: 6px;
@@ -377,80 +613,205 @@
 		font-size: 12px;
 	}
 
-	.er-input {
+	.er-sql-shell {
 		flex: 1;
-	}
-
-	.er-table-wrap {
+		min-height: 260px;
+		display: flex;
+		flex-direction: column;
 		border: 1px solid var(--border-subtle);
 		border-radius: 6px;
-		overflow-x: auto;
-		background: var(--bg-primary);
+		overflow: hidden;
+		background: #0f172a;
 	}
 
-	.er-fields-table {
-		width: 100%;
-		border-collapse: collapse;
+	.er-sql-toolbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 5px 10px;
+		background: #1e293b;
+		border-bottom: 1px solid rgba(148, 163, 184, 0.2);
 		font-size: 11px;
+		color: #94a3b8;
 	}
 
-	.er-fields-table th {
-		text-align: left;
-		padding: 6px 6px;
-		font-weight: 600;
-		color: var(--text-secondary);
-		background: var(--bg-tertiary);
-		border-bottom: 1px solid var(--border-subtle);
-		white-space: nowrap;
+	.er-mode-toggle {
+		display: inline-flex;
+		padding: 2px;
+		border-radius: 5px;
+		background: #0f172a;
+		border: 1px solid rgba(148, 163, 184, 0.2);
 	}
 
-	.er-fields-table td {
-		padding: 4px 4px;
-		border-bottom: 1px solid var(--border-subtle);
+	.er-mode-btn {
+		height: 20px;
+		padding: 0 8px;
+		border: none;
+		border-radius: 3px;
+		background: transparent;
+		color: #94a3b8;
+		font-size: 11px;
+		font-weight: 500;
+		cursor: pointer;
 	}
 
-	.er-fields-table tbody tr:last-child td {
-		border-bottom: none;
+	.er-mode-btn.active {
+		background: var(--primary);
+		color: var(--primary-foreground);
 	}
 
-	.col-center {
-		text-align: center !important;
-		width: 34px;
+	.er-sql-tools {
+		display: flex;
+		align-items: center;
+		gap: 8px;
 	}
 
-	.er-cell-input,
-	.er-cell-select {
-		width: 100%;
-		min-width: 84px;
-		height: 28px;
-		padding: 0 6px;
+	.er-format-btn {
+		height: 20px;
+		padding: 0 7px;
 		border-radius: 4px;
-		background: var(--bg-secondary);
-		border: 1px solid var(--border-subtle);
-		color: var(--text-primary);
+		background: rgba(148, 163, 184, 0.14);
+		border: 1px solid rgba(148, 163, 184, 0.25);
+		color: #e2e8f0;
+		font-size: 10px;
+		cursor: pointer;
+	}
+
+	.er-sql-hint {
+		font-size: 10px;
+		opacity: 0.75;
+	}
+
+	.er-sql-body {
+		flex: 1;
+		min-height: 0;
+		display: flex;
+	}
+
+	.er-sql-gutter {
+		width: 36px;
+		padding: 10px 6px;
+		background: #0b1220;
+		border-right: 1px solid rgba(148, 163, 184, 0.15);
+		color: #475569;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+		font-size: 12px;
+		line-height: 1.55;
+		text-align: right;
+		overflow: hidden;
+		user-select: none;
+		flex-shrink: 0;
+	}
+
+	.er-sql-editor-wrap {
+		position: relative;
+		flex: 1;
+		min-width: 0;
+		min-height: 0;
+	}
+
+	.er-sql-highlight,
+	.er-sql-editor {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		margin: 0;
+		padding: 10px;
+		border: none;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+		font-size: 12px;
+		line-height: 1.55;
+		letter-spacing: normal;
+		tab-size: 2;
+		white-space: pre-wrap;
+		overflow-wrap: break-word;
+		box-sizing: border-box;
+	}
+
+	.er-sql-highlight {
+		pointer-events: none;
+		overflow: hidden;
+		color: #e2e8f0;
+		background: transparent;
+	}
+
+	.er-sql-editor {
+		background: transparent;
+		color: transparent;
+		caret-color: #f8fafc;
+		resize: none;
+		outline: none;
+		overflow: auto;
+	}
+
+	.er-sql-editor::selection {
+		background: rgba(56, 189, 248, 0.28);
+	}
+
+	.er-sql-highlight :global(.tok-kw) {
+		color: #c084fc;
+		font-weight: 600;
+	}
+
+	.er-sql-highlight :global(.tok-type) {
+		color: #38bdf8;
+	}
+
+	.er-sql-highlight :global(.tok-table) {
+		color: #fde047;
+		font-weight: 600;
+	}
+
+	.er-sql-highlight :global(.tok-ident) {
+		color: #e2e8f0;
+	}
+
+	.er-sql-highlight :global(.tok-sym) {
+		color: #f472b6;
+		font-weight: 600;
+	}
+
+	.er-sql-highlight :global(.tok-string) {
+		color: #34d399;
+	}
+
+	.er-sql-highlight :global(.tok-comment) {
+		color: #64748b;
+		font-style: italic;
+	}
+
+	.er-suggest-bar {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+		padding: 6px 8px;
+		background: #1e293b;
+		border-top: 1px solid rgba(148, 163, 184, 0.2);
+	}
+
+	.er-suggest-chip {
+		height: 22px;
+		padding: 0 8px;
+		border-radius: 4px;
+		border: 1px solid rgba(148, 163, 184, 0.25);
+		background: #0f172a;
+		color: #cbd5e1;
 		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 		font-size: 11px;
+		cursor: pointer;
 	}
 
-	.er-del-btn {
-		background: transparent;
-		border: none;
+	.er-suggest-chip.active,
+	.er-suggest-chip:hover {
+		background: var(--primary);
+		border-color: var(--primary);
+		color: var(--primary-foreground);
+	}
+
+	.er-preview-bar {
+		font-size: 11px;
 		color: var(--text-secondary);
-		cursor: pointer;
-		font-size: 14px;
-		padding: 0 4px;
-	}
-
-	.er-add-row-btn {
-		align-self: flex-start;
-		height: 28px;
-		padding: 0 10px;
-		border-radius: 6px;
-		background: var(--bg-primary);
-		border: 1px solid var(--border-subtle);
-		color: var(--text-primary);
-		font-size: 12px;
-		cursor: pointer;
 	}
 
 	.er-drawer-footer {
@@ -469,20 +830,9 @@
 		margin-left: auto;
 	}
 
-	.er-btn-danger {
-		height: 30px;
-		padding: 0 12px;
-		border-radius: 6px;
-		font-size: 12px;
-		font-weight: 500;
-		cursor: pointer;
-		background: transparent;
-		border: 1px solid rgba(239, 68, 68, 0.35);
-		color: #f87171;
-	}
-
 	.er-btn-ghost,
-	.er-btn-primary {
+	.er-btn-primary,
+	.er-btn-danger {
 		height: 30px;
 		padding: 0 12px;
 		border-radius: 6px;
@@ -507,5 +857,11 @@
 	.er-btn-primary:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
+	}
+
+	.er-btn-danger {
+		background: transparent;
+		border-color: rgba(239, 68, 68, 0.35);
+		color: #f87171;
 	}
 </style>

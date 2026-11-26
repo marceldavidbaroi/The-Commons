@@ -418,6 +418,100 @@ export function parseGroupHierarchyInput(input: string): ParsedGroupHierarchy[] 
 	return groups;
 }
 
+export function exportTableToShorthand(table: ErTable): string {
+	const lines = [table.name];
+	for (const col of table.columns) {
+		const parts = [`  ${col.name}`, col.type || 'text'];
+		if (col.is_pk) parts.push('pk');
+		if (col.nullable) parts.push('?');
+		if (col.fk_target) {
+			parts.push(
+				col.fk_target.column === 'id'
+					? `-> ${col.fk_target.table}`
+					: `-> ${col.fk_target.table}.${col.fk_target.column}`
+			);
+		}
+		lines.push(parts.join(' '));
+	}
+	return lines.join('\n');
+}
+
+export function parseTableInput(input: string): ParsedSqlSchema {
+	if (/\bcreate\s+table\b/i.test(input)) {
+		return parseSqlDdl(input);
+	}
+
+	const tables: ParsedErTable[] = [];
+	let current: ParsedErTable | null = null;
+
+	for (const rawLine of input.split(/\r?\n/)) {
+		const trimmed = rawLine.trim();
+		if (!trimmed || trimmed.startsWith('--') || trimmed.startsWith('#')) continue;
+
+		const isIndented = /^\s+/.test(rawLine);
+		// Table header line: non-indented single identifier or "table <name>"
+		const tableHeaderMatch = trimmed.match(/^(?:table\s+)?([a-zA-Z_][a-zA-Z0-9_]*)\s*:?$/i);
+		if (!isIndented && tableHeaderMatch && !trimmed.includes('->')) {
+			current = { name: tableHeaderMatch[1], columns: [], relations: [] };
+			tables.push(current);
+			continue;
+		}
+
+		if (!current) continue;
+
+		// Column shorthand: name [type] [pk] [?|null] [-> target[.col]]
+		let line = trimmed.replace(/,$/, '');
+		let fkTarget: { table: string; column: string } | null = null;
+		const fkMatch = line.match(/->\s*([a-zA-Z_][a-zA-Z0-9_]*)(?:\.([a-zA-Z_][a-zA-Z0-9_]*))?/);
+		if (fkMatch) {
+			fkTarget = { table: fkMatch[1], column: fkMatch[2] ?? 'id' };
+			line = line.slice(0, fkMatch.index).trim();
+		}
+
+		const tokens = line.match(/[^\s(]+(?:\([^)]*\))?|\([^)]*\)/g) ?? [];
+		if (tokens.length === 0) continue;
+
+		const colName = tokens[0];
+		let colType = 'text';
+		let isPk = false;
+		let nullable = false;
+
+		for (let i = 1; i < tokens.length; i++) {
+			const tok = tokens[i];
+			const lower = tok.toLowerCase();
+			if (lower === 'pk') {
+				isPk = true;
+			} else if (lower === '?' || lower === 'null' || lower === 'nullable') {
+				nullable = true;
+			} else if (tok.endsWith('?')) {
+				colType = tok.slice(0, -1) || 'text';
+				nullable = true;
+			} else if (i === 1) {
+				colType = tok;
+			}
+		}
+
+		if (isPk) nullable = false;
+		if (fkTarget) {
+			current.relations.push({
+				from_column: colName,
+				to_table: fkTarget.table,
+				to_column: fkTarget.column
+			});
+		}
+
+		current.columns.push({
+			name: colName,
+			type: colType,
+			nullable,
+			is_pk: isPk,
+			fk_target: fkTarget
+		});
+	}
+
+	return { tables };
+}
+
 export function exportTablesToSql(tables: ErTable[]): string {
 	return tables
 		.map((table) => {
@@ -425,7 +519,14 @@ export function exportTablesToSql(tables: ErTable[]): string {
 			const singlePk = pkCols.length === 1;
 
 			const lines: string[] = table.columns.map((col) => {
-				const parts = [`  ${col.name} ${col.type}`];
+				const enumMatch = col.type.match(/^enum\(([^)]+)\)$/i);
+				const sqlType = enumMatch
+					? `text CHECK (${col.name} IN (${enumMatch[1]
+							.split(',')
+							.map((v) => `'${v.trim().replace(/^['"]|['"]$/g, '')}'`)
+							.join(', ')}))`
+					: col.type;
+				const parts = [`  ${col.name} ${sqlType}`];
 				if (singlePk && col.is_pk) {
 					parts.push('PRIMARY KEY');
 				} else if (col.nullable === false) {

@@ -354,27 +354,22 @@ class ErStore {
 		}
 		this.groups = this.groups.filter((g) => !removedIds.has(g.id));
 
-		const orphaned = this.tablesByGroup[id] ?? [];
-		const orphanedCount = this.groupCounts[id] ?? orphaned.length;
-		if (orphaned.length > 0) {
-			const moved = orphaned.map((t) => ({ ...t, group_id: null }));
-			this.tablesByGroup = {
-				...this.tablesByGroup,
-				[UNGROUPED_KEY]: [...moved, ...(this.tablesByGroup[UNGROUPED_KEY] ?? [])]
-			};
+		const nextTablesByGroup = { ...this.tablesByGroup };
+		const nextCounts = { ...this.groupCounts };
+		const nextLoaded = { ...this.loadedGroupKeys };
+
+		for (const rid of removedIds) {
+			delete nextTablesByGroup[rid];
+			delete nextCounts[rid];
+			delete nextLoaded[rid];
 		}
+		delete nextLoaded[UNGROUPED_KEY];
 
-		const { [id]: _removedTables, ...restTables } = this.tablesByGroup;
-		const { [id]: _removedCounts, ...restCounts } = this.groupCounts;
-		const { [id]: _removedLoaded, ...restLoaded } = this.loadedGroupKeys;
-		this.tablesByGroup = restTables;
-		this.groupCounts = {
-			...restCounts,
-			[UNGROUPED_KEY]: (restCounts[UNGROUPED_KEY] ?? 0) + orphanedCount
-		};
-		this.loadedGroupKeys = restLoaded;
+		this.tablesByGroup = nextTablesByGroup;
+		this.groupCounts = nextCounts;
+		this.loadedGroupKeys = nextLoaded;
 
-		if (this.activeGroupKey === id) {
+		if (removedIds.has(this.activeGroupKey)) {
 			this.activeGroupKey = UNGROUPED_KEY;
 		}
 	}

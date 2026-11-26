@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import {
 		SvelteFlow,
 		Background,
@@ -46,7 +47,9 @@
 
 	let showTableDrawer = $state(false);
 	let editingTable = $state<ErTable | null>(null);
+	let tableDrawerGroupKey = $state<string | undefined>(undefined);
 	let showNewGroupModal = $state(false);
+	let editingCurrentGroup = $state(false);
 	let showAddExistingModal = $state(false);
 	let showEdgeLabels = $state(false);
 	let autoLayingOut = $state(false);
@@ -55,6 +58,8 @@
 	let focusedTableId = $state<string | null>(null);
 	let tableListSearch = $state('');
 	let showLeftPanel = $state(true);
+	let showDeleteGroupConfirm = $state(false);
+	let deletingGroup = $state(false);
 
 	const currentGroup = $derived(
 		isUngrouped ? null : (erStore.groups.find((g) => g.id === groupIdParam) ?? null)
@@ -66,8 +71,23 @@
 			: null
 	);
 
+	const descendantSubGroups = $derived.by(() => {
+		if (isUngrouped) return [] as Array<{ group: (typeof erStore.groups)[number]; depth: number }>;
+		const result: Array<{ group: (typeof erStore.groups)[number]; depth: number }> = [];
+		const visit = (parentId: string, depth: number) => {
+			for (const g of erStore.groups) {
+				if (g.parent_id === parentId) {
+					result.push({ group: g, depth });
+					visit(g.id, depth + 1);
+				}
+			}
+		};
+		visit(groupIdParam, 1);
+		return result;
+	});
+
 	const childSubGroups = $derived(
-		isUngrouped ? [] : erStore.groups.filter((g) => g.parent_id === groupIdParam)
+		descendantSubGroups.filter((d) => d.depth === 1).map((d) => d.group)
 	);
 
 	$effect(() => {
@@ -94,10 +114,230 @@
 		return list.sort((a, b) => a.name.localeCompare(b.name));
 	});
 
-	const filteredSidebarTables = $derived.by(() => {
+	let collapsedSidebarGroups = $state<Record<string, boolean>>({});
+	const allSidebarCollapsed = $derived(
+		sidebarSections.length > 0 && sidebarSections.every((s) => !!collapsedSidebarGroups[s.key])
+	);
+
+	function toggleCollapseAllSidebar() {
+		if (allSidebarCollapsed) {
+			collapsedSidebarGroups = {};
+			return;
+		}
+		const next: Record<string, boolean> = {};
+		for (const s of sidebarSections) {
+			next[s.key] = true;
+		}
+		collapsedSidebarGroups = next;
+	}
+	let tableMenu = $state<{
+		table: ErTable;
+		sectionKey: string;
+		x: number;
+		y: number;
+	} | null>(null);
+	let groupMenu = $state<{
+		groupId: string;
+		name: string;
+		parentId: string | null;
+		isTopParent: boolean;
+		x: number;
+		y: number;
+	} | null>(null);
+	let showMoveSubmenu = $state(false);
+	let showGroupMoveSubmenu = $state(false);
+	let renamingGroupId = $state<string | null>(null);
+	let renameGroupDraft = $state('');
+
+	function openTableMenu(event: MouseEvent, table: ErTable, sectionKey: string) {
+		event.preventDefault();
+		const x = Math.min(event.clientX, window.innerWidth - 210);
+		const y = Math.min(event.clientY, window.innerHeight - 240);
+		groupMenu = null;
+		tableMenu = { table, sectionKey, x, y };
+		showMoveSubmenu = false;
+	}
+
+	function openGroupMenu(
+		event: MouseEvent,
+		section: { key: string; name: string; parentId: string | null; isTopParent: boolean }
+	) {
+		if (isUngrouped && section.key === UNGROUPED_KEY) return;
+		event.preventDefault();
+		const x = Math.min(event.clientX, window.innerWidth - 210);
+		const y = Math.min(event.clientY, window.innerHeight - 240);
+		tableMenu = null;
+		groupMenu = {
+			groupId: section.key,
+			name: section.name,
+			parentId: section.parentId,
+			isTopParent: section.isTopParent,
+			x,
+			y
+		};
+		showGroupMoveSubmenu = false;
+	}
+
+	function handleEditMenuTable() {
+		if (!tableMenu) return;
+		editingTable = tableMenu.table;
+		showTableDrawer = true;
+		tableMenu = null;
+		showMoveSubmenu = false;
+	}
+
+	function scheduleAutoLayout() {
+		requestAnimationFrame(() => {
+			handleAutoLayout();
+		});
+	}
+
+	async function handleMoveTableTo(destKey: string) {
+		if (!tableMenu) return;
+		const { table, sectionKey } = tableMenu;
+		tableMenu = null;
+		showMoveSubmenu = false;
+		if (destKey === sectionKey) return;
+		const nextGroupId = destKey === UNGROUPED_KEY ? null : destKey;
+		const prevGroupId = sectionKey === UNGROUPED_KEY ? null : sectionKey;
+		if (focusedTableId === table.id) focusedTableId = null;
+		await erStore.updateTable(table.id, { group_id: nextGroupId }, prevGroupId);
+		scheduleAutoLayout();
+	}
+
+	async function handleDeleteMenuTable() {
+		if (!tableMenu) return;
+		const { table, sectionKey } = tableMenu;
+		tableMenu = null;
+		showMoveSubmenu = false;
+		const prevGroupId = sectionKey === UNGROUPED_KEY ? null : sectionKey;
+		if (focusedTableId === table.id) focusedTableId = null;
+		await erStore.deleteTable(table.id, prevGroupId);
+		scheduleAutoLayout();
+	}
+
+	function startGroupRename() {
+		if (!groupMenu) return;
+		renamingGroupId = groupMenu.groupId;
+		renameGroupDraft = groupMenu.name;
+		groupMenu = null;
+		showGroupMoveSubmenu = false;
+	}
+
+	function handleAddTableInGroup() {
+		if (!groupMenu) return;
+		tableDrawerGroupKey = groupMenu.groupId;
+		editingTable = null;
+		showTableDrawer = true;
+		groupMenu = null;
+		showGroupMoveSubmenu = false;
+	}
+
+	async function commitGroupRename() {
+		if (!renamingGroupId) return;
+		const id = renamingGroupId;
+		const nextName = renameGroupDraft.trim();
+		renamingGroupId = null;
+		if (!nextName) return;
+		const current = erStore.groups.find((g) => g.id === id);
+		if (current && current.name !== nextName) {
+			await erStore.updateGroup(id, { name: nextName });
+		}
+	}
+
+	async function handleMoveGroupTo(destParentId: string) {
+		if (!groupMenu) return;
+		const { groupId, parentId } = groupMenu;
+		groupMenu = null;
+		showGroupMoveSubmenu = false;
+		if (destParentId === groupId || destParentId === parentId) return;
+		await erStore.updateGroup(groupId, { parent_id: destParentId });
+		scheduleAutoLayout();
+	}
+
+	const openTableMoveTargets = $derived.by(() => {
+		if (!tableMenu || isUngrouped || !currentGroup || descendantSubGroups.length === 0) return [];
+		return [currentGroup, ...descendantSubGroups.map((d) => d.group)];
+	});
+
+	const openGroupMoveTargets = $derived.by(() => {
+		if (!groupMenu || groupMenu.isTopParent || !currentGroup) return [];
+		const blocked = new Set<string>([groupMenu.groupId]);
+		let added = true;
+		while (added) {
+			added = false;
+			for (const d of descendantSubGroups) {
+				if (d.group.parent_id && blocked.has(d.group.parent_id) && !blocked.has(d.group.id)) {
+					blocked.add(d.group.id);
+					added = true;
+				}
+			}
+		}
+		return [currentGroup, ...descendantSubGroups.map((d) => d.group)].filter(
+			(g) => !blocked.has(g.id)
+		);
+	});
+
+	const sidebarSections = $derived.by(() => {
 		const q = tableListSearch.trim().toLowerCase();
-		if (!q) return groupAllTables;
-		return groupAllTables.filter((t) => t.name.toLowerCase().includes(q));
+		const filterTables = (list: ErTable[]) => {
+			const sorted = [...list].sort((a, b) => a.name.localeCompare(b.name));
+			return q ? sorted.filter((t) => t.name.toLowerCase().includes(q)) : sorted;
+		};
+
+		if (isUngrouped) {
+			return [
+				{
+					key: UNGROUPED_KEY,
+					name: 'Ungrouped',
+					color: '#94a3b8',
+					depth: 0,
+					parentId: null as string | null,
+					isTopParent: true,
+					isSubGroup: false,
+					tables: filterTables(erStore.tablesByGroup[UNGROUPED_KEY] ?? [])
+				}
+			];
+		}
+
+		const sections: Array<{
+			key: string;
+			name: string;
+			color: string;
+			depth: number;
+			parentId: string | null;
+			isTopParent: boolean;
+			isSubGroup: boolean;
+			tables: ErTable[];
+		}> = [];
+
+		if (currentGroup) {
+			sections.push({
+				key: currentGroup.id,
+				name: currentGroup.name,
+				color: COLOR_HEX[currentGroup.color] ?? '#94a3b8',
+				depth: 0,
+				parentId: currentGroup.parent_id,
+				isTopParent: true,
+				isSubGroup: false,
+				tables: filterTables(erStore.tablesByGroup[currentGroup.id] ?? [])
+			});
+		}
+
+		for (const { group: sub, depth } of descendantSubGroups) {
+			sections.push({
+				key: sub.id,
+				name: sub.name,
+				color: COLOR_HEX[sub.color] ?? '#94a3b8',
+				depth,
+				parentId: sub.parent_id,
+				isTopParent: false,
+				isSubGroup: true,
+				tables: filterTables(erStore.tablesByGroup[sub.id] ?? [])
+			});
+		}
+
+		return q ? sections.filter((s) => s.tables.length > 0) : sections;
 	});
 
 	const viewCacheKey = $derived(`${diagramId}:${groupIdParam}:${focusedTableId ?? 'all'}`);
@@ -404,6 +644,21 @@
 		erStore.setCachedPositions(viewCacheKey, toCache);
 	}
 
+	async function handleDeleteCurrentGroup() {
+		if (isUngrouped || !currentGroup || deletingGroup) return;
+		deletingGroup = true;
+		const returnUrl = parentGroup
+			? `/erd/${diagramId}/groups/${parentGroup.id}`
+			: `/erd/${diagramId}`;
+		try {
+			await erStore.deleteGroup(currentGroup.id);
+			showDeleteGroupConfirm = false;
+			await goto(returnUrl);
+		} finally {
+			deletingGroup = false;
+		}
+	}
+
 	async function handleExportSql() {
 		const activeKeys = isUngrouped
 			? [UNGROUPED_KEY]
@@ -431,98 +686,57 @@
 <div class="erd-workspace">
 	<header class="erd-header">
 		<div class="erd-tier-1">
-			<nav class="erd-breadcrumb" aria-label="Breadcrumb">
-				<a href="/erd" class="erd-crumb-link">ER Study</a>
-				<span class="erd-crumb-sep">/</span>
-				<a href="/erd/{diagramId}" class="erd-crumb-link">
-					{erStore.activeDiagram?.name ?? 'Diagram'}
-				</a>
-				{#if parentGroup}
-					<span class="erd-crumb-sep">/</span>
-					<a href="/erd/{diagramId}/groups/{parentGroup.id}" class="erd-crumb-link">
-						{parentGroup.name}
-					</a>
-				{/if}
-				<span class="erd-crumb-sep">/</span>
-				<h1 class="erd-crumb-current">
-					{isUngrouped ? 'Ungrouped' : (currentGroup?.name ?? 'Group')}
-				</h1>
-			</nav>
-
-			<div class="erd-actions">
+			<div class="erd-topbar-left">
 				<button
 					type="button"
-					class="erd-btn erd-btn-ghost"
+					class="erd-sidebar-toggle"
+					class:active={showLeftPanel}
+					title={showLeftPanel ? 'Hide Sidebar' : 'Show Sidebar'}
+					aria-label={showLeftPanel ? 'Hide Sidebar' : 'Show Sidebar'}
 					onclick={() => (showLeftPanel = !showLeftPanel)}
 				>
-					{showLeftPanel ? 'Hide List' : `Tables (${groupAllTables.length})`}
+					<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+						<rect x="2" y="2.5" width="12" height="11" rx="1.5" />
+						<path d="M6 2.5v11" />
+						{#if showLeftPanel}
+							<rect x="2.5" y="3" width="3.5" height="10" fill="currentColor" stroke="none" opacity="0.35" />
+						{/if}
+					</svg>
 				</button>
-				{#if !isUngrouped && !parentGroup}
-					<button
-						type="button"
-						class="erd-btn erd-btn-secondary"
-						onclick={() => (showNewGroupModal = true)}
-					>
-						+ Sub-Group
-					</button>
-				{/if}
-				{#if !isUngrouped}
-					<button
-						type="button"
-						class="erd-btn erd-btn-secondary"
-						onclick={() => (showAddExistingModal = true)}
-					>
-						+ Add Existing
-					</button>
-				{/if}
-				<button type="button" class="erd-btn erd-btn-primary" onclick={openNewTableDrawer}>
-					+ New Table
-				</button>
-				<button type="button" class="erd-btn erd-btn-ghost" onclick={handleAddStickyNote}>
-					+ Sticky Note
-				</button>
-				<button
-					type="button"
-					class="erd-btn erd-btn-ghost"
-					onclick={() => (erStore.expandAllTables = !erStore.expandAllTables)}
-				>
-					{erStore.expandAllTables ? 'Collapse All' : 'Expand All'}
-				</button>
-				<button
-					type="button"
-					class="erd-btn erd-btn-ghost"
-					onclick={() => (showEdgeLabels = !showEdgeLabels)}
-				>
-					{showEdgeLabels ? 'Hide FK Labels' : 'FK Labels'}
-				</button>
-				<button
-					type="button"
-					class="erd-btn erd-btn-ghost"
-					disabled={autoLayingOut}
-					onclick={handleAutoLayout}
-				>
-					{autoLayingOut ? 'Arranging...' : 'Auto Layout'}
-				</button>
-				<button type="button" class="erd-btn erd-btn-ghost" onclick={handleExportSql}>
-					{exportCopied ? 'Copied SQL!' : 'Export SQL'}
-				</button>
-			</div>
-		</div>
-
-		{#if childSubGroups.length > 0}
-			<div class="erd-subgroups-strip">
-				{#each childSubGroups as sub (sub.id)}
-					<a href="/erd/{diagramId}/groups/{sub.id}" class="erd-sub-card">
-						<span
-							class="erd-sub-dot"
-							style:background={COLOR_HEX[sub.color] ?? COLOR_HEX.slate}
-						></span>
-						<span class="erd-sub-name">{sub.name}</span>
-						<span class="erd-sub-count">{erStore.groupCounts[sub.id] ?? 0}</span>
+				<nav class="erd-breadcrumb" aria-label="Breadcrumb">
+					<a href="/erd" class="erd-crumb-link">ER Study</a>
+					<span class="erd-crumb-sep">/</span>
+					<a href="/erd/{diagramId}" class="erd-crumb-link">
+						{erStore.activeDiagram?.name ?? 'Diagram'}
 					</a>
-				{/each}
+					{#if parentGroup}
+						<span class="erd-crumb-sep">/</span>
+						<a href="/erd/{diagramId}/groups/{parentGroup.id}" class="erd-crumb-link">
+							{parentGroup.name}
+						</a>
+					{/if}
+					<span class="erd-crumb-sep">/</span>
+					<h1 class="erd-crumb-current">
+						{isUngrouped ? 'Ungrouped' : (currentGroup?.name ?? 'Group')}
+					</h1>
+				</nav>
 			</div>
-		{/if}
+
+			{#if childSubGroups.length > 0}
+				<div class="erd-subgroups-strip">
+					{#each childSubGroups as sub (sub.id)}
+						<a href="/erd/{diagramId}/groups/{sub.id}" class="erd-sub-card">
+							<span
+								class="erd-sub-dot"
+								style:background={COLOR_HEX[sub.color] ?? COLOR_HEX.slate}
+							></span>
+							<span class="erd-sub-name">{sub.name}</span>
+							<span class="erd-sub-count">{erStore.groupCounts[sub.id] ?? 0}</span>
+						</a>
+					{/each}
+				</div>
+			{/if}
+		</div>
 	</header>
 
 	<main class="erd-canvas-wrap">
@@ -534,6 +748,100 @@
 			{#if showLeftPanel}
 				<aside class="erd-left-panel" aria-label="Group Tables">
 					<div class="erd-left-header">
+						<div class="erd-left-title-row">
+							<span class="erd-left-title">Explorer</span>
+							<div class="erd-left-actions">
+								<button
+									type="button"
+									class="erd-left-icon-btn"
+									title="New Table"
+									aria-label="New Table"
+									onclick={() => {
+										tableDrawerGroupKey = groupIdParam;
+										editingTable = null;
+										showTableDrawer = true;
+									}}
+								>
+									<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+										<path d="M9 2H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6z" />
+										<path d="M9 2v4h4M8 8.5v3M6.5 10h3" />
+									</svg>
+								</button>
+								{#if !isUngrouped}
+									<button
+										type="button"
+										class="erd-left-icon-btn"
+										title="New Sub-Group"
+										aria-label="New Sub-Group"
+										onclick={() => {
+											editingCurrentGroup = false;
+											showNewGroupModal = true;
+										}}
+									>
+										<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+											<path d="M2 4.5A1.5 1.5 0 0 1 3.5 3H6l1.3 1.5h5.2A1.5 1.5 0 0 1 14 6v6a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12z" />
+											<path d="M8 7.5v3M6.5 9h3" />
+										</svg>
+									</button>
+								{/if}
+								<button
+									type="button"
+									class="erd-left-icon-btn"
+									title={allSidebarCollapsed ? 'Expand All' : 'Collapse All'}
+									aria-label={allSidebarCollapsed ? 'Expand All' : 'Collapse All'}
+									onclick={toggleCollapseAllSidebar}
+								>
+									{#if allSidebarCollapsed}
+										<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+											<path d="M4 5.5 8 9l4-3.5M4 9.5 8 13l4-3.5" />
+										</svg>
+									{:else}
+										<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+											<path d="M4 10.5 8 7l4 3.5M4 6.5 8 3l4 3.5" />
+										</svg>
+									{/if}
+								</button>
+								<button
+									type="button"
+									class="erd-left-icon-btn"
+									class:active={erStore.expandAllTables}
+									title={erStore.expandAllTables ? 'Collapse All Tables' : 'Expand All Tables'}
+									aria-label={erStore.expandAllTables ? 'Collapse All Tables' : 'Expand All Tables'}
+									onclick={() => (erStore.expandAllTables = !erStore.expandAllTables)}
+								>
+									<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+										<rect x="2.5" y="2.5" width="11" height="11" rx="1.2" />
+										<path d="M2.5 6h11M6.5 6v7.5" />
+									</svg>
+								</button>
+								<button
+									type="button"
+									class="erd-left-icon-btn"
+									title="Auto Layout"
+									aria-label="Auto Layout"
+									disabled={autoLayingOut}
+									onclick={handleAutoLayout}
+								>
+									<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+										<rect x="2.5" y="2.5" width="4.5" height="4.5" rx="0.8" />
+										<rect x="9" y="2.5" width="4.5" height="4.5" rx="0.8" />
+										<rect x="5.75" y="9" width="4.5" height="4.5" rx="0.8" />
+									</svg>
+								</button>
+								<button
+									type="button"
+									class="erd-left-icon-btn"
+									class:active={exportCopied}
+									title={exportCopied ? 'Copied SQL!' : 'Export SQL'}
+									aria-label={exportCopied ? 'Copied SQL!' : 'Export SQL'}
+									onclick={handleExportSql}
+								>
+									<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+										<path d="M8 2.5v7.5M5 7l3 3 3-3M3 12.5h10" />
+									</svg>
+								</button>
+							</div>
+						</div>
 						<input
 							type="search"
 							class="erd-left-search"
@@ -550,24 +858,82 @@
 							</button>
 						{/if}
 					</div>
-					<ul class="erd-left-list">
-						{#each filteredSidebarTables as t (t.id)}
-							<li>
-								<button
-									type="button"
-									class="erd-left-item"
-									class:active={focusedTableId === t.id}
-									onclick={() =>
-										(focusedTableId = focusedTableId === t.id ? null : t.id)}
-								>
-									<span class="erd-left-name">{t.name}</span>
-									<span class="erd-left-count">{t.columns.length}</span>
-								</button>
-							</li>
+					<div class="erd-left-list">
+						{#if sidebarSections.every((s) => s.tables.length === 0) && sidebarSections.length <= 1}
+							<div class="erd-left-empty">No tables</div>
 						{:else}
-							<li class="erd-left-empty">No tables</li>
-						{/each}
-					</ul>
+							{#each sidebarSections as section (section.key)}
+								{@const isCollapsed = !!collapsedSidebarGroups[section.key]}
+								<div
+									class="erd-left-section"
+									class:is-nested={section.depth > 0}
+									style:margin-left="{section.depth * 14}px"
+								>
+									<div class="erd-left-group-row">
+										{#if renamingGroupId === section.key}
+											<input
+												type="text"
+												class="erd-left-rename-input"
+												bind:value={renameGroupDraft}
+												onblur={commitGroupRename}
+												onkeydown={(e) => {
+													if (e.key === 'Enter') commitGroupRename();
+													if (e.key === 'Escape') renamingGroupId = null;
+												}}
+											/>
+										{:else}
+											<button
+												type="button"
+												class="erd-left-group-btn"
+												onclick={() =>
+													(collapsedSidebarGroups = {
+														...collapsedSidebarGroups,
+														[section.key]: !isCollapsed
+													})}
+												oncontextmenu={(e) => openGroupMenu(e, section)}
+											>
+												<span class="erd-left-caret">{isCollapsed ? '▸' : '▾'}</span>
+												<span class="erd-left-dot" style:background={section.color}></span>
+												<span class="erd-left-group-name">{section.name}</span>
+												<span class="erd-left-count">{section.tables.length}</span>
+											</button>
+											{#if section.isSubGroup}
+												<button
+													type="button"
+													class="erd-left-open-btn"
+													title={`Open ${section.name}`}
+													onclick={() => goto(`/erd/${diagramId}/groups/${section.key}`)}
+												>
+													↗
+												</button>
+											{/if}
+										{/if}
+									</div>
+									{#if !isCollapsed}
+										<ul class="erd-left-sublist">
+											{#each section.tables as t (`${section.key}:${t.id}`)}
+												<li>
+													<button
+														type="button"
+														class="erd-left-item"
+														class:active={focusedTableId === t.id}
+														onclick={() =>
+															(focusedTableId = focusedTableId === t.id ? null : t.id)}
+														oncontextmenu={(e) => openTableMenu(e, t, section.key)}
+													>
+														<span class="erd-left-name">{t.name}</span>
+														<span class="erd-left-count">{t.columns.length}</span>
+													</button>
+												</li>
+											{:else}
+												<li class="erd-left-subempty">Empty</li>
+											{/each}
+										</ul>
+									{/if}
+								</div>
+							{/each}
+						{/if}
+					</div>
 				</aside>
 			{/if}
 
@@ -594,9 +960,12 @@
 			<TableEditorDrawer
 				open={showTableDrawer}
 				editTable={editingTable}
+				defaultGroupKey={tableDrawerGroupKey}
+				onSaved={scheduleAutoLayout}
 				onClose={() => {
 					showTableDrawer = false;
 					editingTable = null;
+					tableDrawerGroupKey = undefined;
 				}}
 			/>
 		</div>
@@ -604,14 +973,189 @@
 
 	<NewGroupModal
 		open={showNewGroupModal}
-		onClose={() => (showNewGroupModal = false)}
+		defaultParentId={editingCurrentGroup || isUngrouped ? null : groupIdParam}
+		editGroup={editingCurrentGroup ? currentGroup : null}
+		onClose={() => {
+			showNewGroupModal = false;
+			editingCurrentGroup = false;
+		}}
 	/>
 
 	<AddExistingTableModal
 		open={showAddExistingModal}
 		onClose={() => (showAddExistingModal = false)}
 	/>
+
+	{#if showDeleteGroupConfirm && currentGroup}
+		<div
+			class="erd-modal-backdrop"
+			role="presentation"
+			onclick={() => !deletingGroup && (showDeleteGroupConfirm = false)}
+		>
+			<div
+				class="erd-confirm-modal"
+				role="dialog"
+				aria-modal="true"
+				aria-label="Delete Group"
+				tabindex="-1"
+				onclick={(e) => e.stopPropagation()}
+				onkeydown={(e) => e.key === 'Escape' && !deletingGroup && (showDeleteGroupConfirm = false)}
+			>
+				<h2>Delete {parentGroup ? 'Sub-Group' : 'Group'}</h2>
+				<p>
+					Delete <strong>{currentGroup.name}</strong>{childSubGroups.length > 0
+						? ` and its ${childSubGroups.length} sub-group(s)`
+						: ''}? Underlying tables are preserved.
+				</p>
+				<div class="erd-confirm-actions">
+					<button
+						type="button"
+						class="erd-btn erd-btn-ghost"
+						disabled={deletingGroup}
+						onclick={() => (showDeleteGroupConfirm = false)}
+					>
+						Cancel
+					</button>
+					<button
+						type="button"
+						class="erd-btn erd-btn-danger"
+						disabled={deletingGroup}
+						onclick={handleDeleteCurrentGroup}
+					>
+						{deletingGroup ? 'Deleting...' : 'Delete'}
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
 </div>
+
+<svelte:window
+	onclick={() => {
+		tableMenu = null;
+		groupMenu = null;
+		showMoveSubmenu = false;
+		showGroupMoveSubmenu = false;
+	}}
+	onkeydown={(e) => {
+		if (e.key === 'Escape') {
+			tableMenu = null;
+			groupMenu = null;
+			showMoveSubmenu = false;
+			showGroupMoveSubmenu = false;
+		}
+	}}
+/>
+
+{#if tableMenu}
+	<div
+		class="erd-context-menu"
+		role="menu"
+		tabindex="-1"
+		style:left="{tableMenu.x}px"
+		style:top="{tableMenu.y}px"
+		onclick={(e) => e.stopPropagation()}
+		onkeydown={(e) => e.key === 'Escape' && (tableMenu = null)}
+	>
+		<div class="erd-context-title">{tableMenu.table.name}</div>
+		<button
+			type="button"
+			class="erd-context-item"
+			role="menuitem"
+			onclick={handleEditMenuTable}
+		>
+			Edit
+		</button>
+		{#if openTableMoveTargets.length > 0}
+			<button
+				type="button"
+				class="erd-context-item"
+				role="menuitem"
+				onclick={() => (showMoveSubmenu = !showMoveSubmenu)}
+			>
+				<span>Move</span>
+				<span class="erd-context-arrow">{showMoveSubmenu ? '▾' : '▸'}</span>
+			</button>
+			{#if showMoveSubmenu}
+				<div class="erd-context-sub">
+					{#each openTableMoveTargets as grp (grp.id)}
+						<button
+							type="button"
+							class="erd-context-subitem"
+							disabled={tableMenu.sectionKey === grp.id}
+							onclick={() => handleMoveTableTo(grp.id)}
+						>
+							{grp.name}
+						</button>
+					{/each}
+				</div>
+			{/if}
+		{/if}
+		<button
+			type="button"
+			class="erd-context-item erd-context-danger"
+			role="menuitem"
+			onclick={handleDeleteMenuTable}
+		>
+			Delete
+		</button>
+	</div>
+{/if}
+
+{#if groupMenu}
+	<div
+		class="erd-context-menu"
+		role="menu"
+		tabindex="-1"
+		style:left="{groupMenu.x}px"
+		style:top="{groupMenu.y}px"
+		onclick={(e) => e.stopPropagation()}
+		onkeydown={(e) => e.key === 'Escape' && (groupMenu = null)}
+	>
+		<div class="erd-context-title">{groupMenu.name}</div>
+		<button
+			type="button"
+			class="erd-context-item"
+			role="menuitem"
+			onclick={handleAddTableInGroup}
+		>
+			Add Table
+		</button>
+		<button
+			type="button"
+			class="erd-context-item"
+			role="menuitem"
+			onclick={startGroupRename}
+		>
+			Rename
+		</button>
+		{#if !groupMenu.isTopParent}
+			<button
+				type="button"
+				class="erd-context-item"
+				role="menuitem"
+				onclick={() => (showGroupMoveSubmenu = !showGroupMoveSubmenu)}
+			>
+				<span>Move</span>
+				<span class="erd-context-arrow">{showGroupMoveSubmenu ? '▾' : '▸'}</span>
+			</button>
+			{#if showGroupMoveSubmenu}
+				<div class="erd-context-sub">
+					{#each openGroupMoveTargets as target (target.id)}
+						<button
+							type="button"
+							class="erd-context-subitem"
+							disabled={groupMenu.parentId === target.id}
+							onclick={() => handleMoveGroupTo(target.id)}
+						>
+							{target.name}
+						</button>
+					{/each}
+				</div>
+			{/if}
+		{/if}
+	</div>
+{/if}
 
 <style>
 	.erd-workspace {
@@ -629,10 +1173,10 @@
 		min-width: 0;
 		background: var(--bg-secondary);
 		border-bottom: 1px solid var(--border-subtle);
-		padding: 8px 16px;
+		padding: 4px 10px;
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: 4px;
 		flex-shrink: 0;
 		box-sizing: border-box;
 	}
@@ -641,9 +1185,40 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 12px;
-		min-height: 32px;
-		flex-wrap: wrap;
+		gap: 10px;
+		min-height: 26px;
+		flex-wrap: nowrap;
+	}
+
+	.erd-topbar-left {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.erd-sidebar-toggle {
+		width: 26px;
+		height: 26px;
+		padding: 0;
+		border: 1px solid transparent;
+		border-radius: 5px;
+		background: transparent;
+		color: var(--text-secondary);
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+	}
+
+	.erd-sidebar-toggle:hover {
+		background: var(--bg-tertiary);
+		color: var(--text-primary);
+	}
+
+	.erd-sidebar-toggle.active {
+		color: var(--text-primary);
+		border-color: var(--border-subtle);
+		background: var(--bg-primary);
 	}
 
 	.erd-breadcrumb {
@@ -760,6 +1335,66 @@
 		color: var(--text-primary);
 	}
 
+	.erd-btn-danger-ghost {
+		background: transparent;
+		border-color: transparent;
+		color: #f87171;
+	}
+
+	.erd-btn-danger-ghost:hover {
+		background: rgba(239, 68, 68, 0.12);
+	}
+
+	.erd-btn-danger {
+		background: #dc2626;
+		border-color: #dc2626;
+		color: #ffffff;
+	}
+
+	.erd-modal-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 50;
+		background: rgba(0, 0, 0, 0.58);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 16px;
+	}
+
+	.erd-confirm-modal {
+		width: 100%;
+		max-width: 400px;
+		background: var(--bg-secondary);
+		border: 1px solid var(--border-subtle);
+		border-radius: 10px;
+		padding: 16px;
+		box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	.erd-confirm-modal h2 {
+		margin: 0;
+		font-size: 15px;
+		font-weight: 600;
+	}
+
+	.erd-confirm-modal p {
+		margin: 0;
+		font-size: 13px;
+		color: var(--text-secondary);
+		line-height: 1.45;
+	}
+
+	.erd-confirm-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 8px;
+		margin-top: 4px;
+	}
+
 	.erd-canvas-wrap {
 		position: relative;
 		flex: 1;
@@ -791,6 +1426,57 @@
 		gap: 6px;
 	}
 
+	.erd-left-title-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 4px;
+	}
+
+	.erd-left-title {
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-secondary);
+		padding-left: 2px;
+	}
+
+	.erd-left-actions {
+		display: flex;
+		align-items: center;
+		gap: 2px;
+	}
+
+	.erd-left-icon-btn {
+		width: 22px;
+		height: 22px;
+		padding: 0;
+		border: none;
+		border-radius: 4px;
+		background: transparent;
+		color: var(--text-secondary);
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+	}
+
+	.erd-left-icon-btn:hover:not(:disabled) {
+		background: var(--bg-tertiary);
+		color: var(--text-primary);
+	}
+
+	.erd-left-icon-btn.active {
+		background: var(--bg-tertiary);
+		color: var(--primary);
+	}
+
+	.erd-left-icon-btn:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
 	.erd-left-search {
 		width: 100%;
 		height: 28px;
@@ -816,14 +1502,214 @@
 	}
 
 	.erd-left-list {
-		list-style: none;
-		margin: 0;
 		padding: 4px;
 		flex: 1;
 		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
+		gap: 6px;
+	}
+
+	.erd-left-section {
+		display: flex;
+		flex-direction: column;
 		gap: 2px;
+	}
+
+	.erd-left-section.is-nested {
+		padding-left: 6px;
+		border-left: 1px solid var(--border-subtle);
+	}
+
+	.erd-left-group-row {
+		display: flex;
+		align-items: center;
+		gap: 2px;
+	}
+
+	.erd-left-rename-input {
+		flex: 1;
+		min-width: 0;
+		height: 24px;
+		padding: 0 6px;
+		border-radius: 4px;
+		border: 1px solid var(--primary);
+		background: var(--bg-primary);
+		color: var(--text-primary);
+		font-size: 11px;
+		font-weight: 600;
+		outline: none;
+	}
+
+	.erd-left-group-btn {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		padding: 4px 6px;
+		border: none;
+		border-radius: 4px;
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: 11px;
+		font-weight: 600;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.erd-left-group-btn:hover {
+		background: var(--bg-tertiary);
+		color: var(--text-primary);
+	}
+
+	.erd-left-caret {
+		font-size: 10px;
+		width: 10px;
+		flex-shrink: 0;
+	}
+
+	.erd-left-dot {
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		flex-shrink: 0;
+	}
+
+	.erd-left-group-name {
+		flex: 1;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.erd-left-open-btn {
+		width: 22px;
+		height: 22px;
+		padding: 0;
+		border: none;
+		border-radius: 4px;
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: 11px;
+		cursor: pointer;
+		flex-shrink: 0;
+	}
+
+	.erd-left-open-btn:hover {
+		background: var(--bg-tertiary);
+		color: var(--text-primary);
+	}
+
+	.erd-left-sublist {
+		list-style: none;
+		margin: 0 0 0 11px;
+		padding: 0 0 0 8px;
+		border-left: 1px solid var(--border-subtle);
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+	}
+
+	.erd-left-subempty {
+		padding: 3px 8px;
+		font-size: 11px;
+		color: var(--text-secondary);
+		opacity: 0.7;
+	}
+
+	.erd-context-menu {
+		position: fixed;
+		z-index: 60;
+		width: 196px;
+		padding: 4px;
+		border-radius: 6px;
+		background: var(--bg-secondary);
+		border: 1px solid var(--border-subtle);
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.erd-context-title {
+		padding: 4px 8px;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+		font-size: 11px;
+		font-weight: 600;
+		color: var(--text-secondary);
+		border-bottom: 1px solid var(--border-subtle);
+		margin-bottom: 2px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.erd-context-item {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 6px 8px;
+		border: none;
+		border-radius: 4px;
+		background: transparent;
+		color: var(--text-primary);
+		font-size: 12px;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.erd-context-item:hover {
+		background: var(--bg-tertiary);
+	}
+
+	.erd-context-danger {
+		color: #f87171;
+	}
+
+	.erd-context-danger:hover {
+		background: rgba(239, 68, 68, 0.14);
+	}
+
+	.erd-context-arrow {
+		font-size: 10px;
+		color: var(--text-secondary);
+	}
+
+	.erd-context-sub {
+		max-height: 180px;
+		overflow-y: auto;
+		padding: 2px 0 2px 8px;
+		border-left: 1px solid var(--border-subtle);
+		margin-left: 6px;
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+	}
+
+	.erd-context-subitem {
+		width: 100%;
+		padding: 4px 8px;
+		border: none;
+		border-radius: 4px;
+		background: transparent;
+		color: var(--text-primary);
+		font-size: 11px;
+		text-align: left;
+		cursor: pointer;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.erd-context-subitem:hover:not(:disabled) {
+		background: var(--bg-tertiary);
+	}
+
+	.erd-context-subitem:disabled {
+		opacity: 0.4;
+		cursor: default;
 	}
 
 	.erd-left-item {

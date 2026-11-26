@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { exportTablesToSql, parseGroupHierarchyInput, parseSqlDdl } from './sql-er-parser';
+import {
+	exportTablesToSql,
+	exportTableToShorthand,
+	parseGroupHierarchyInput,
+	parseSqlDdl,
+	parseTableInput
+} from './sql-er-parser';
 import type { ErTable } from '$lib/types/er';
 
 describe('sql-er-parser', () => {
@@ -130,5 +136,48 @@ describe('sql-er-parser', () => {
 		const fromJson = parseGroupHierarchyInput(json);
 		expect(fromJson[0].name).toBe('Orders');
 		expect(fromJson[0].subgroups[0].tables).toEqual(['shop_orders', 'customer_groups']);
+	});
+
+	it('parses and exports compact table shorthand', () => {
+		const shorthand = `
+pp_people_groups
+  id bigint pk
+  tenant_id uuid -> tenants.id
+  name text
+  type enum(supplier, customer)
+  deleted_at timestamptz?
+`;
+		const parsed = parseTableInput(shorthand);
+		expect(parsed.tables).toHaveLength(1);
+		expect(parsed.tables[0].name).toBe('pp_people_groups');
+		expect(parsed.tables[0].columns[0]).toMatchObject({ name: 'id', type: 'bigint', is_pk: true });
+		expect(parsed.tables[0].columns[1]).toMatchObject({
+			name: 'tenant_id',
+			type: 'uuid',
+			fk_target: { table: 'tenants', column: 'id' }
+		});
+		expect(parsed.tables[0].columns[3]).toMatchObject({
+			name: 'type',
+			type: 'enum(supplier, customer)'
+		});
+		expect(parsed.tables[0].columns[4]).toMatchObject({
+			name: 'deleted_at',
+			type: 'timestamptz',
+			nullable: true
+		});
+
+		const exported = exportTableToShorthand({
+			id: '1',
+			diagram_id: 'd1',
+			group_id: null,
+			user_id: 'u1',
+			...parsed.tables[0],
+			position: { x: 0, y: 0 },
+			created_at: '',
+			updated_at: ''
+		});
+		expect(exported).toContain('id bigint pk');
+		expect(exported).toContain('tenant_id uuid -> tenants');
+		expect(exported).toContain('deleted_at timestamptz ?');
 	});
 });
